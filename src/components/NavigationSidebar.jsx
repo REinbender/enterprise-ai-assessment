@@ -81,14 +81,14 @@ export default function NavigationSidebar({
               {/* Status indicator */}
               <div
                 className="sidebar-step-indicator"
-                style={isComplete ? { background: color || '#10B981' } : isCurrent ? { background: color || '#4F46E5', opacity: 0.15 } : {}}
+                style={isComplete ? { background: color || '#10B981' } : isCurrent ? { background: color || '#2EA3F2', opacity: 0.15 } : {}}
               >
                 {isComplete ? (
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                     <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 ) : (
-                  <span className="sidebar-step-num" style={isCurrent ? { color: color || '#4F46E5' } : {}}>
+                  <span className="sidebar-step-num" style={isCurrent ? { color: color || '#2EA3F2' } : {}}>
                     {step}
                   </span>
                 )}
@@ -121,8 +121,8 @@ export default function NavigationSidebar({
 
       {/* Version badge */}
       <div className="sidebar-footer">
-        <span className="sidebar-version">v1.1.0</span>
-        <span className="sidebar-version-label">75 questions · 5 dimensions</span>
+        <span className="sidebar-version">v1.2.0</span>
+        <span className="sidebar-version-label">60 questions · 5 dimensions</span>
       </div>
     </aside>
   )

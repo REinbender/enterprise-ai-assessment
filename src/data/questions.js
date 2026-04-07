@@ -1,16 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Enterprise AI Readiness Assessment — Question Bank v1.1.0
-// Each question carries 5 behaviorally-anchored score descriptors so that
-// respondents rate against observable evidence, not vague impressions.
+// Enterprise AI Readiness Assessment — Question Bank v1.2.0
+// 12 questions per dimension (60 total) — curated for maximum diagnostic value
+// within a 3-week client engagement. Each question carries 5 behaviorally-
+// anchored score descriptors so respondents rate against observable evidence.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const dimensions = [
+  // ─── DIMENSION 1 ─────────────────────────────────────────────────────────
   {
     id: 1,
     name: 'AI Strategy & Value Realization',
     shortName: 'Strategy',
-    color: '#4F46E5',
-    bgColor: '#EEF2FF',
+    color: '#2EA3F2',
+    bgColor: '#E8F4FD',
     description:
       'Assesses whether AI is strategically anchored to business goals, sponsored at the executive level, and delivering measurable value.',
     questions: [
@@ -95,16 +97,6 @@ export const dimensions = [
         },
       },
       {
-        text: 'We have achieved measurable, repeatable results from AI initiatives beyond pilot stage.',
-        anchors: {
-          1: 'No AI initiative has reached production or delivered measurable business value. Activity is limited to exploration or proof-of-concept.',
-          2: '1–2 AI pilots have been completed with some measured outcomes, but none have been scaled to production or replicated across the organization.',
-          3: 'Several AI initiatives are in production and have delivered measured value, but scaling is inconsistent and results are not yet repeatable across business units.',
-          4: 'Multiple AI initiatives are live in production across at least two business units with documented, repeatable business impact. A scaling playbook exists.',
-          5: 'AI is delivering measurable business value at scale across multiple business units. A proven, repeatable model for taking AI from concept to production value exists and is continuously optimized.',
-        },
-      },
-      {
         text: 'There is a dedicated and sufficient budget allocated specifically to AI initiatives.',
         anchors: {
           1: 'No dedicated AI budget exists. AI work is funded opportunistically from project budgets or discretionary spend.',
@@ -135,16 +127,6 @@ export const dimensions = [
         },
       },
       {
-        text: 'We have an ecosystem and partnership strategy to augment internal AI capabilities.',
-        anchors: {
-          1: 'No ecosystem strategy exists. External AI capabilities are engaged purely reactively (e.g., responding to vendor pitches).',
-          2: 'The organization works with 1–2 AI vendors but these relationships are transactional and not strategically managed as part of a broader ecosystem approach.',
-          3: 'A loose vendor and partner landscape has been mapped, but there is no formal ecosystem strategy, preferred partner program, or structured management of external AI relationships.',
-          4: 'A documented AI ecosystem strategy identifies preferred partners across key capability areas (e.g., cloud, data, specialized AI). Partnerships are managed with defined governance and mutual roadmaps.',
-          5: 'A mature AI ecosystem strategy includes strategic partnerships, startup/accelerator relationships, academic collaborations, and open-source contributions. Partner value is measured and the ecosystem is actively cultivated as a competitive asset.',
-        },
-      },
-      {
         text: 'Leadership broadly understands both the potential and the limitations of AI.',
         anchors: {
           1: 'Leadership has minimal AI literacy. Expectations are either unrealistically high (AI as a silver bullet) or dismissively low. Decisions are made without understanding AI constraints.',
@@ -154,26 +136,16 @@ export const dimensions = [
           5: 'Leadership AI literacy is a defined competency assessed annually. All leaders can critically evaluate AI proposals, challenge vendor claims, articulate responsible AI requirements, and translate AI capabilities into business strategy.',
         },
       },
-      {
-        text: 'We have a process to communicate AI value and progress to all key stakeholders.',
-        anchors: {
-          1: 'No structured AI communications process exists. Stakeholders learn about AI progress through informal channels or not at all.',
-          2: 'Ad-hoc updates on major AI initiatives are shared occasionally but there is no defined audience, format, or cadence.',
-          3: 'Periodic AI progress updates are shared with some stakeholders, but coverage is inconsistent and the format varies making it difficult to track progress over time.',
-          4: 'A structured AI communications cadence delivers regular updates (at least quarterly) to defined stakeholder groups using consistent formats that track KPIs and milestones.',
-          5: 'A comprehensive AI communications program includes executive briefings, all-hands updates, an internal AI newsletter/portal, and external communications. All stakeholders receive tailored, relevant updates on a predictable cadence.',
-        },
-      },
     ],
   },
 
-  // ─── DIMENSION 2 ───────────────────────────────────────────────────────────
+  // ─── DIMENSION 2 ─────────────────────────────────────────────────────────
   {
     id: 2,
     name: 'Data & Infrastructure Readiness',
     shortName: 'Data',
-    color: '#0EA5E9',
-    bgColor: '#F0F9FF',
+    color: '#17A589',
+    bgColor: '#E8F8F5',
     description:
       'Evaluates the quality, accessibility, governance, and scalability of data and technical infrastructure to support AI workloads.',
     questions: [
@@ -258,23 +230,13 @@ export const dimensions = [
         },
       },
       {
-        text: 'We have established processes for data labeling and annotation at the scale AI requires.',
-        anchors: {
-          1: 'No data labeling capability or process exists. Labeled datasets for supervised learning must be sourced externally or created manually with no tooling.',
-          2: 'Ad-hoc labeling occurs for individual projects using manual methods (e.g., spreadsheets), but there is no standard tooling, quality control, or scalable process.',
-          3: 'A data labeling tool is in use for some projects, with basic quality control (e.g., inter-annotator agreement), but the process is not standardized across the organization.',
-          4: 'A standardized data labeling platform supports multiple projects with defined annotation guidelines, quality review workflows, and the ability to leverage both internal and external annotators.',
-          5: 'An enterprise labeling operation combines automated pre-labeling (active learning), a governed internal annotation team, and vetted external vendors. Quality metrics, throughput SLAs, and cost-per-label tracking are standard.',
-        },
-      },
-      {
         text: 'Sensitive and regulated data is properly identified, classified, and protected throughout its lifecycle.',
         anchors: {
           1: 'No data classification scheme exists. Sensitive data (PII, PHI, financial) is handled inconsistently with no systematic identification or protection controls.',
           2: 'Sensitive data is informally identified in some areas, but classification is incomplete, inconsistently applied, and protection controls are not systematically enforced.',
           3: 'A data classification policy exists with defined categories, and the majority of known sensitive data has been classified, but automated discovery and enforcement are limited.',
           4: 'Comprehensive data classification covers all known sensitive data types. Classification is enforced through access controls, encryption, masking, and is integrated into the data pipeline lifecycle.',
-          5: 'Automated data discovery and classification tools continuously scan all data stores to identify sensitive data. Classification-driven controls (encryption, masking, access restrictions, retention) are enforced in real time and audited quarterly. AI training data undergoes specific sensitivity review.',
+          5: 'Automated data discovery and classification tools continuously scan all data stores. Classification-driven controls are enforced in real time and audited quarterly. AI training data undergoes specific sensitivity review.',
         },
       },
       {
@@ -290,11 +252,11 @@ export const dimensions = [
       {
         text: 'We have monitoring in place for data quality degradation and pipeline health.',
         anchors: {
-          1: 'No monitoring exists. Data quality issues and pipeline failures are discovered by downstream consumers — often after business impact has already occurred.',
+          1: 'No monitoring exists. Data quality issues and pipeline failures are discovered by downstream consumers after business impact has already occurred.',
           2: 'Basic pipeline failure alerts exist (e.g., job completion notifications) but there is no proactive data quality monitoring or anomaly detection.',
           3: 'Pipeline monitoring covers job completion and basic SLA adherence. Some data quality checks are run post-ingestion, but coverage is limited and alert fatigue is common.',
-          4: 'Comprehensive pipeline monitoring with SLA dashboards, automated data quality checks at ingestion, and proactive anomaly detection covers all production pipelines. An on-call rotation manages incidents.',
-          5: 'ML-driven data observability tools (e.g., Monte Carlo, Soda) provide end-to-end monitoring of data freshness, volume, schema, distribution, and lineage across all pipelines. Anomalies auto-trigger remediation workflows and are tracked to resolution.',
+          4: 'Comprehensive pipeline monitoring with SLA dashboards, automated data quality checks at ingestion, and proactive anomaly detection covers all production pipelines.',
+          5: 'ML-driven data observability tools provide end-to-end monitoring of data freshness, volume, schema, distribution, and lineage across all pipelines. Anomalies auto-trigger remediation workflows and are tracked to resolution.',
         },
       },
       {
@@ -307,36 +269,16 @@ export const dimensions = [
           5: 'AI infrastructure is fully elastic, cost-optimized, and governed by a mature FinOps practice that tracks cost-per-inference, cost-per-training-run, and ROI per AI workload. Infrastructure capacity planning is integrated into the AI roadmap process.',
         },
       },
-      {
-        text: 'We have a feature store or equivalent capability for sharing ML features across teams.',
-        anchors: {
-          1: 'No feature sharing mechanism exists. Each team recomputes features independently, leading to inconsistencies and duplicated effort.',
-          2: 'Some teams share feature code via shared repositories, but there is no runtime feature store, online serving capability, or governance for feature reuse.',
-          3: 'A feature store has been deployed and is used by one or two teams, but adoption is limited, feature discoverability is poor, and online/offline consistency is not guaranteed.',
-          4: 'An enterprise feature store is deployed with offline and online serving, feature versioning, monitoring, and governance. Multiple teams actively contribute to and consume from the shared feature repository.',
-          5: 'The feature store is a core platform component used by all AI/ML teams. It includes automated feature validation, backfill capabilities, point-in-time correct retrieval, usage analytics, and a feature marketplace for cross-team discovery and reuse.',
-        },
-      },
-      {
-        text: 'Data silos are actively being identified and reduced across the organization.',
-        anchors: {
-          1: 'Data silos are pervasive and no program to address them exists. Each business unit maintains separate, inaccessible data stores with no cross-organizational visibility.',
-          2: 'Leadership acknowledges data silos as a problem but no concrete program to address them has been initiated beyond ad-hoc point-to-point integrations.',
-          3: 'A data silo reduction initiative is underway and has produced a documented silo inventory, but progress is slow, gains are isolated to specific domains, and a comprehensive strategy is lacking.',
-          4: 'An active enterprise data integration program is systematically reducing silos by domain, with measurable progress tracked against a baseline silo inventory and executive reporting on reduction milestones.',
-          5: 'Data silo reduction is a funded, multi-year program with measurable KPIs (e.g., % of enterprise data accessible via governed APIs). A federated data architecture enables cross-domain data sharing while preserving domain ownership, and progress is reported at the board level.',
-        },
-      },
     ],
   },
 
-  // ─── DIMENSION 3 ───────────────────────────────────────────────────────────
+  // ─── DIMENSION 3 ─────────────────────────────────────────────────────────
   {
     id: 3,
     name: 'Governance & Compliance',
     shortName: 'Governance',
-    color: '#8B5CF6',
-    bgColor: '#F5F3FF',
+    color: '#8E44AD',
+    bgColor: '#F5EEF8',
     description:
       'Reviews the maturity of AI risk management, ethical frameworks, regulatory compliance, and audit capabilities.',
     questions: [
@@ -377,7 +319,7 @@ export const dimensions = [
           2: 'Bias is acknowledged as a risk and some teams informally check for it, but no standardized testing methodology, protected attribute coverage, or formal sign-off exists.',
           3: 'Bias testing is performed for high-risk models using defined metrics (e.g., demographic parity, equalized odds) but testing is pre-deployment only and lacks ongoing monitoring.',
           4: 'Formal bias and fairness testing is a required gate for all customer-facing and high-risk AI models, covering defined protected attributes. Post-deployment fairness monitoring is in place for key models.',
-          5: 'A comprehensive bias and fairness program uses multiple fairness metrics appropriate to each use case, tests across intersectional demographic combinations, includes external red-teaming for high-risk models, and continuously monitors production models for fairness drift. Findings are reported to the AI governance committee.',
+          5: 'A comprehensive bias and fairness program uses multiple fairness metrics appropriate to each use case, tests across intersectional demographic combinations, includes external red-teaming for high-risk models, and continuously monitors production models for fairness drift.',
         },
       },
       {
@@ -397,7 +339,7 @@ export const dimensions = [
           2: 'Technical owners (e.g., the team that built it) can be identified informally, but business ownership, executive accountability, and public-facing accountability are undefined.',
           3: 'An AI system registry exists with named technical owners, but business accountability (outcome owner) and escalation paths for incidents or harms are not clearly defined for all systems.',
           4: 'All production AI systems are registered with a named technical owner, business outcome owner, executive sponsor, and defined escalation path. Ownership is reviewed when systems are updated.',
-          5: 'A comprehensive AI system accountability matrix assigns clear roles (technical owner, business owner, risk owner, executive sponsor) for every AI system. Ownership is formally accepted, included in role descriptions, reviewed annually, and updated within 30 days of any significant system change.',
+          5: 'A comprehensive AI system accountability matrix assigns clear roles for every AI system. Ownership is formally accepted, included in role descriptions, reviewed annually, and updated within 30 days of any significant system change.',
         },
       },
       {
@@ -417,7 +359,7 @@ export const dimensions = [
           2: 'AI incidents are handled under the general IT incident response process, which does not address AI-specific scenarios such as biased outputs, unexplained decisions, or data poisoning.',
           3: 'AI-specific incident response procedures have been drafted but not tested, and coverage of AI-specific harm scenarios (e.g., discriminatory outputs, privacy breaches via inference) is incomplete.',
           4: 'Documented AI incident response plans cover the most material failure scenarios with defined severity levels, response SLAs, communication templates, and assigned response owners. Plans are tested annually.',
-          5: 'A comprehensive AI incident response framework covers technical failures, ethical harms, regulatory breaches, and reputational incidents. Playbooks are scenario-specific, tested via tabletop exercises bi-annually, and integrated with the enterprise crisis management process. Post-incident reviews drive systematic improvements.',
+          5: 'A comprehensive AI incident response framework covers technical failures, ethical harms, regulatory breaches, and reputational incidents. Playbooks are scenario-specific, tested via tabletop exercises bi-annually, and integrated with the enterprise crisis management process.',
         },
       },
       {
@@ -427,7 +369,7 @@ export const dimensions = [
           2: 'Informal reviews of AI outputs occur in some areas, but they are not structured, independent, or comprehensive enough to constitute a meaningful audit.',
           3: 'Annual audits occur for the highest-risk AI systems covering key metrics (accuracy, fairness) but independent review, downstream impact analysis, and audit documentation are limited.',
           4: 'Annual independent audits of all high-risk AI systems cover technical performance, fairness, explainability, and downstream business impacts. Findings are reported to governance bodies and remediation is tracked.',
-          5: 'A tiered audit program conducts risk-proportionate reviews: high-risk systems receive semi-annual independent audits, medium-risk systems annual reviews. Audits cover the full AI lifecycle, outputs are published in an internal transparency report, and critical findings trigger mandatory remediation within defined SLAs.',
+          5: 'A tiered audit program conducts risk-proportionate reviews. High-risk systems receive semi-annual independent audits, medium-risk systems annual reviews. Audits cover the full AI lifecycle and critical findings trigger mandatory remediation within defined SLAs.',
         },
       },
       {
@@ -437,7 +379,7 @@ export const dimensions = [
           2: 'Some high-profile AI vendors have been informally reviewed for obvious compliance issues, but there is no standard assessment framework or required documentation.',
           3: 'An AI vendor assessment questionnaire exists and is used for significant new vendors, but it is not comprehensive, not consistently applied, and post-contract monitoring is absent.',
           4: 'A formal AI vendor risk assessment framework covers data privacy, AI ethics, security, and regulatory compliance for all new AI vendor engagements. Material findings gate contract approval.',
-          5: 'All AI vendors are assessed against a comprehensive framework before onboarding and re-assessed annually. Assessments cover data handling, model bias practices, regulatory compliance, SLAs, and audit rights. High-risk vendor relationships include contractual AI-specific obligations and regular compliance reviews.',
+          5: 'All AI vendors are assessed against a comprehensive framework before onboarding and re-assessed annually. Assessments cover data handling, model bias practices, regulatory compliance, SLAs, and audit rights. High-risk vendor relationships include contractual AI-specific obligations.',
         },
       },
       {
@@ -447,7 +389,7 @@ export const dimensions = [
           2: 'Some models are stored in version-controlled repositories, but model metadata, training data versions, hyperparameters, and deployment history are not systematically tracked.',
           3: 'Key models are version-controlled in an ML tracking system (e.g., MLflow) with experiment tracking, but formal change management (approval gates, rollback procedures) is not established.',
           4: 'All production models are version-controlled with full lineage (code, data, parameters) tracked. A change management process governs model updates with approval gates, deployment logs, and tested rollback procedures.',
-          5: 'A comprehensive model lifecycle management system enforces version control, lineage tracking, and change management for all models. Every deployment is logged with a full audit trail, changes above defined thresholds require multi-stakeholder approval, and rollback can be executed within defined RTO. Lineage is queryable for regulatory reporting.',
+          5: 'A comprehensive model lifecycle management system enforces version control, lineage tracking, and change management for all models. Every deployment is logged with a full audit trail, changes above defined thresholds require multi-stakeholder approval, and rollback can be executed within defined RTO.',
         },
       },
       {
@@ -457,49 +399,19 @@ export const dimensions = [
           2: 'AI governance discussions occur informally among senior leaders but there is no formal committee, defined mandate, meeting cadence, or authority over AI risk decisions.',
           3: 'An AI governance committee has been established and meets occasionally, but its mandate is unclear, attendance is inconsistent, and decisions are advisory rather than binding.',
           4: 'A formally chartered AI governance committee with C-suite representation meets at least quarterly, has a defined mandate covering risk, ethics, and policy, and makes binding decisions on high-risk AI issues.',
-          5: 'A mature AI governance structure includes a C-suite AI steering committee, an operational AI risk committee, and defined escalation paths from operational to executive levels. The governance body has a formal charter, published meeting cadence, documented decisions, and reports to the board on AI risk and ethics at least annually.',
-        },
-      },
-      {
-        text: 'We have clear policies governing the use of AI-generated content across the enterprise.',
-        anchors: {
-          1: 'No policies govern AI-generated content. Employees use generative AI tools freely without guidance on disclosure, accuracy verification, copyright, or appropriate use cases.',
-          2: 'General guidance on AI tool usage exists informally, but specific policies for AI-generated content (disclosure requirements, prohibited uses, IP considerations) have not been formalized.',
-          3: 'An AI-generated content policy exists and covers disclosure requirements and prohibited content types, but enforcement mechanisms are absent and employee awareness is limited.',
-          4: 'A comprehensive AI content policy covers acceptable use, disclosure requirements, quality review obligations, IP and copyright considerations, and prohibited use cases. The policy is communicated to all staff and referenced in acceptable use agreements.',
-          5: 'An AI content governance framework includes tiered policies by risk and content type, mandatory training, automated disclosure tagging for high-risk content, regular policy reviews aligned to technology evolution, and clear disciplinary consequences for policy violations. Policy effectiveness is measured through compliance audits.',
-        },
-      },
-      {
-        text: 'Employees are trained on responsible AI principles, policies, and appropriate usage.',
-        anchors: {
-          1: 'No responsible AI training exists. Employees receive no guidance on ethical AI use, company policies, or potential risks of AI misuse.',
-          2: 'Some awareness materials on AI ethics exist (e.g., a wiki page or one-time presentation) but there is no mandatory training, knowledge assessment, or regular refresher.',
-          3: 'An introductory responsible AI training module is available, and some roles are required to complete it, but coverage is incomplete, training is not tailored by role, and no competency assessment occurs.',
-          4: 'Role-based responsible AI training is mandatory for all staff interacting with AI systems. Training covers company policy, ethical principles, bias awareness, and regulatory obligations. Completion is tracked and reported.',
-          5: 'A comprehensive responsible AI learning program includes role-differentiated curricula (awareness, practitioner, governance), annual mandatory refreshers, competency assessments, practical scenario-based training, and integration into onboarding. Completion rates and assessment scores are reported to the governance committee annually.',
-        },
-      },
-      {
-        text: 'There is a defined process for receiving, investigating, and resolving AI-related complaints or harms.',
-        anchors: {
-          1: 'No mechanism exists for reporting AI-related complaints or harms. Affected individuals or employees have no clear channel to raise concerns.',
-          2: 'AI concerns can be raised through general feedback channels (e.g., IT helpdesk), but there is no AI-specific intake, investigation process, or accountability for resolution.',
-          3: 'An AI complaints process exists with a named intake point, but investigation procedures are informal, timelines are not defined, and outcomes are not systematically tracked or disclosed.',
-          4: 'A formal AI complaints and harm reporting process includes a dedicated intake channel, defined investigation procedures with SLAs, named investigators, and outcome tracking. Material findings are escalated to the governance committee.',
-          5: 'A comprehensive AI complaints management system provides a user-friendly intake mechanism (internal and external), structured investigation procedures with defined SLAs by severity, independent review for material complaints, transparent outcome communication, and a publicly available summary report of aggregate complaint categories and resolution outcomes published annually.',
+          5: 'A mature AI governance structure includes a C-suite AI steering committee, an operational AI risk committee, and defined escalation paths from operational to executive levels. The governance body reports to the board on AI risk and ethics at least annually.',
         },
       },
     ],
   },
 
-  // ─── DIMENSION 4 ───────────────────────────────────────────────────────────
+  // ─── DIMENSION 4 ─────────────────────────────────────────────────────────
   {
     id: 4,
     name: 'Talent, Culture & Enablement',
     shortName: 'Talent',
-    color: '#F59E0B',
-    bgColor: '#FFFBEB',
+    color: '#E67E22',
+    bgColor: '#FEF5E7',
     description:
       'Measures AI talent depth, organizational culture around data and experimentation, and enablement programs across the workforce.',
     questions: [
@@ -517,10 +429,10 @@ export const dimensions = [
         text: 'There is a structured, ongoing program for AI skills development and workforce upskilling.',
         anchors: {
           1: 'No AI upskilling program exists. Employees interested in AI must self-fund and self-direct their learning outside of work.',
-          2: 'Access to online learning platforms (e.g., Coursera, LinkedIn Learning) is provided, but there is no structured AI curriculum, learning goals, or manager accountability for skills development.',
+          2: 'Access to online learning platforms is provided, but there is no structured AI curriculum, learning goals, or manager accountability for skills development.',
           3: 'An AI learning curriculum has been designed and some role-specific tracks are available, but participation is voluntary, completion rates are low, and learning is not connected to role requirements or career progression.',
           4: 'A structured AI upskilling program with role-based learning paths, manager-encouraged participation, completion tracking, and connection to career development is actively used by a majority of target employees.',
-          5: 'An enterprise AI academy provides differentiated learning programs by role (executive, business, technical, governance), blending online learning, internal workshops, mentoring, and hands-on AI projects. Learning outcomes are assessed, linked to career progression, and measured against business capability needs annually.',
+          5: 'An enterprise AI academy provides differentiated learning programs by role (executive, business, technical, governance), blending online learning, internal workshops, mentoring, and hands-on AI projects. Learning outcomes are assessed and linked to career progression.',
         },
       },
       {
@@ -530,7 +442,7 @@ export const dimensions = [
           2: 'Leadership acknowledges the value of data-driven decisions in principle, but data is inconsistently used, and gut-feel decisions frequently override data-backed analysis.',
           3: 'Data is used in leadership decision-making for significant choices, but the use of data is not consistent across all leaders and levels, and qualitative analysis still dominates in many forums.',
           4: 'Leadership consistently expects and models data-driven decision-making. Business reviews require data-backed analysis and decisions are documented with the data that informed them.',
-          5: 'Data-driven decision-making is a core organizational value embedded in all leadership behaviors, performance criteria, and governance processes. Leaders are assessed on their ability to interpret and apply data. Decisions without data support require explicit justification.',
+          5: 'Data-driven decision-making is a core organizational value embedded in all leadership behaviors, performance criteria, and governance processes. Leaders are assessed on their ability to interpret and apply data.',
         },
       },
       {
@@ -540,7 +452,7 @@ export const dimensions = [
           2: 'Some employees have independently adopted AI tools in their workflows, but this is self-directed, unsupported by the organization, and unevenly distributed.',
           3: 'AI tools have been rolled out to some functions with basic training, but adoption is inconsistent, effective use is limited, and employees lack confidence in how to apply AI safely and productively.',
           4: 'Most employees in target functions are actively using AI tools in their workflows with structured onboarding, role-specific guidance, and ongoing support. Usage is tracked and adoption metrics are reported.',
-          5: 'AI tool adoption is widespread and deeply embedded in daily workflows across the organization. Role-specific AI workflow playbooks are maintained, adoption and productivity metrics are tracked, and employees are regularly surveyed on AI effectiveness and satisfaction. Champions networks accelerate peer-to-peer adoption.',
+          5: 'AI tool adoption is widespread and deeply embedded in daily workflows across the organization. Role-specific AI workflow playbooks are maintained, adoption and productivity metrics are tracked, and champions networks accelerate peer-to-peer adoption.',
         },
       },
       {
@@ -550,7 +462,7 @@ export const dimensions = [
           2: 'General IT change management processes are applied to AI projects, but they do not address AI-specific concerns such as employee anxiety about job displacement or trust in AI outputs.',
           3: 'AI projects include some change management activities (e.g., stakeholder comms, basic training), but these are inconsistently applied and often executed too late in the project to be effective.',
           4: 'A structured AI change management methodology is applied to all significant AI deployments, covering stakeholder analysis, communication planning, training, adoption support, and post-go-live reinforcement.',
-          5: 'An enterprise AI change management center of excellence provides a proven methodology, toolkit, and dedicated change practitioners for all material AI deployments. Change effectiveness is measured through adoption metrics, sentiment surveys, and business impact, with findings feeding back into the methodology.',
+          5: 'An enterprise AI change management center of excellence provides a proven methodology, toolkit, and dedicated change practitioners for all material AI deployments. Change effectiveness is measured through adoption metrics, sentiment surveys, and business impact.',
         },
       },
       {
@@ -560,7 +472,7 @@ export const dimensions = [
           2: 'Business stakeholders are consulted at project initiation but are not engaged during development. Their feedback is gathered informally at the end and often results in costly rework.',
           3: 'Business domain experts participate in requirements gathering and user acceptance testing, but their involvement during model development (feature selection, validation, threshold-setting) is limited.',
           4: 'Business domain experts are embedded in AI project teams from inception through deployment, actively contributing to problem framing, feature engineering, model validation, and deployment criteria.',
-          5: 'Business-AI co-design is the standard methodology. Domain experts co-own AI project outcomes, are assessed on AI contribution as part of their performance, and serve as post-deployment champions. Feedback loops between business and technical teams are formalized and continuous.',
+          5: 'Business-AI co-design is the standard methodology. Domain experts co-own AI project outcomes, are assessed on AI contribution as part of their performance, and serve as post-deployment champions.',
         },
       },
       {
@@ -568,9 +480,9 @@ export const dimensions = [
         anchors: {
           1: 'AI talent attraction and retention are unstructured and largely unsuccessful. The organization struggles to fill AI roles and experiences high turnover in its existing AI team.',
           2: 'Standard recruiting processes are applied to AI roles without differentiated employer value proposition, competitive compensation benchmarking, or specific AI talent retention strategies.',
-          3: 'AI talent acquisition has some differentiated elements (e.g., technical challenges, AI research exposure), and compensation is partially competitive, but retention is below the desired level and key AI talent loss is a recurring issue.',
+          3: 'AI talent acquisition has some differentiated elements (e.g., technical challenges, AI research exposure), and compensation is partially competitive, but retention is below the desired level.',
           4: 'A targeted AI talent strategy with competitive compensation benchmarking, differentiated employer branding, structured onboarding, and retention programs results in AI talent attrition below industry average.',
-          5: 'The organization is recognized as a top-tier AI employer. A comprehensive AI talent strategy covers employer brand, competitive total compensation, research publishing opportunities, learning investment, career progression clarity, and an alumni network. AI talent retention exceeds industry benchmarks and the organization is frequently cited in industry surveys as a destination employer.',
+          5: 'The organization is recognized as a top-tier AI employer. A comprehensive AI talent strategy covers employer brand, competitive total compensation, research publishing opportunities, learning investment, and career progression clarity.',
         },
       },
       {
@@ -580,7 +492,7 @@ export const dimensions = [
           2: 'Cross-functional collaboration occurs informally when individuals build personal relationships, but there is no structural support for it and it is not the norm.',
           3: 'AI projects include representatives from multiple functions, but collaboration is often superficial (e.g., attendance at meetings without active contribution) and coordination friction is high.',
           4: 'AI projects are staffed with formally cross-functional teams with defined roles for technical, business, data, and governance contributors. Collaboration norms and RACI frameworks are in place.',
-          5: 'Cross-functional AI teams are the default operating model. Team composition standards, collaboration tooling, shared outcome ownership, and co-location or virtual teaming protocols are standardized. Cross-functional team effectiveness is measured and improvement actions are systematically applied.',
+          5: 'Cross-functional AI teams are the default operating model. Team composition standards, collaboration tooling, shared outcome ownership, and teaming protocols are standardized and effectiveness is measured.',
         },
       },
       {
@@ -590,7 +502,7 @@ export const dimensions = [
           2: 'Informal knowledge sharing occurs (e.g., occasional tech talks, a shared Slack channel) but there is no structured community with governance, programmed content, or accountability for standards.',
           3: 'An AI community of practice exists and meets regularly, but participation is voluntary, content is uneven, and its connection to organizational AI standards and decision-making is weak.',
           4: 'An active AI community of practice with structured programming (regular meetings, knowledge shares, working groups) and a formal AI center of excellence drives standards, tooling decisions, and best practice adoption.',
-          5: 'A mature AI center of excellence with dedicated staff serves as the enterprise hub for AI standards, tooling, reusable assets, best practices, and practitioner development. The CoE measures its own effectiveness through adoption metrics, capability assessments, and business value attribution.',
+          5: 'A mature AI center of excellence with dedicated staff serves as the enterprise hub for AI standards, tooling, reusable assets, best practices, and practitioner development. The CoE measures its own effectiveness through adoption metrics and business value attribution.',
         },
       },
       {
@@ -599,8 +511,8 @@ export const dimensions = [
           1: 'Fear of failure is pervasive. Employees do not experiment with AI because failure is penalized, and there is no recognized mechanism for sharing what does not work.',
           2: 'Leadership espouses experimentation in principle, but cultural norms, incentive structures, and performance management implicitly penalize failure, suppressing genuine experimentation.',
           3: 'A rhetoric of experimentation exists and some teams have established safe-to-fail norms, but this is not consistent across the organization and leadership behaviors do not uniformly reinforce it.',
-          4: 'Leadership actively models experimentation by openly sharing failures and learnings. Defined "innovation time" exists, failed experiments are recognized as learning opportunities, and post-mortems are blameless.',
-          5: 'Psychological safety for AI experimentation is a measured cultural attribute assessed in annual surveys. Learning from failure is embedded in team rituals, performance criteria reward experimentation velocity, a public internal "failure wall" celebrates learning, and leadership regularly shares their own AI experiment failures at all-hands forums.',
+          4: 'Leadership actively models experimentation by openly sharing failures and learnings. Defined innovation time exists, failed experiments are recognized as learning opportunities, and post-mortems are blameless.',
+          5: 'Psychological safety for AI experimentation is a measured cultural attribute assessed in annual surveys. Learning from failure is embedded in team rituals, performance criteria reward experimentation velocity, and leadership regularly shares their own AI experiment failures.',
         },
       },
       {
@@ -610,7 +522,7 @@ export const dimensions = [
           2: 'Training completion rates are tracked for some AI courses but there is no assessment of actual AI literacy, no baseline, and no target for improvement.',
           3: 'An AI literacy assessment has been conducted once to establish a baseline, but there is no systematic tracking, improvement target, or connection to business outcomes.',
           4: 'Annual AI literacy assessments are conducted across defined employee populations, results are tracked against baseline and targets, and gaps inform the annual upskilling program.',
-          5: 'AI literacy is a formally tracked organizational capability measured through annual assessments, training completion data, and on-the-job application metrics. Results are segmented by role, function, and level. Progress against targets is reported to the executive team and informs AI talent strategy and upskilling investment decisions.',
+          5: 'AI literacy is a formally tracked organizational capability measured through annual assessments, training completion data, and on-the-job application metrics. Progress against targets is reported to the executive team and informs AI talent strategy.',
         },
       },
       {
@@ -620,49 +532,19 @@ export const dimensions = [
           2: 'General engineering or analytics career paths are loosely applied to AI roles, but the paths are not differentiated for AI competencies and do not reflect the market for AI talent.',
           3: 'An AI career framework has been drafted with some defined levels and competencies, but it is not fully implemented, is inconsistently applied by managers, and lacks connection to compensation.',
           4: 'A defined AI career framework covers multiple tracks (e.g., IC, management, research) with clear level definitions, competency expectations, and connection to compensation bands. Annual calibration ensures consistent application.',
-          5: 'A comprehensive AI career architecture covers multiple tracks, provides clear advancement criteria, is competitively benchmarked annually, and is supported by structured development plans, mentoring programs, and stretch assignment rotations. Career path transparency is cited as a key retention factor in exit interviews.',
-        },
-      },
-      {
-        text: 'There is a culture of continuous learning, curiosity, and experimentation enterprise-wide.',
-        anchors: {
-          1: 'Learning is not a cultural value. Most employees view training as a compliance obligation rather than a growth opportunity, and intellectual curiosity is not modeled by leadership.',
-          2: 'Learning is encouraged in principle but not structurally supported. There is no dedicated learning time, learning budget is minimal, and managers do not actively coach development.',
-          3: 'A learning culture is emerging in pockets of the organization, particularly in the technology function, but it is not enterprise-wide and is not reinforced by consistent leadership behavior.',
-          4: 'Learning is a stated corporate value with structural support: dedicated learning time, adequate training budgets, manager accountability for team development, and regular learning events.',
-          5: 'Continuous learning is a measurable cultural attribute. Enterprise learning investment per employee is benchmarked against top-quartile companies, dedicated learning time (e.g., 20% time, hackathons) is protected, leadership actively participates in and promotes learning events, and learning outcomes are tied to business performance metrics.',
-        },
-      },
-      {
-        text: 'Business units have embedded AI and data expertise, rather than relying solely on a central team.',
-        anchors: {
-          1: 'All AI and data expertise is centralized. Business units have no AI capability and are entirely dependent on a central team that cannot meet demand.',
-          2: 'A few business units have individual data analysts or "AI enthusiasts," but these are informal, isolated, and not part of a deliberate federated model.',
-          3: 'Some business units have embedded data or AI roles, but coverage is uneven, embedded roles lack career support from the central team, and there is no federated operating model connecting central and embedded capability.',
-          4: 'Most business units have embedded AI or data roles within a federated operating model. Embedded talent receives technical leadership from the central AI team while having business unit alignment. Coverage gaps are tracked and addressed.',
-          5: 'A mature federated AI operating model is in place with embedded AI and data roles in all major business units. Embedded practitioners are competency-credentialed, connected to the central AI CoE, and serve as the first line of AI capability and demand management. The operating model is formally governed and reviewed annually.',
-        },
-      },
-      {
-        text: 'We partner with universities, startups, or research institutions to access AI talent and ideas.',
-        anchors: {
-          1: 'No external academic or startup partnerships for AI exist. The organization is fully inward-looking for AI talent and ideas.',
-          2: 'Individual managers have informal relationships with universities or attend AI conferences, but these are personal rather than organizational, and there is no structured partnership program.',
-          3: 'One or two university partnerships or startup collaborations exist, but they are tactical (e.g., an internship program or a one-off research engagement) rather than strategically managed.',
-          4: 'A portfolio of external AI partnerships is actively managed, including at least one university research partnership, a startup collaboration or accelerator relationship, and structured conference participation.',
-          5: 'A comprehensive external AI ecosystem engagement strategy includes multiple university research partnerships, a corporate AI research lab with published output, an AI startup program, and active engagement in open-source AI communities. The value of the ecosystem is measured annually through talent pipeline contribution, research insights, and capability acceleration.',
+          5: 'A comprehensive AI career architecture covers multiple tracks, provides clear advancement criteria, is competitively benchmarked annually, and is supported by structured development plans, mentoring programs, and stretch assignment rotations.',
         },
       },
     ],
   },
 
-  // ─── DIMENSION 5 ───────────────────────────────────────────────────────────
+  // ─── DIMENSION 5 ─────────────────────────────────────────────────────────
   {
     id: 5,
     name: 'AI Operations & Engineering Process',
     shortName: 'Operations',
-    color: '#10B981',
-    bgColor: '#ECFDF5',
+    color: '#27AE60',
+    bgColor: '#EAFAF1',
     description:
       'Examines the rigor and maturity of MLOps practices, deployment pipelines, monitoring, and engineering processes for AI systems.',
     questions: [
@@ -683,7 +565,7 @@ export const dimensions = [
           2: 'Model artifacts are saved to shared storage, but versioning is inconsistent, metadata is minimal, and training pipelines cannot be reliably reproduced.',
           3: 'Models are version-controlled in a model registry, but full reproducibility (including data version, hyperparameters, environment, and random seeds) is achieved only for some models.',
           4: 'All production models are version-controlled with complete lineage (code, data, hyperparameters, environment, metrics) and training pipelines are reproducible by any team member with access.',
-          5: 'Complete model reproducibility is enforced by the MLOps platform. All training pipeline runs are logged, compared, and traceable. Reproducibility is tested as part of the model promotion process. Any trained model can be exactly reproduced from its registry entry.',
+          5: 'Complete model reproducibility is enforced by the MLOps platform. All training pipeline runs are logged and comparable. Reproducibility is tested as part of the model promotion process.',
         },
       },
       {
@@ -693,7 +575,7 @@ export const dimensions = [
           2: 'Some manual evaluation of model outputs occurs (e.g., reviewing a sample of predictions) but no automated tests, test suites, or quality gates exist.',
           3: 'Basic automated tests exist for some models (e.g., performance threshold checks), but unit testing of ML code, integration tests, and regression testing against a holdout set are not consistently applied.',
           4: 'A standardized AI testing suite covers data validation, model performance thresholds, behavioral testing (e.g., invariance, directional tests), and integration tests. Tests are run automatically on every model update.',
-          5: 'Comprehensive AI system testing includes unit tests for ML code, data validation, model performance regression, adversarial testing, fairness checks, and production shadow testing. All tests are automated in CI/CD pipelines with mandatory passing gates. Test coverage is measured and reported.',
+          5: 'Comprehensive AI system testing includes unit tests for ML code, data validation, model performance regression, adversarial testing, fairness checks, and production shadow testing. All tests are automated in CI/CD pipelines with mandatory passing gates.',
         },
       },
       {
@@ -703,7 +585,7 @@ export const dimensions = [
           2: 'Basic CI exists for model code (e.g., unit test runs on commit) but no CD pipeline automates model deployment. Releases are manual, infrequent, and inconsistent.',
           3: 'A CI/CD pipeline exists for some AI models but does not cover all deployment scenarios, lacks automated rollback capability, and does not enforce quality gates before production deployment.',
           4: 'Automated CI/CD pipelines handle code testing, model training, evaluation, and deployment for all production models. Quality gates block promotion of underperforming models and automated rollback is available.',
-          5: 'Fully automated CI/CD pipelines with multi-stage promotion environments (dev → staging → canary → production), automated quality gates, performance benchmarking, one-click rollback, and deployment frequency metrics are standard for all AI systems. Deployment lead time and change failure rate are tracked as KPIs.',
+          5: 'Fully automated CI/CD pipelines with multi-stage promotion environments (dev → staging → canary → production), automated quality gates, performance benchmarking, one-click rollback, and deployment frequency metrics are standard for all AI systems.',
         },
       },
       {
@@ -713,7 +595,7 @@ export const dimensions = [
           2: 'Basic logging of model inputs and outputs occurs, but no systematic performance monitoring, alerting, or SLA tracking is in place.',
           3: 'Performance monitoring is in place for the most critical models, covering key metrics (e.g., accuracy, latency), but alert coverage is incomplete and response procedures are not defined.',
           4: 'Comprehensive production monitoring covers all deployed models with dashboards for performance, reliability, latency, and data quality. Alerts are calibrated to business impact and trigger defined response procedures.',
-          5: 'Real-time model observability is provided through dedicated monitoring infrastructure covering prediction quality, data drift, feature distribution, latency, availability, and business outcome correlation for every production model. Anomalies trigger automated runbooks, and a weekly model health review is held by the MLOps team.',
+          5: 'Real-time model observability is provided through dedicated monitoring infrastructure covering prediction quality, data drift, feature distribution, latency, availability, and business outcome correlation for every production model.',
         },
       },
       {
@@ -723,7 +605,7 @@ export const dimensions = [
           2: 'Retraining occurs on an ad-hoc basis when performance issues are noticed, but there is no trigger criteria, automation, or validation process for retrained models.',
           3: 'A retraining process is documented for key models with some automated triggers (e.g., scheduled retraining), but validation of retrained models before deployment is inconsistent.',
           4: 'A defined retraining process with automated triggers (performance degradation thresholds, data drift alerts, scheduled retraining), automated re-evaluation, and a promotion process exists for all production models.',
-          5: 'Continuous training pipelines automatically retrain models based on drift detection, new data availability, or scheduled triggers. Retrained models go through the full CI/CD pipeline with automated comparison to the current production model. Champion/challenger deployments are the standard promotion mechanism.',
+          5: 'Continuous training pipelines automatically retrain models based on drift detection, new data availability, or scheduled triggers. Retrained models go through the full CI/CD pipeline with automated comparison to the current production model.',
         },
       },
       {
@@ -733,7 +615,7 @@ export const dimensions = [
           2: 'Some teams share experiment results informally (e.g., in a shared wiki or Slack channel), but there is no standardized tracking tool, metadata format, or reproducibility standard.',
           3: 'An experiment tracking tool is deployed and used by most teams, but logged metadata is inconsistent, reproducibility is partial, and cross-team visibility into experiments is limited.',
           4: 'All ML experiments are logged in a centralized tracking platform with standardized metadata (code version, data version, parameters, metrics, environment). Any team member can reproduce any logged experiment.',
-          5: 'A comprehensive ML experimentation platform captures all experiments with complete reproducibility metadata, enables cross-team search and comparison, supports systematic hyperparameter optimization, and provides experiment cost tracking. Experiment results feed directly into the model registry promotion process.',
+          5: 'A comprehensive ML experimentation platform captures all experiments with complete reproducibility metadata, enables cross-team search and comparison, supports systematic hyperparameter optimization, and provides experiment cost tracking.',
         },
       },
       {
@@ -741,9 +623,9 @@ export const dimensions = [
         anchors: {
           1: 'No SLAs are defined for AI systems. There are no commitments to business users on performance, availability, or response time.',
           2: 'Informal expectations exist (e.g., "the model should be available during business hours") but these are not documented as formal SLAs, measured, or reported.',
-          3: 'SLAs are defined for the most critical AI systems, but measurement is manual, reporting is infrequent, and penalties or escalation procedures for SLA breaches are not defined.',
+          3: 'SLAs are defined for the most critical AI systems, but measurement is manual, reporting is infrequent, and escalation procedures for SLA breaches are not defined.',
           4: 'Formal SLAs covering latency, availability, and prediction quality are defined for all production AI systems. SLA performance is automatically measured and reported in dashboards reviewed weekly.',
-          5: 'Comprehensive, risk-tiered SLAs cover latency (p50, p95, p99), availability, batch processing deadlines, and prediction quality for all production AI systems. SLA tracking is real-time with automated alerts for breaches. SLA compliance is reported to business stakeholders monthly and historical performance is published in an internal SLA report.',
+          5: 'Comprehensive, risk-tiered SLAs cover latency (p50, p95, p99), availability, batch processing deadlines, and prediction quality for all production AI systems. SLA tracking is real-time with automated alerts for breaches and monthly reports to business stakeholders.',
         },
       },
       {
@@ -753,17 +635,7 @@ export const dimensions = [
           2: 'Some high-profile models have informal documentation (e.g., a README or wiki page), but there is no standard template, maintenance process, or completeness requirement.',
           3: 'A model documentation template (e.g., based on model cards) exists and is used for most new models, but historical models are undocumented and template completion is not enforced.',
           4: 'Standardized model documentation (including intended use, performance metrics, limitations, training data description, and ethical considerations) is required for all production models and is reviewed at each update.',
-          5: 'Comprehensive, version-controlled model documentation following an industry-standard framework (model cards + data sheets) is mandatory for all models at every lifecycle stage. Documentation is automatically generated from experiment tracking data where possible, human-reviewed, linked in the model registry, and accessible to auditors and business stakeholders.',
-        },
-      },
-      {
-        text: 'We have infrastructure and processes for A/B testing and shadow deployment of AI models.',
-        anchors: {
-          1: 'No A/B testing or shadow deployment capability exists. New models replace old ones with a hard cutover and no ability to compare live performance.',
-          2: 'Manual A/B testing has been done for some models using application-level logic, but there is no platform support, traffic splitting capability, or statistical analysis tooling.',
-          3: 'A/B testing infrastructure exists and has been used for major model updates, but shadow deployment (running a new model in parallel without serving its output) is not available, and statistical rigor of A/B analyses is inconsistent.',
-          4: 'A standardized A/B testing and shadow deployment platform supports controlled rollouts for all production model updates. Statistical significance calculations, traffic splitting, and result dashboards are provided out of the box.',
-          5: 'Flexible experimentation infrastructure supports A/B testing, multi-armed bandit, shadow deployment, and canary releases for all AI systems. Statistical analysis is automated and results are surfaced to both technical and business stakeholders. All model promotions use one of these controlled rollout methods.',
+          5: 'Comprehensive, version-controlled model documentation following an industry-standard framework is mandatory for all models at every lifecycle stage. Documentation is automatically generated from experiment tracking data where possible and is accessible to auditors and business stakeholders.',
         },
       },
       {
@@ -773,7 +645,7 @@ export const dimensions = [
           2: 'Some informal best practices are shared through team knowledge-sharing, but they are not documented, enforced, or consistently followed.',
           3: 'An AI development standards guide exists covering key areas (code quality, experimentation, documentation), but adoption is voluntary, enforcement is absent, and the guide is not regularly updated.',
           4: 'Documented AI development standards covering code quality, experimentation practices, documentation, security, and testing are enforced through code review and CI gates. Standards are reviewed annually.',
-          5: 'A living AI development standards framework is maintained by the CoE, enforced through automated linting and CI gates, embedded in onboarding, and regularly updated based on emerging best practices. Compliance with standards is measured and reported. Teams self-assess against the standards quarterly.',
+          5: 'A living AI development standards framework is maintained by the CoE, enforced through automated linting and CI gates, embedded in onboarding, and regularly updated based on emerging best practices. Compliance with standards is measured and reported.',
         },
       },
       {
@@ -783,17 +655,7 @@ export const dimensions = [
           2: 'Basic performance thresholds trigger email alerts for critical models, but response procedures are undefined and recovery (retraining or rollback) is ad-hoc.',
           3: 'Degradation detection with automated alerts exists for key models, and informal response procedures are understood by the team, but formal runbooks, recovery time objectives, and post-incident reviews are absent.',
           4: 'Automated degradation detection triggers defined response runbooks for all production models. Recovery options (rollback, emergency retraining, fallback logic) are documented and tested. Post-incident reviews drive systematic improvements.',
-          5: 'A comprehensive model degradation management system provides early warning through leading indicators (data drift, feature distribution shifts) before output quality degrades. Automated responses (traffic throttling, fallback to rules, emergency retraining) are triggered by defined thresholds. RTO and RPO are defined and tested quarterly through degradation fire drills.',
-        },
-      },
-      {
-        text: 'Tooling and workflows effectively support collaboration between data scientists and engineers.',
-        anchors: {
-          1: 'A significant "last mile" gap exists between data scientists and engineers. Models hand off as notebooks or scripts that engineers must fully re-implement, causing delays and quality loss.',
-          2: 'Some tools are shared (e.g., a common code repository), but workflows diverge significantly between data science and engineering, causing friction in every deployment.',
-          3: 'Shared tooling and handoff procedures are improving, but deployment friction is still significant, requiring manual translation work between data science prototypes and production code.',
-          4: 'Standardized tooling, workflow templates, and clear handoff protocols enable relatively smooth collaboration between data scientists and engineers, with most models deployable without major re-engineering.',
-          5: 'A unified MLOps platform dissolves the traditional handoff boundary between data scientists and engineers. Data scientists can deploy models directly through automated pipelines, with engineers focusing on platform reliability rather than per-model work. Collaboration tooling, code review processes, and pair-programming norms are standardized.',
+          5: 'A comprehensive model degradation management system provides early warning through leading indicators (data drift, feature distribution shifts) before output quality degrades. Automated responses are triggered by defined thresholds. RTO and RPO are defined and tested quarterly.',
         },
       },
       {
@@ -801,19 +663,9 @@ export const dimensions = [
         anchors: {
           1: 'AI system costs are not tracked at the individual system level. There is no visibility into resource utilization, cost-per-inference, or cost-per-training-run.',
           2: 'Aggregate cloud or infrastructure spend on AI is visible but is not broken down by system, workload, or use case. No optimization practices are in place.',
-          3: 'Cost tracking by AI system or workload exists for major systems, but systematic optimization practices (right-sizing, spot instances, model compression) are not applied, and cost accountability rests with central IT rather than AI teams.',
+          3: 'Cost tracking by AI system or workload exists for major systems, but systematic optimization practices (right-sizing, spot instances, model compression) are not applied and cost accountability rests with central IT rather than AI teams.',
           4: 'A FinOps practice for AI tracks cost by system, optimizes infrastructure right-sizing, uses spot/preemptible compute for training, and reports cost efficiency metrics to AI team leads monthly.',
-          5: 'A mature AI FinOps program tracks cost-per-inference, cost-per-training-run, and ROI-per-workload for every AI system. AI teams have cost accountability and optimization targets. Model compression, quantization, caching, and hardware acceleration are systematically evaluated. Cost efficiency metrics are reviewed in quarterly AI business reviews.',
-        },
-      },
-      {
-        text: 'We conduct structured post-deployment reviews to systematically capture AI system learnings.',
-        anchors: {
-          1: 'No post-deployment reviews occur. Knowledge gained from AI deployments is lost and the same mistakes are repeated across projects.',
-          2: 'Informal discussions about lessons learned occur within project teams, but these are not documented, shared across the organization, or used to improve future projects.',
-          3: 'Post-deployment reviews are conducted for major AI projects, but the format is inconsistent, findings are not systematically tracked, and action items are rarely followed through.',
-          4: 'Structured post-deployment reviews are conducted for all AI projects within 30–90 days of deployment, following a standard template. Key learnings are documented in a shared knowledge base and reviewed by the CoE.',
-          5: 'A mandatory post-deployment review program produces structured retrospectives for every AI deployment, covering technical performance, business impact, process effectiveness, and unintended consequences. Findings are categorized, prioritized, and used to update development standards, training content, and the AI operating model. A bi-annual synthesis of learnings across all reviews is presented to the AI governance committee.',
+          5: 'A mature AI FinOps program tracks cost-per-inference, cost-per-training-run, and ROI-per-workload for every AI system. AI teams have cost accountability and optimization targets. Model compression, quantization, caching, and hardware acceleration are systematically evaluated.',
         },
       },
     ],
@@ -833,11 +685,11 @@ export const scaleLabels = {
 }
 
 export const maturityLevels = [
-  { label: 'Beginning',  min: 0,  max: 20,  color: '#EF4444', bg: '#FEF2F2' },
-  { label: 'Developing', min: 20, max: 40,  color: '#F97316', bg: '#FFF7ED' },
-  { label: 'Maturing',   min: 40, max: 60,  color: '#EAB308', bg: '#FEFCE8' },
-  { label: 'Advanced',   min: 60, max: 80,  color: '#3B82F6', bg: '#EFF6FF' },
-  { label: 'Leading',    min: 80, max: 101, color: '#10B981', bg: '#ECFDF5' },
+  { label: 'Beginning',  min: 0,  max: 20,  color: '#E74C3C', bg: '#FDEDEC' },
+  { label: 'Developing', min: 20, max: 40,  color: '#E67E22', bg: '#FEF5E7' },
+  { label: 'Maturing',   min: 40, max: 60,  color: '#F1C40F', bg: '#FEFCE8' },
+  { label: 'Advanced',   min: 60, max: 80,  color: '#2EA3F2', bg: '#E8F4FD' },
+  { label: 'Leading',    min: 80, max: 101, color: '#27AE60', bg: '#EAFAF1' },
 ]
 
 export function getMaturityLevel(score) {

@@ -76,7 +76,7 @@ const CustomRadarTooltip = ({ active, payload }) => {
         padding: '10px 14px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13,
       }}>
         <div style={{ fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{d.dimension}</div>
-        <div style={{ color: '#4F46E5', fontWeight: 600 }}>{d.score} / 100</div>
+        <div style={{ color: '#2EA3F2', fontWeight: 600 }}>{d.score} / 100</div>
       </div>
     )
   }
@@ -207,10 +207,10 @@ export default function ResultsPage({ company, answers, onRestart }) {
                 <Tooltip content={<CustomRadarTooltip />} />
                 <Radar
                   name="Score" dataKey="score"
-                  stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.15}
+                  stroke="#2EA3F2" fill="#2EA3F2" fillOpacity={0.15}
                   strokeWidth={2.5}
-                  dot={{ fill: '#4F46E5', r: 5, strokeWidth: 0 }}
-                  activeDot={{ r: 7, fill: '#4F46E5' }}
+                  dot={{ fill: '#2EA3F2', r: 5, strokeWidth: 0 }}
+                  activeDot={{ r: 7, fill: '#2EA3F2' }}
                 />
               </RadarChart>
             </ResponsiveContainer>
@@ -293,7 +293,7 @@ export default function ResultsPage({ company, answers, onRestart }) {
             About This Assessment
           </div>
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-            Scores are calculated by normalizing responses on a 0–100 scale across 15 behaviorally-anchored
+            Scores are calculated by normalizing responses on a 0–100 scale across 12 behaviorally-anchored
             questions per dimension (1 = Not at all → 0 points, 5 = Advanced → 100 points). The overall score
             is the unweighted average of all five dimension scores. This assessment reflects self-reported maturity
             and should be supplemented with stakeholder validation and domain expert review.

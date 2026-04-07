@@ -10,31 +10,29 @@ import { generateRecommendations } from '../data/recommendations'
 
 // ── Colour palette (hex without #, for jsPDF rgb helpers) ─────────────────
 const C = {
-  indigo:     [79,  70,  229],
-  indigoDark: [55,  48,  163],
-  slate900:   [15,  23,  42],
-  slate700:   [51,  65,  85],
-  slate500:   [100, 116, 139],
-  slate200:   [226, 232, 240],
-  slate50:    [248, 250, 252],
+  indigo:     [46,  163, 242],  // Logic2020 primary blue #2EA3F2
+  indigoDark: [26,  140, 216],  // Logic2020 dark blue   #1A8CD8
+  slate900:   [51,  51,  51],   // #333333
+  slate700:   [85,  85,  85],   // #555555
+  slate500:   [153, 153, 153],  // #999999
+  slate200:   [226, 226, 226],  // #E2E2E2
+  slate50:    [243, 243, 243],  // #F3F3F3
   white:      [255, 255, 255],
   green:      [16,  185, 129],
   amber:      [245, 158,  11],
   red:        [239,  68,  68],
-  blue:       [59, 130, 246],
+  blue:       [46,  163, 242],  // same as primary
   purple:     [139,  92, 246],
-  sky:        [14, 165, 233],
+  sky:        [14,  165, 233],
 }
 
 const DIM_COLORS = {
-  1: [79,  70, 229],  // indigo  – Strategy
-  2: [14, 165, 233],  // sky     – Data
-  3: [139, 92, 246],  // purple  – Governance
-  4: [245,158,  11],  // amber   – Talent
-  5: [16, 185, 129],  // green   – Operations
+  1: [46,  163, 242],  // Logic2020 blue  – Strategy
+  2: [14,  165, 233],  // sky             – Data
+  3: [139,  92, 246],  // purple          – Governance
+  4: [245, 158,  11],  // amber           – Talent
+  5: [16,  185, 129],  // green           – Operations
 }
-
-function hex(r, g, b) { return { r, g, b } }
 
 // jsPDF helper wrappers
 function setFill(doc, rgb) { doc.setFillColor(rgb[0], rgb[1], rgb[2]) }
@@ -52,13 +50,6 @@ const CW = PW - ML - MR  // content width
 function filledBox(doc, x, y, w, h, rgb, r = 3) {
   setFill(doc, rgb)
   doc.roundedRect(x, y, w, h, r, r, 'F')
-}
-
-// ── Helper: wrapped text returning final y ────────────────────────────────
-function wrappedText(doc, text, x, y, maxW, lineH) {
-  const lines = doc.splitTextToSize(text, maxW)
-  doc.text(lines, x, y)
-  return y + lines.length * lineH
 }
 
 // ── Helper: draw a horizontal progress bar ───────────────────────────────
@@ -192,22 +183,13 @@ function drawCover(doc, company, dimScores, overallScore) {
     doc.text(d.shortName, ML + 9, ry + 7)
 
     // Maturity pill
-    const pr = [m.color.slice(1)].map(h => [
-      parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)
-    ])[0]
-    const mr2 = getMaturityLevel(d.score)
-    // parse hex color string for maturity
-    const mhex = mr2.color.replace('#','')
+    const mhex = m.color.replace('#','')
     const mr_rgb = [parseInt(mhex.slice(0,2),16), parseInt(mhex.slice(2,4),16), parseInt(mhex.slice(4,6),16)]
     filledBox(doc, ML + col1W + 2, ry + 2, 38, 7, mr_rgb, 3)
-    doc.setGState(doc.GState({ opacity: 0.15 }))
-    filledBox(doc, ML + col1W + 2, ry + 2, 38, 7, mr_rgb, 3)
-    doc.setGState(doc.GState({ opacity: 1 }))
-    // maturity text
     doc.setFontSize(6.5)
     doc.setFont('helvetica', 'bold')
-    setTextC(doc, mr_rgb)
-    doc.text(mr2.label, ML + col1W + 21, ry + 7, { align: 'center' })
+    setTextC(doc, C.white)
+    doc.text(m.label, ML + col1W + 21, ry + 7, { align: 'center' })
 
     // Score bar
     const bx = ML + col1W + col2W + 2
@@ -224,7 +206,7 @@ function drawCover(doc, company, dimScores, overallScore) {
   doc.setFontSize(7)
   doc.setFont('helvetica', 'normal')
   const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  doc.text(`Generated ${dateStr}  ·  Enterprise AI Readiness Assessment v1.1.0`, PW / 2, PH - 8, { align: 'center' })
+  doc.text(`Generated ${dateStr}  ·  Enterprise AI Readiness Assessment v1.2.0`, PW / 2, PH - 8, { align: 'center' })
 }
 
 // ── PAGE 2: Dimension Deep-Dives ──────────────────────────────────────────
@@ -269,12 +251,9 @@ function drawDimensionsPage(doc, dimScores) {
 
     // Maturity pill
     filledBox(doc, x + 7, y + 25, 28, 7, mr_rgb, 3)
-    doc.setGState(doc.GState({ opacity: 0.15 }))
-    filledBox(doc, x + 7, y + 25, 28, 7, mr_rgb, 3)
-    doc.setGState(doc.GState({ opacity: 1 }))
     doc.setFontSize(6)
     doc.setFont('helvetica', 'bold')
-    setTextC(doc, mr_rgb)
+    setTextC(doc, C.white)
     doc.text(m.label, x + 21, y + 30.5, { align: 'center' })
 
     // Progress bar
@@ -302,7 +281,7 @@ function drawRecommendationsPage(doc, recs) {
   }
 
   let y = 42
-  recs.forEach((rec, i) => {
+  recs.forEach((rec) => {
     const pc = priorityColors[rec.priority] || C.slate500
 
     // Estimate card height

@@ -26,12 +26,12 @@ export default function IntroScreen({ onStart }) {
         </div>
         <div className="intro-stat-divider" />
         <div className="intro-stat">
-          <span className="intro-stat-value">75</span>
+          <span className="intro-stat-value">60</span>
           <span className="intro-stat-label">Questions</span>
         </div>
         <div className="intro-stat-divider" />
         <div className="intro-stat">
-          <span className="intro-stat-value">~20</span>
+          <span className="intro-stat-value">~15</span>
           <span className="intro-stat-label">Minutes</span>
         </div>
         <div className="intro-stat-divider" />
@@ -52,7 +52,7 @@ export default function IntroScreen({ onStart }) {
             </div>
             <div className="intro-dim-content">
               <div className="intro-dim-name">{dim.name}</div>
-              <div className="intro-dim-count">15 questions</div>
+              <div className="intro-dim-count">12 questions</div>
             </div>
           </div>
         ))}
