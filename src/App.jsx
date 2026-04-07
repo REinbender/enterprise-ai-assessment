@@ -14,7 +14,7 @@ const defaultAnswers = () =>
 
 const defaultState = () => ({
   step: 0,
-  company: { name: '', industry: '', size: '' },
+  company: { name: '', industry: '', size: '', respondentName: '', respondentRole: '' },
   answers: defaultAnswers(),
 })
 

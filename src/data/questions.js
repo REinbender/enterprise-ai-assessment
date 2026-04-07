@@ -714,3 +714,27 @@ export function computeOverallScore(dimensionScores) {
   const total = dimensionScores.reduce((acc, d) => acc + d.score, 0)
   return Math.round(total / dimensionScores.length)
 }
+
+// ── Executive summary narrative generator ─────────────────────────────────
+const narrativeContext = {
+  Beginning: 'Foundational investment across strategy, data, talent, and governance is urgently needed before meaningful AI deployment can occur at scale.',
+  Developing: 'Early AI initiatives are underway but lack the consistency, infrastructure, and governance required for enterprise-scale impact.',
+  Maturing:   'The organization is building core AI capabilities with increasing consistency, but uneven progress across dimensions limits the ability to scale confidently.',
+  Advanced:   'Strong AI capabilities are established across most dimensions; the focus should shift toward optimization, scaling, and competitive differentiation.',
+  Leading:    'AI is deeply embedded in strategy and operations — the focus should be on sustaining leadership through frontier capabilities and ecosystem influence.',
+}
+
+export function generateNarrative(company, dimScores, overallScore) {
+  const maturity = getMaturityLevel(overallScore)
+  const sorted   = [...dimScores].sort((a, b) => b.score - a.score)
+  const strongest = sorted[0]
+  const weakest   = sorted[sorted.length - 1]
+  const orgName   = company?.name || 'This organization'
+
+  return [
+    `${orgName} demonstrates a ${maturity.label} AI posture with an overall readiness score of ${overallScore}/100 across five assessed dimensions.`,
+    `${strongest.name} is the standout strength (${strongest.score}/100 — ${getMaturityLevel(strongest.score).label}), while ${weakest.name} represents the most significant gap at ${weakest.score}/100 (${getMaturityLevel(weakest.score).label}).`,
+    narrativeContext[maturity.label],
+    `Closing the gap in ${weakest.name} is the primary near-term priority, as it presents the highest-leverage opportunity for improving overall AI readiness and unlocking progress across the broader portfolio.`,
+  ]
+}

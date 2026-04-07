@@ -7,19 +7,12 @@ import {
   computeDimensionScores,
   computeOverallScore,
   getMaturityLevel,
+  generateNarrative,
 } from '../data/questions'
 import { generateRecommendations } from '../data/recommendations'
 import PDFExportButton from './PDFExport'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
-
-const maturityDescriptions = {
-  Beginning:  'AI efforts are largely absent or in very early exploration. Foundational investment is urgently needed across strategy, data, talent, and process.',
-  Developing: 'Some early AI initiatives exist but are fragmented and inconsistent. Establishing foundations and governance should be the primary focus.',
-  Maturing:   'Core AI capabilities are being built with some consistency. Focus on scaling what is working and closing gaps in weaker areas.',
-  Advanced:   'Strong AI capabilities across most dimensions. The focus should shift to optimization, scaling, and driving competitive differentiation.',
-  Leading:    'AI is deeply embedded across strategy, operations, and culture. Focus on frontier capabilities and maintaining competitive leadership.',
-}
 
 function ScoreRing({ score, color, size = 160 }) {
   const r = (size / 2) - 12
@@ -72,10 +65,10 @@ const CustomRadarTooltip = ({ active, payload }) => {
     const d = payload[0].payload
     return (
       <div style={{
-        background: 'white', border: '1px solid #E2E8F0', borderRadius: 8,
+        background: 'white', border: '1px solid #E2E2E2', borderRadius: 8,
         padding: '10px 14px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13,
       }}>
-        <div style={{ fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{d.dimension}</div>
+        <div style={{ fontWeight: 700, color: '#333333', marginBottom: 2 }}>{d.dimension}</div>
         <div style={{ color: '#2EA3F2', fontWeight: 600 }}>{d.score} / 100</div>
       </div>
     )
@@ -90,6 +83,7 @@ export default function ResultsPage({ company, answers, onRestart }) {
   const overallScore  = computeOverallScore(dimScores)
   const maturity      = getMaturityLevel(overallScore)
   const recommendations = generateRecommendations(dimScores)
+  const narrative     = generateNarrative(company, dimScores, overallScore)
 
   const radarData = dimScores.map(d => ({
     dimension: d.shortName,
@@ -122,6 +116,13 @@ export default function ResultsPage({ company, answers, onRestart }) {
               Based on {totalAnswered} responses across 5 dimensions
             </p>
             <div className="results-date">{today}</div>
+            {(company.respondentName || company.respondentRole) && (
+              <div className="results-respondent">
+                Completed by{company.respondentName ? ` ${company.respondentName}` : ''}
+                {company.respondentRole ? ` · ${company.respondentRole}` : ''}
+                {' '}· Self-reported; validate with multi-stakeholder consensus
+              </div>
+            )}
           </div>
 
           <div className="results-header-actions">
@@ -139,17 +140,31 @@ export default function ResultsPage({ company, answers, onRestart }) {
           </div>
         </div>
 
+        {/* ── Executive Summary ──────────────────────────────────────── */}
+        <div className="exec-summary card" style={{ marginBottom: 24 }}>
+          <div className="exec-summary-header">
+            <div className="exec-summary-eyebrow">Executive Summary</div>
+            <div
+              className="maturity-badge"
+              style={{ background: maturity.bg, color: maturity.color, marginLeft: 'auto' }}
+            >
+              <span>●</span> {maturity.label} Maturity
+            </div>
+          </div>
+          <div className="exec-summary-body">
+            {narrative.map((sentence, i) => (
+              <p key={i} className="exec-summary-sentence">{sentence}</p>
+            ))}
+          </div>
+        </div>
+
         {/* ── Overall Score ──────────────────────────────────────────── */}
         <div className="card score-summary" style={{ marginBottom: 24 }}>
           <ScoreRing score={overallScore} color={maturity.color} />
           <div className="score-summary-content">
-            <div className="maturity-badge" style={{ background: maturity.bg, color: maturity.color }}>
-              <span>●</span> {maturity.label}
-            </div>
             <div className="score-summary-headline">
               Overall AI Readiness: {overallScore}/100
             </div>
-            <p className="score-summary-desc">{maturityDescriptions[maturity.label]}</p>
             <div className="score-summary-meta">
               {dimScores.map(d => (
                 <div key={d.id} className="score-meta-item">
@@ -190,18 +205,17 @@ export default function ResultsPage({ company, answers, onRestart }) {
           <div className="chart-title">Readiness Profile</div>
           <div className="chart-subtitle">Score across all 5 dimensions (0–100 scale)</div>
 
-          {/* ref wraps the chart for PDF capture */}
           <div ref={radarRef}>
             <ResponsiveContainer width="100%" height={380}>
               <RadarChart data={radarData} margin={{ top: 10, right: 40, bottom: 10, left: 40 }}>
-                <PolarGrid gridType="polygon" stroke="#E2E8F0" />
+                <PolarGrid gridType="polygon" stroke="#E2E2E2" />
                 <PolarAngleAxis
                   dataKey="dimension"
-                  tick={{ fill: '#475569', fontSize: 13, fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
+                  tick={{ fill: '#555555', fontSize: 13, fontWeight: 600, fontFamily: 'Open Sans, sans-serif' }}
                 />
                 <PolarRadiusAxis
                   angle={90} domain={[0, 100]}
-                  tick={{ fill: '#94A3B8', fontSize: 11 }}
+                  tick={{ fill: '#999999', fontSize: 11 }}
                   tickCount={6} axisLine={false}
                 />
                 <Tooltip content={<CustomRadarTooltip />} />
@@ -290,15 +304,46 @@ export default function ResultsPage({ company, answers, onRestart }) {
           border: '1px solid var(--border)', borderRadius: 12, marginBottom: 32,
         }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
-            About This Assessment
+            Assessment Methodology
           </div>
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
             Scores are calculated by normalizing responses on a 0–100 scale across 12 behaviorally-anchored
-            questions per dimension (1 = Not at all → 0 points, 5 = Advanced → 100 points). The overall score
+            questions per dimension (1 = No capability → 0 pts, 5 = Advanced → 100 pts). The overall score
             is the unweighted average of all five dimension scores. This assessment reflects self-reported maturity
-            and should be supplemented with stakeholder validation and domain expert review.
-            Responses are stored only in your browser and are not transmitted externally.
+            at a single point in time and should be supplemented with multi-stakeholder validation and
+            domain expert review for strategic decision-making. Responses are stored only in your browser
+            and are never transmitted externally.
           </p>
+        </div>
+
+        {/* ── Logic2020 CTA ──────────────────────────────────────────── */}
+        <div className="cta-section">
+          <div className="cta-logo-row">
+            <div className="cta-logo-mark">L20</div>
+            <span className="cta-logo-text">Logic2020</span>
+          </div>
+          <h3 className="cta-title">Ready to turn these findings into a roadmap?</h3>
+          <p className="cta-desc">
+            Logic2020's AI advisory team helps enterprises move from assessment to execution —
+            building AI strategies, data foundations, governance frameworks, and the talent
+            capabilities needed to scale AI with confidence.
+          </p>
+          <div className="cta-actions">
+            <a
+              href="https://www.logic2020.com/contact"
+              className="btn-cta-primary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Connect with an AI Advisor
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
+            <span className="cta-sub">
+              Schedule a complimentary 30-minute debrief to walk through your results with an advisor
+            </span>
+          </div>
         </div>
 
         {/* ── Footer actions ─────────────────────────────────────────── */}
@@ -311,6 +356,7 @@ export default function ResultsPage({ company, answers, onRestart }) {
             Start New Assessment
           </button>
         </div>
+
       </div>
     </div>
   )

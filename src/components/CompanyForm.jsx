@@ -25,6 +25,22 @@ const sizes = [
   '10,000+ employees',
 ]
 
+const roles = [
+  'CEO / President',
+  'COO / Chief Operating Officer',
+  'CTO / Chief Technology Officer',
+  'CIO / Chief Information Officer',
+  'CDAO / Chief Data & AI Officer',
+  'VP / Director, Technology',
+  'VP / Director, Data & Analytics',
+  'VP / Director, AI & Innovation',
+  'Head of Digital Transformation',
+  'Enterprise Architect',
+  'Program / Project Manager',
+  'Senior Consultant / Advisor',
+  'Other',
+]
+
 function TopBar({ progress }) {
   return (
     <div className="topbar">
@@ -61,13 +77,16 @@ export default function CompanyForm({ company, onChange, onNext, onBack }) {
             <div className="section-eyebrow">Step 1 — Context</div>
             <h2 className="section-title">Tell us about your organization</h2>
             <p className="section-subtitle">
-              This context helps us tailor recommendations to your industry and scale.
-              Your responses are not stored or shared.
+              This context helps tailor recommendations to your industry and scale.
+              Responses are stored only in your browser and are never transmitted externally.
             </p>
           </div>
 
           <div className="card form-card">
-            <div className="form-grid">
+
+            {/* ── Organization fields ───────────────────────────── */}
+            <div className="form-section-label">Organization</div>
+            <div className="form-grid" style={{ marginBottom: 20 }}>
               <div className="form-field form-field--full">
                 <label className="form-label">
                   Organization name <span>*</span>
@@ -121,6 +140,38 @@ export default function CompanyForm({ company, onChange, onNext, onBack }) {
               </div>
             </div>
 
+            {/* ── Respondent fields ────────────────────────────── */}
+            <div className="form-section-label">Respondent <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional — appears on the report)</span></div>
+            <div className="form-grid">
+              <div className="form-field">
+                <label className="form-label">Your name</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  placeholder="e.g. Jane Smith"
+                  value={company.respondentName || ''}
+                  onChange={set('respondentName')}
+                />
+              </div>
+
+              <div className="form-field">
+                <label className="form-label">Your role / title</label>
+                <div className="form-select-wrapper">
+                  <select
+                    className="form-select"
+                    value={company.respondentRole || ''}
+                    onChange={set('respondentRole')}
+                    style={{ width: '100%', cursor: 'pointer' }}
+                  >
+                    <option value="">Select role…</option>
+                    {roles.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
             {isValid && (
               <div
                 style={{
@@ -139,7 +190,7 @@ export default function CompanyForm({ company, onChange, onNext, onBack }) {
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
-                Ready — click <strong>Continue</strong> to start the assessment
+                Ready — click <strong>Continue</strong> to begin the assessment
               </div>
             )}
           </div>
@@ -147,8 +198,10 @@ export default function CompanyForm({ company, onChange, onNext, onBack }) {
           <div style={{ marginTop: 24, padding: '16px 20px', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12 }}>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               <strong style={{ color: 'var(--text-primary)' }}>What happens next:</strong>{' '}
-              You'll answer 15 questions for each of 5 AI readiness dimensions, scored 1–5.
-              The assessment takes approximately 15–25 minutes to complete thoughtfully.
+              You'll answer 12 questions across each of 5 AI readiness dimensions, scored 1–5 using
+              behaviorally-anchored descriptors. The assessment takes approximately 15–20 minutes
+              to complete thoughtfully. Results include a maturity score, radar profile, and
+              prioritized recommendations.
             </p>
           </div>
         </div>
