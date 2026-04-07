@@ -1,14 +1,15 @@
+import { useRef } from 'react'
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, Tooltip,
 } from 'recharts'
 import {
-  dimensions,
   computeDimensionScores,
   computeOverallScore,
   getMaturityLevel,
 } from '../data/questions'
-import { getRecommendations } from '../data/recommendations'
+import { generateRecommendations } from '../data/recommendations'
+import PDFExportButton from './PDFExport'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
 
@@ -20,7 +21,6 @@ const maturityDescriptions = {
   Leading:    'AI is deeply embedded across strategy, operations, and culture. Focus on frontier capabilities and maintaining competitive leadership.',
 }
 
-// Circular score ring
 function ScoreRing({ score, color, size = 160 }) {
   const r = (size / 2) - 12
   const circ = 2 * Math.PI * r
@@ -29,17 +29,13 @@ function ScoreRing({ score, color, size = 160 }) {
   return (
     <div className="score-ring-container" style={{ width: size, height: size }}>
       <svg width={size} height={size}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#E2E8F0" strokeWidth="10" />
         <circle
-          cx={size / 2} cy={size / 2} r={r}
-          fill="none" stroke="#E2E8F0" strokeWidth="10"
-        />
-        <circle
-          cx={size / 2} cy={size / 2} r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth="10"
+          cx={size/2} cy={size/2} r={r}
+          fill="none" stroke={color} strokeWidth="10"
           strokeLinecap="round"
           strokeDasharray={`${fill} ${circ}`}
+          transform={`rotate(-90 ${size/2} ${size/2})`}
           style={{ transition: 'stroke-dasharray 0.8s ease' }}
         />
       </svg>
@@ -56,8 +52,8 @@ function TopBar() {
     <div className="topbar">
       <div className="topbar-inner topbar-inner--wide">
         <div className="topbar-logo">
-          <div className="topbar-logo-mark">◆</div>
-          <span className="topbar-logo-text">AI <span>Readiness</span></span>
+          <div className="topbar-logo-mark">AI</div>
+          <span className="topbar-logo-text">Readiness Assessment</span>
         </div>
         <div className="topbar-progress">
           <div className="topbar-progress-label">Assessment Complete</div>
@@ -72,16 +68,12 @@ function TopBar() {
 }
 
 const CustomRadarTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
+  if (active && payload?.length) {
     const d = payload[0].payload
     return (
       <div style={{
-        background: 'white',
-        border: '1px solid #E2E8F0',
-        borderRadius: 8,
-        padding: '10px 14px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-        fontSize: 13,
+        background: 'white', border: '1px solid #E2E8F0', borderRadius: 8,
+        padding: '10px 14px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13,
       }}>
         <div style={{ fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{d.dimension}</div>
         <div style={{ color: '#4F46E5', fontWeight: 600 }}>{d.score} / 100</div>
@@ -92,10 +84,12 @@ const CustomRadarTooltip = ({ active, payload }) => {
 }
 
 export default function ResultsPage({ company, answers, onRestart }) {
-  const dimScores = computeDimensionScores(answers)
-  const overallScore = computeOverallScore(dimScores)
-  const maturity = getMaturityLevel(overallScore)
-  const recommendations = getRecommendations(dimScores)
+  const radarRef = useRef(null)
+
+  const dimScores     = computeDimensionScores(answers)
+  const overallScore  = computeOverallScore(dimScores)
+  const maturity      = getMaturityLevel(overallScore)
+  const recommendations = generateRecommendations(dimScores)
 
   const radarData = dimScores.map(d => ({
     dimension: d.shortName,
@@ -107,47 +101,55 @@ export default function ResultsPage({ company, answers, onRestart }) {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 
-  const avgAnswered = dimScores.reduce((acc, d) => {
-    return acc + Object.keys(answers[d.id]).length
-  }, 0)
+  const totalAnswered = dimScores.reduce(
+    (acc, d) => acc + Object.keys(answers[d.id]).length, 0
+  )
 
   return (
     <div className="page">
       <TopBar />
 
       <div className="page-inner page-inner--wide">
-        {/* Results Header */}
+
+        {/* ── Results header ─────────────────────────────────────────── */}
         <div className="results-header">
           <div>
-            <div className="results-company-name">{company.name} · {company.industry} · {company.size}</div>
+            <div className="results-company-name">
+              {company.name} · {company.industry} · {company.size}
+            </div>
             <h1 className="results-title">AI Readiness Assessment Results</h1>
-            <p className="results-subtitle">Based on {avgAnswered} responses across 5 dimensions</p>
+            <p className="results-subtitle">
+              Based on {totalAnswered} responses across 5 dimensions
+            </p>
             <div className="results-date">{today}</div>
           </div>
-          <button className="btn btn-secondary" onClick={onRestart}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-            Retake Assessment
-          </button>
+
+          <div className="results-header-actions">
+            <PDFExportButton
+              company={company}
+              answers={answers}
+              radarChartRef={radarRef}
+            />
+            <button className="btn btn-secondary" onClick={onRestart}>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              Retake
+            </button>
+          </div>
         </div>
 
-        {/* Overall Score */}
+        {/* ── Overall Score ──────────────────────────────────────────── */}
         <div className="card score-summary" style={{ marginBottom: 24 }}>
           <ScoreRing score={overallScore} color={maturity.color} />
           <div className="score-summary-content">
-            <div
-              className="maturity-badge"
-              style={{ background: maturity.bg, color: maturity.color }}
-            >
+            <div className="maturity-badge" style={{ background: maturity.bg, color: maturity.color }}>
               <span>●</span> {maturity.label}
             </div>
             <div className="score-summary-headline">
               Overall AI Readiness: {overallScore}/100
             </div>
-            <p className="score-summary-desc">
-              {maturityDescriptions[maturity.label]}
-            </p>
+            <p className="score-summary-desc">{maturityDescriptions[maturity.label]}</p>
             <div className="score-summary-meta">
               {dimScores.map(d => (
                 <div key={d.id} className="score-meta-item">
@@ -159,85 +161,61 @@ export default function ResultsPage({ company, answers, onRestart }) {
           </div>
         </div>
 
-        {/* Dimension Scores Grid */}
+        {/* ── Dimension score cards ──────────────────────────────────── */}
         <div className="dim-scores-grid">
           {dimScores.map(d => {
             const lvl = getMaturityLevel(d.score)
             return (
-              <div
-                key={d.id}
-                className="dim-score-card"
-                style={{ '--card-color': d.color }}
-              >
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0,
-                    height: 3,
-                    background: d.color,
-                    borderRadius: '12px 12px 0 0',
-                  }}
-                />
+              <div key={d.id} className="dim-score-card" style={{ '--card-color': d.color }}>
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, right: 0,
+                  height: 3, background: d.color, borderRadius: '12px 12px 0 0',
+                }} />
                 <div className="dim-score-card-header">
                   <div className="dim-score-card-name">{d.name}</div>
                   <span style={{ fontSize: 20 }}>{dimIcons[d.id]}</span>
                 </div>
-                <div className="dim-score-value">
-                  {d.score}<span>/100</span>
-                </div>
+                <div className="dim-score-value">{d.score}<span>/100</span></div>
                 <div className="dim-score-bar-track">
-                  <div
-                    className="dim-score-bar-fill"
-                    style={{
-                      width: `${d.score}%`,
-                      background: d.color,
-                    }}
-                  />
+                  <div className="dim-score-bar-fill" style={{ width: `${d.score}%`, background: d.color }} />
                 </div>
-                <div
-                  className="dim-score-maturity"
-                  style={{ color: lvl.color }}
-                >
-                  {lvl.label}
-                </div>
+                <div className="dim-score-maturity" style={{ color: lvl.color }}>{lvl.label}</div>
               </div>
             )
           })}
         </div>
 
-        {/* Radar Chart */}
+        {/* ── Radar Chart ────────────────────────────────────────────── */}
         <div className="card chart-section" style={{ marginBottom: 24 }}>
           <div className="chart-title">Readiness Profile</div>
           <div className="chart-subtitle">Score across all 5 dimensions (0–100 scale)</div>
-          <ResponsiveContainer width="100%" height={380}>
-            <RadarChart data={radarData} margin={{ top: 10, right: 40, bottom: 10, left: 40 }}>
-              <PolarGrid gridType="polygon" stroke="#E2E8F0" />
-              <PolarAngleAxis
-                dataKey="dimension"
-                tick={{ fill: '#475569', fontSize: 13, fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
-              />
-              <PolarRadiusAxis
-                angle={90}
-                domain={[0, 100]}
-                tick={{ fill: '#94A3B8', fontSize: 11 }}
-                tickCount={6}
-                axisLine={false}
-              />
-              <Tooltip content={<CustomRadarTooltip />} />
-              <Radar
-                name="Score"
-                dataKey="score"
-                stroke="#4F46E5"
-                fill="#4F46E5"
-                fillOpacity={0.15}
-                strokeWidth={2.5}
-                dot={{ fill: '#4F46E5', r: 5, strokeWidth: 0 }}
-                activeDot={{ r: 7, fill: '#4F46E5' }}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
 
-          {/* Legend */}
+          {/* ref wraps the chart for PDF capture */}
+          <div ref={radarRef}>
+            <ResponsiveContainer width="100%" height={380}>
+              <RadarChart data={radarData} margin={{ top: 10, right: 40, bottom: 10, left: 40 }}>
+                <PolarGrid gridType="polygon" stroke="#E2E8F0" />
+                <PolarAngleAxis
+                  dataKey="dimension"
+                  tick={{ fill: '#475569', fontSize: 13, fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
+                />
+                <PolarRadiusAxis
+                  angle={90} domain={[0, 100]}
+                  tick={{ fill: '#94A3B8', fontSize: 11 }}
+                  tickCount={6} axisLine={false}
+                />
+                <Tooltip content={<CustomRadarTooltip />} />
+                <Radar
+                  name="Score" dataKey="score"
+                  stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.15}
+                  strokeWidth={2.5}
+                  dot={{ fill: '#4F46E5', r: 5, strokeWidth: 0 }}
+                  activeDot={{ r: 7, fill: '#4F46E5' }}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', marginTop: 8 }}>
             {dimScores.map(d => {
               const lvl = getMaturityLevel(d.score)
@@ -245,31 +223,21 @@ export default function ResultsPage({ company, answers, onRestart }) {
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                   <span style={{ fontSize: 14 }}>{dimIcons[d.id]}</span>
                   <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{d.shortName}</span>
-                  <span
-                    style={{
-                      padding: '1px 7px',
-                      borderRadius: 4,
-                      background: lvl.bg,
-                      color: lvl.color,
-                      fontWeight: 600,
-                      fontSize: 11,
-                    }}
-                  >
-                    {d.score}
-                  </span>
+                  <span style={{
+                    padding: '1px 7px', borderRadius: 4,
+                    background: lvl.bg, color: lvl.color, fontWeight: 600, fontSize: 11,
+                  }}>{d.score}</span>
                 </div>
               )
             })}
           </div>
         </div>
 
-        {/* Recommendations */}
+        {/* ── Recommendations ────────────────────────────────────────── */}
         <div className="recs-section">
           <div className="recs-header">
             <div className="section-eyebrow">Action Plan</div>
-            <h2 className="section-title" style={{ fontSize: 22 }}>
-              Prioritized Recommendations
-            </h2>
+            <h2 className="section-title" style={{ fontSize: 22 }}>Prioritized Recommendations</h2>
             <p className="section-subtitle" style={{ fontSize: 14 }}>
               Ordered by readiness gap — address critical items first for the highest impact.
             </p>
@@ -279,10 +247,7 @@ export default function ResultsPage({ company, answers, onRestart }) {
             const priorityClass = `priority-${rec.priority.toLowerCase()}`
             return (
               <div key={rec.dimensionId} className="rec-card">
-                <div
-                  className="rec-card-border"
-                  style={{ background: rec.dimensionColor }}
-                />
+                <div className="rec-card-border" style={{ background: rec.dimensionColor }} />
                 <div style={{ paddingLeft: 16 }}>
                   <div className="rec-card-top">
                     <div>
@@ -308,10 +273,7 @@ export default function ResultsPage({ company, answers, onRestart }) {
                   <ul className="rec-actions-list">
                     {rec.actions.map((action, ai) => (
                       <li key={ai} className="rec-action-item">
-                        <div
-                          className="rec-action-dot"
-                          style={{ background: rec.dimensionColor }}
-                        />
+                        <div className="rec-action-dot" style={{ background: rec.dimensionColor }} />
                         {action}
                       </li>
                     ))}
@@ -322,34 +284,26 @@ export default function ResultsPage({ company, answers, onRestart }) {
           })}
         </div>
 
-        {/* Scoring Methodology Note */}
+        {/* ── Methodology note ──────────────────────────────────────── */}
         <div style={{
-          padding: '20px 24px',
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          borderRadius: 12,
-          marginBottom: 32,
+          padding: '20px 24px', background: 'var(--card)',
+          border: '1px solid var(--border)', borderRadius: 12, marginBottom: 32,
         }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
             About This Assessment
           </div>
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-            Scores are calculated by normalizing responses on a 0–100 scale across 15 questions per dimension
-            (1 = Not at all → 0 points, 5 = Advanced → 100 points). The overall score is the unweighted average
-            of all five dimension scores. This assessment reflects self-reported maturity and should be
-            supplemented with stakeholder validation and domain expert review. Responses are processed entirely
-            in your browser and are not stored or transmitted.
+            Scores are calculated by normalizing responses on a 0–100 scale across 15 behaviorally-anchored
+            questions per dimension (1 = Not at all → 0 points, 5 = Advanced → 100 points). The overall score
+            is the unweighted average of all five dimension scores. This assessment reflects self-reported maturity
+            and should be supplemented with stakeholder validation and domain expert review.
+            Responses are stored only in your browser and are not transmitted externally.
           </p>
         </div>
 
-        {/* Footer Actions */}
+        {/* ── Footer actions ─────────────────────────────────────────── */}
         <div className="results-actions">
-          <button className="btn btn-secondary" onClick={() => window.print()}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.056 48.056 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
-            </svg>
-            Print / Save PDF
-          </button>
+          <PDFExportButton company={company} answers={answers} radarChartRef={radarRef} />
           <button className="btn btn-primary btn-lg" onClick={onRestart}>
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />

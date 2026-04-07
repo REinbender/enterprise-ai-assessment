@@ -1,32 +1,66 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { dimensions } from './data/questions'
 import IntroScreen from './components/IntroScreen'
 import CompanyForm from './components/CompanyForm'
 import DimensionAssessment from './components/DimensionAssessment'
 import ResultsPage from './components/ResultsPage'
+import NavigationSidebar from './components/NavigationSidebar'
+import ResumePrompt from './components/ResumePrompt'
 
-const initialAnswers = () =>
+const STORAGE_KEY = 'ai_readiness_v1'
+
+const defaultAnswers = () =>
   dimensions.reduce((acc, d) => ({ ...acc, [d.id]: {} }), {})
 
+const defaultState = () => ({
+  step: 0,
+  company: { name: '', industry: '', size: '' },
+  answers: defaultAnswers(),
+})
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
 export default function App() {
-  const [step, setStep] = useState(0)
-  const [company, setCompany] = useState({ name: '', industry: '', size: '' })
-  const [answers, setAnswers] = useState(initialAnswers)
+  const [appState, setAppState] = useState(defaultState)
+  const [savedData, setSavedData] = useState(null)
+  const [showResume, setShowResume] = useState(false)
 
-  // steps: 0=intro, 1=company, 2-6=dimension[0-4], 7=results
-  const dimIndex = step - 2 // 0-4 when step is 2-6
-  const currentDimension = dimIndex >= 0 && dimIndex < dimensions.length
-    ? dimensions[dimIndex]
-    : null
+  const { step, company, answers } = appState
 
-  const handleAnswer = (questionIdx, score) => {
-    setAnswers(prev => ({
-      ...prev,
-      [currentDimension.id]: {
-        ...prev[currentDimension.id],
-        [questionIdx]: score,
+  // On mount: check for saved progress
+  useEffect(() => {
+    const saved = loadSaved()
+    if (saved && saved.step > 0) {
+      setSavedData(saved)
+      setShowResume(true)
+    }
+  }, [])
+
+  // Auto-save whenever state changes (skip step 0 / results)
+  useEffect(() => {
+    if (step > 0 && step < 7) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState))
+    }
+  }, [appState])
+
+  const patch = (obj) => setAppState(prev => ({ ...prev, ...obj }))
+
+  const goTo = (s) => patch({ step: s })
+
+  const handleAnswer = (dimId, qIdx, score) => {
+    patch({
+      answers: {
+        ...answers,
+        [dimId]: { ...answers[dimId], [qIdx]: score },
       },
-    }))
+    })
   }
 
   const isDimensionComplete = (dimId) => {
@@ -35,53 +69,82 @@ export default function App() {
   }
 
   const handleRestart = () => {
-    setStep(0)
-    setCompany({ name: '', industry: '', size: '' })
-    setAnswers(initialAnswers())
+    localStorage.removeItem(STORAGE_KEY)
+    setAppState(defaultState())
   }
 
-  const totalSteps = 7 // company + 5 dims + results
-
-  if (step === 0) {
-    return <IntroScreen onStart={() => setStep(1)} />
+  const handleResume = () => {
+    setAppState(savedData)
+    setShowResume(false)
   }
 
-  if (step === 1) {
+  const handleStartFresh = () => {
+    localStorage.removeItem(STORAGE_KEY)
+    setSavedData(null)
+    setShowResume(false)
+  }
+
+  const currentDimension = step >= 2 && step <= 6 ? dimensions[step - 2] : null
+  const showSidebar = step >= 1 && step <= 6
+
+  if (showResume) {
     return (
-      <CompanyForm
-        company={company}
-        onChange={setCompany}
-        onNext={() => setStep(2)}
-        onBack={() => setStep(0)}
+      <ResumePrompt
+        savedData={savedData}
+        onResume={handleResume}
+        onStartFresh={handleStartFresh}
       />
     )
   }
 
-  if (step >= 2 && step <= 6) {
-    return (
-      <DimensionAssessment
-        dimension={currentDimension}
-        answers={answers[currentDimension.id]}
-        onAnswer={handleAnswer}
-        onNext={() => setStep(step + 1)}
-        onBack={() => setStep(step - 1)}
-        isComplete={isDimensionComplete(currentDimension.id)}
-        stepNumber={step}
-        totalSteps={totalSteps}
-        company={company}
-      />
-    )
-  }
+  return (
+    <div className="app-shell">
+      {showSidebar && (
+        <NavigationSidebar
+          currentStep={step}
+          company={company}
+          answers={answers}
+          isDimensionComplete={isDimensionComplete}
+          onNavigate={goTo}
+        />
+      )}
 
-  if (step === 7) {
-    return (
-      <ResultsPage
-        company={company}
-        answers={answers}
-        onRestart={handleRestart}
-      />
-    )
-  }
+      <main className={`app-main${showSidebar ? ' with-sidebar' : ''}`}>
+        {step === 0 && <IntroScreen onStart={() => goTo(1)} />}
 
-  return null
+        {step === 1 && (
+          <CompanyForm
+            company={company}
+            onChange={(c) => patch({ company: c })}
+            onNext={() => goTo(2)}
+            onBack={() => goTo(0)}
+          />
+        )}
+
+        {step >= 2 && step <= 6 && (
+          <DimensionAssessment
+            dimension={currentDimension}
+            answers={answers[currentDimension.id]}
+            onAnswer={(qIdx, score) =>
+              handleAnswer(currentDimension.id, qIdx, score)
+            }
+            onNext={() => goTo(step + 1)}
+            onBack={() => goTo(step - 1)}
+            isComplete={isDimensionComplete(currentDimension.id)}
+            stepNumber={step}
+            totalSteps={7}
+            company={company}
+          />
+        )}
+
+        {step === 7 && (
+          <ResultsPage
+            company={company}
+            answers={answers}
+            onRestart={handleRestart}
+          />
+        )}
+      </main>
+    </div>
+  )
 }

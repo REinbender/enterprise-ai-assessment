@@ -187,6 +187,9 @@ export const recommendationData = {
   },
 }
 
+// Alias used by PDFExport and ResultsPage
+export const generateRecommendations = (dimensionScores) => getRecommendations(dimensionScores)
+
 export function getRecommendations(dimensionScores) {
   // Sort by score ascending (lowest first = highest priority)
   const sorted = [...dimensionScores].sort((a, b) => a.score - b.score)

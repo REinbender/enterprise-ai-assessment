@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { scaleLabels } from '../data/questions'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
@@ -17,8 +18,8 @@ function TopBar({ dimension, stepNumber, totalSteps, answeredCount, totalQuestio
     <div className="topbar">
       <div className="topbar-inner">
         <div className="topbar-logo">
-          <div className="topbar-logo-mark">◆</div>
-          <span className="topbar-logo-text">AI <span>Readiness</span></span>
+          <div className="topbar-logo-mark">AI</div>
+          <span className="topbar-logo-text">Readiness Assessment</span>
         </div>
         <div className="topbar-progress">
           <div className="topbar-progress-label">
@@ -35,17 +36,83 @@ function TopBar({ dimension, stepNumber, totalSteps, answeredCount, totalQuestio
   )
 }
 
-function QuestionCard({ question, index, selectedValue, onSelect, color }) {
-  const answered = selectedValue !== undefined
+// Expandable behavioral anchor panel shown when a score is selected or on hover
+function AnchorPanel({ anchors, selectedValue, color }) {
+  if (!anchors) return null
+
+  const display = selectedValue || null
+
+  if (!display) {
+    return (
+      <div className="anchor-hint">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+          <path d="M12 8v4m0 4h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+        Select a score to see behavioral descriptors for each level
+      </div>
+    )
+  }
+
   return (
-    <div className={`question-card${answered ? ' answered' : ''}`}>
-      <div className="question-top">
-        <span className="question-num" style={{ background: answered ? color + '20' : undefined, color: answered ? color : undefined }}>
-          {index + 1}
-        </span>
-        <p className="question-text">{question}</p>
+    <div className="anchor-panel" style={{ borderLeftColor: color }}>
+      <div className="anchor-panel-header">
+        <div className="anchor-score-badge" style={{ background: color }}>
+          {display}
+        </div>
+        <div>
+          <div className="anchor-score-label" style={{ color }}>
+            {scaleLabels[display]}
+          </div>
+          <div className="anchor-desc">
+            {anchors[display]}
+          </div>
+        </div>
       </div>
 
+      {/* Mini scale strip showing all 5 anchors */}
+      <div className="anchor-strip">
+        {[1, 2, 3, 4, 5].map(v => (
+          <div
+            key={v}
+            className={`anchor-strip-item ${v === display ? 'selected' : ''}`}
+            style={v === display ? { borderColor: color, background: color + '10' } : {}}
+            title={anchors[v]}
+          >
+            <span
+              className="anchor-strip-num"
+              style={v === display ? { background: color, color: 'white' } : {}}
+            >
+              {v}
+            </span>
+            <span className="anchor-strip-text">{anchors[v]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function QuestionCard({ question, index, selectedValue, onSelect, color }) {
+  const [showAllAnchors, setShowAllAnchors] = useState(false)
+  const answered = selectedValue !== undefined
+
+  return (
+    <div className={`question-card ${answered ? 'answered' : ''}`}>
+      <div className="question-top">
+        <span
+          className="question-num"
+          style={{
+            background: answered ? color + '20' : undefined,
+            color: answered ? color : undefined,
+          }}
+        >
+          {index + 1}
+        </span>
+        <p className="question-text">{question.text}</p>
+      </div>
+
+      {/* 1–5 scale */}
       <div className="scale-row">
         {[1, 2, 3, 4, 5].map(val => (
           <label key={val} className="scale-option">
@@ -58,12 +125,17 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
             />
             <div
               className="scale-option-btn"
-              style={selectedValue === val ? {
-                background: color,
-                borderColor: color,
-                color: 'white',
-                boxShadow: `0 2px 8px ${color}55`,
-              } : {}}
+              style={
+                selectedValue === val
+                  ? {
+                      background: color,
+                      borderColor: color,
+                      color: 'white',
+                      boxShadow: `0 2px 8px ${color}55`,
+                    }
+                  : {}
+              }
+              title={question.anchors?.[val]}
             >
               {val}
             </div>
@@ -71,10 +143,19 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
         ))}
       </div>
 
-      <div className="scale-labels">
-        <span className="scale-label-text">Not at all</span>
-        <span className="scale-label-text">Advanced</span>
+      <div className="scale-end-labels">
+        <span>Not at all</span>
+        <span>Advanced</span>
       </div>
+
+      {/* Behavioral anchor panel */}
+      {question.anchors && (
+        <AnchorPanel
+          anchors={question.anchors}
+          selectedValue={selectedValue}
+          color={color}
+        />
+      )}
     </div>
   )
 }
@@ -104,7 +185,7 @@ export default function DimensionAssessment({
       />
 
       <div className="page-inner">
-        {/* Dimension Header */}
+        {/* Dimension header */}
         <div className="dim-header">
           <div
             className="dim-header-pill"
@@ -113,7 +194,7 @@ export default function DimensionAssessment({
             <span style={{ fontSize: 16 }}>{dimIcons[dimension.id]}</span>
             Dimension {stepNumber - 1} of 5
             {isComplete && (
-              <span className="completion-badge" style={{ marginLeft: 4 }}>
+              <span className="completion-badge" style={{ marginLeft: 8 }}>
                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
@@ -126,9 +207,9 @@ export default function DimensionAssessment({
           <p className="dim-header-desc">{dimension.description}</p>
         </div>
 
-        {/* Scale Legend */}
+        {/* Scale legend */}
         <div className="scale-legend">
-          <span className="scale-legend-label">Rating scale:</span>
+          <span className="scale-legend-label">Scoring scale:</span>
           <div className="scale-legend-items">
             {[1, 2, 3, 4, 5].map(v => (
               <div key={v} className="scale-legend-item">
@@ -139,10 +220,19 @@ export default function DimensionAssessment({
                   {v}
                 </div>
                 <span>{scaleSummaryLabels[v - 1]}</span>
-                {v < 5 && <span style={{ color: 'var(--border)', marginLeft: 2 }}>·</span>}
+                {v < 5 && <span style={{ color: 'var(--border)', marginLeft: 4 }}>·</span>}
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Behavioral anchors callout */}
+        <div className="anchors-callout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+          Each question includes <strong>behaviorally-anchored descriptors</strong> — select a score to see what good evidence looks like at each level.
         </div>
 
         {/* Questions */}
@@ -159,24 +249,16 @@ export default function DimensionAssessment({
           ))}
         </div>
 
-        {/* Completion nudge */}
+        {/* Remaining nudge */}
         {!isComplete && answeredCount > 0 && (
-          <div style={{
-            textAlign: 'center',
-            padding: '16px',
-            background: 'var(--card)',
-            border: '1px dashed var(--border)',
-            borderRadius: 12,
-            marginBottom: 32,
-            fontSize: 13,
-            color: 'var(--text-muted)',
-          }}>
-            {totalQuestions - answeredCount} question{totalQuestions - answeredCount !== 1 ? 's' : ''} remaining
-            before you can continue
+          <div className="remaining-nudge">
+            {totalQuestions - answeredCount} question
+            {totalQuestions - answeredCount !== 1 ? 's' : ''} remaining before you can continue
           </div>
         )}
       </div>
 
+      {/* Sticky footer nav */}
       <div className="nav-footer">
         <div className="nav-footer-inner">
           <button className="btn btn-ghost" onClick={onBack}>
