@@ -1,7 +1,7 @@
 import { dimensions } from '../data/questions'
 
 const STEP_COMPANY = 1
-const STEP_RESULTS = 7
+const STEP_RESULTS = 8
 
 export default function NavigationSidebar({
   currentStep,
@@ -22,7 +22,7 @@ export default function NavigationSidebar({
       step: i + 2,
       label: dim.name,
       shortLabel: dim.shortName,
-      icon: ['🎯', '🗄️', '⚖️', '👥', '⚙️'][i],
+      icon: ['🎯', '🗄️', '⚖️', '👥', '⚙️', '🤖'][i],
       color: dim.color,
       isComplete: isDimensionComplete(dim.id),
       answeredCount: Object.keys(answers[dim.id] || {}).length,
@@ -121,8 +121,8 @@ export default function NavigationSidebar({
 
       {/* Version badge */}
       <div className="sidebar-footer">
-        <span className="sidebar-version">v1.2.0</span>
-        <span className="sidebar-version-label">60 questions · 5 dimensions</span>
+        <span className="sidebar-version">v1.4.0</span>
+        <span className="sidebar-version-label">72 questions · 6 dimensions</span>
       </div>
     </aside>
   )

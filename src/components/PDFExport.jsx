@@ -31,6 +31,7 @@ const DIM_COLORS = {
   3: [139,  92, 246],  // purple  – Governance
   4: [245, 158,  11],  // amber   – Talent
   5: [16,  185, 129],  // green   – Operations
+  6: [236,  72, 153],  // pink    – GenAI
 }
 
 // Maturity color lookup (matches questions.js maturityLevels)
@@ -75,6 +76,11 @@ const DIM_NARRATIVES = {
     low:    'Without foundational MLOps practices, AI models cannot be deployed reliably, monitored effectively, or improved systematically in production. The absence of standardized tooling means AI projects stall between experimentation and production value delivery. Establishing experiment tracking, model versioning, and basic CI/CD for ML models is the immediate priority.',
     medium: 'Basic MLOps practices are in place but automation gaps and inconsistent standards are creating deployment bottlenecks and reliability risk for production AI systems. Automated retraining pipelines, a shared feature store, and A/B testing infrastructure would significantly increase deployment velocity and system resilience.',
     high:   'MLOps capabilities are mature, with reliable CI/CD pipelines, automated monitoring, and systematic post-deployment review practices firmly established. AI systems are deployed at scale with high reliability and the engineering organization can iterate rapidly with confidence. The focus should advance toward self-service AI infrastructure and FinOps optimization.',
+  },
+  6: {
+    low:    'The organization lacks the policy foundation, governance structure, and technical infrastructure needed to deploy Generative AI responsibly. Unmanaged adoption of consumer GenAI tools is already creating data privacy and IP risk. Establishing an acceptable use policy, appointing a GenAI sponsor, and auditing shadow AI usage are the immediate priorities before any further deployment occurs.',
+    medium: 'GenAI experimentation is underway, but the absence of consistent governance, output quality controls, and impact measurement means the organization cannot scale responsibly or demonstrate business value. Implementing RAG infrastructure, structured evaluation frameworks, and a GenAI CoE would unlock the next phase of adoption and significantly reduce operational risk.',
+    high:   'Generative AI capabilities are well-established with strong governance, quality controls, and measurable business outcomes — positioning the organization as a GenAI leader. The opportunity is to leverage proprietary data assets and agentic architectures to build differentiated capabilities that competitors cannot easily replicate, while publishing externally to shape industry practices.',
   },
 }
 
@@ -271,7 +277,7 @@ function drawCover(doc, company, dimScores, overallScore) {
   doc.setFontSize(7)
   doc.setFont('helvetica', 'normal')
   const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  doc.text(`Generated ${dateStr}  ·  Enterprise AI Readiness Assessment v1.3.0  ·  logic2020.com`, PW / 2, PH - 8, { align: 'center' })
+  doc.text(`Generated ${dateStr}  ·  Enterprise AI Readiness Assessment v1.4.0  ·  logic2020.com`, PW / 2, PH - 8, { align: 'center' })
 }
 
 // ── PAGE 2: Executive Summary ─────────────────────────────────────────────
@@ -472,7 +478,7 @@ function drawDimensionsPage(doc, dimScores) {
   })
 }
 
-// ── PAGE 4: Recommendations ───────────────────────────────────────────────
+// ── PAGE 4+: Recommendations ──────────────────────────────────────────────
 function drawRecommendationsPage(doc, recs, startPageNum) {
   doc.addPage()
   pageHeader(doc, 'Prioritized Recommendations', startPageNum)
@@ -483,16 +489,32 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
     Medium:   C.primary,
   }
 
+  const PHASE_COL_W = (CW - 16) / 3
+  const PHASE_GAP   = 4
+
   let y = 42
   let currentPage = startPageNum
 
   recs.forEach((rec) => {
     const pc = priorityColors[rec.priority] || C.slate500
+    const dc = DIM_COLORS[rec.dimensionId] || C.slate500
     const descLines = doc.splitTextToSize(rec.description, CW - 16)
-    const actionsH  = rec.actions.reduce((acc, a) => {
+
+    // Calculate actions height
+    const actionsH = rec.actions.reduce((acc, a) => {
       return acc + doc.splitTextToSize(a, CW - 26).length * 4.5
-    }, 0) + rec.actions.length * 4.5
-    const cardH = 28 + descLines.length * 4.5 + 12 + actionsH + 8
+    }, 0) + rec.actions.length * 2.5
+
+    // Calculate phases height
+    let phasesH = 0
+    if (rec.phases) {
+      const maxLines = Math.max(...rec.phases.map(ph =>
+        ph.actions.reduce((acc, a) => acc + doc.splitTextToSize(a, PHASE_COL_W - 6).length, 0)
+      ))
+      phasesH = 20 + maxLines * 4.5 + 8
+    }
+
+    const cardH = 28 + descLines.length * 4.5 + 12 + actionsH + (rec.phases ? 10 + phasesH : 0) + 8
 
     if (y + cardH > PH - 20) {
       doc.addPage()
@@ -506,7 +528,7 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
     setDraw(doc, C.slate200)
     doc.roundedRect(ML, y, CW, cardH, 3, 3, 'S')
 
-    // Priority accent
+    // Priority accent bar
     setFill(doc, pc)
     doc.roundedRect(ML, y, 4, cardH, 2, 2, 'F')
 
@@ -518,12 +540,19 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
     doc.text(rec.priority, ML + 18, y + 10, { align: 'center' })
 
     // Dimension badge
-    const dc = DIM_COLORS[rec.dimensionId] || C.slate500
-    filledBox(doc, ML + 32, y + 5, 38, 7, dc, 3)
+    filledBox(doc, ML + 32, y + 5, 42, 7, dc, 3)
     doc.setFontSize(6)
     doc.setFont('helvetica', 'normal')
     setTextC(doc, C.white)
-    doc.text(rec.dimensionName, ML + 51, y + 10, { align: 'center' })
+    doc.text(rec.dimensionName, ML + 53, y + 10, { align: 'center' })
+
+    // Effort/Impact badges
+    const effortLabel = `E${rec.effort}/5`
+    const impactLabel = `I${rec.impact}/5`
+    doc.setFontSize(6)
+    doc.setFont('helvetica', 'normal')
+    setTextC(doc, C.slate500)
+    doc.text(`Effort ${effortLabel}  ·  Impact ${impactLabel}`, ML + 78, y + 10)
 
     doc.setFontSize(7)
     setTextC(doc, C.slate500)
@@ -557,8 +586,61 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
       setTextC(doc, C.slate700)
       const aLines = doc.splitTextToSize(action, CW - 26)
       doc.text(aLines, ML + 15, actY)
-      actY += aLines.length * 4.5 + 3
+      actY += aLines.length * 4.5 + 2.5
     })
+
+    // Phases timeline
+    if (rec.phases) {
+      actY += 6
+      // Divider
+      setDraw(doc, C.slate200)
+      doc.setLineWidth(0.3)
+      doc.line(ML + 8, actY, ML + CW - 8, actY)
+      actY += 5
+
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'bold')
+      setTextC(doc, C.slate500)
+      doc.text('30 / 60 / 90-DAY ACTION PLAN:', ML + 8, actY)
+      actY += 5
+
+      rec.phases.forEach((phase, pi) => {
+        const colX = ML + 8 + pi * (PHASE_COL_W + PHASE_GAP)
+
+        // Phase column background
+        setFill(doc, C.slate50)
+        doc.roundedRect(colX, actY, PHASE_COL_W, phasesH - 10, 2, 2, 'F')
+
+        // Left accent for phase
+        setFill(doc, dc)
+        doc.roundedRect(colX, actY, 3, phasesH - 10, 1.5, 1.5, 'F')
+
+        // Phase label
+        doc.setFontSize(6.5)
+        doc.setFont('helvetica', 'bold')
+        setTextC(doc, dc)
+        doc.text(phase.label, colX + 6, actY + 6)
+
+        // Theme
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'bold')
+        setTextC(doc, C.slate900)
+        doc.text(phase.theme, colX + 6, actY + 12)
+
+        // Phase actions
+        let phActY = actY + 17
+        phase.actions.forEach((a) => {
+          setFill(doc, dc)
+          doc.circle(colX + 8, phActY - 1, 1, 'F')
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(6.5)
+          setTextC(doc, C.slate700)
+          const aLines = doc.splitTextToSize(a, PHASE_COL_W - 8)
+          doc.text(aLines, colX + 11, phActY)
+          phActY += aLines.length * 4 + 2
+        })
+      })
+    }
 
     y += cardH + 6
   })

@@ -12,7 +12,7 @@ import {
 import { generateRecommendations } from '../data/recommendations'
 import PDFExportButton from './PDFExport'
 
-const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
+const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️', 6: '🤖' }
 
 function ScoreRing({ score, color, size = 160 }) {
   const r = (size / 2) - 12
@@ -55,6 +55,117 @@ function TopBar() {
           </div>
         </div>
         <span className="topbar-step-info" style={{ color: '#10B981' }}>✓ Done</span>
+      </div>
+    </div>
+  )
+}
+
+const QUADRANT_LABELS = [
+  { x: 75, y: 12, text: 'Strategic Bets', sub: 'High effort · High impact', color: '#2EA3F2' },
+  { x: 25, y: 12, text: 'Quick Wins', sub: 'Low effort · High impact', color: '#27AE60' },
+  { x: 25, y: 62, text: 'Consider Later', sub: 'Low effort · Low impact', color: '#999999' },
+  { x: 75, y: 62, text: 'Deprioritize', sub: 'High effort · Low impact', color: '#E74C3C' },
+]
+
+function EIMatrix({ recommendations }) {
+  const W = 480, H = 340
+  const PAD = { top: 32, right: 32, bottom: 44, left: 52 }
+  const cW = W - PAD.left - PAD.right
+  const cH = H - PAD.top - PAD.bottom
+
+  const toX = (effort) => PAD.left + ((effort - 1) / 4) * cW
+  const toY = (impact) => PAD.top + ((5 - impact) / 4) * cH
+
+  const midX = PAD.left + cW / 2
+  const midY = PAD.top + cH / 2
+
+  return (
+    <div className="card chart-section" style={{ marginBottom: 24 }}>
+      <div className="chart-title">Effort × Impact Matrix</div>
+      <div className="chart-subtitle">Prioritize initiatives by quadrant — Quick Wins first, Strategic Bets next</div>
+      <div style={{ overflowX: 'auto' }}>
+        <svg width={W} height={H} style={{ display: 'block', margin: '0 auto' }}>
+          {/* Quadrant backgrounds */}
+          <rect x={PAD.left} y={PAD.top} width={cW / 2} height={cH / 2} fill="#EAFAF1" opacity={0.7} />
+          <rect x={midX} y={PAD.top} width={cW / 2} height={cH / 2} fill="#E8F4FD" opacity={0.7} />
+          <rect x={PAD.left} y={midY} width={cW / 2} height={cH / 2} fill="#F8F8F8" opacity={0.7} />
+          <rect x={midX} y={midY} width={cW / 2} height={cH / 2} fill="#FDEDEC" opacity={0.7} />
+
+          {/* Grid lines */}
+          <line x1={PAD.left} y1={midY} x2={PAD.left + cW} y2={midY} stroke="#CBD5E1" strokeWidth={1.5} strokeDasharray="4 3" />
+          <line x1={midX} y1={PAD.top} x2={midX} y2={PAD.top + cH} stroke="#CBD5E1" strokeWidth={1.5} strokeDasharray="4 3" />
+
+          {/* Border */}
+          <rect x={PAD.left} y={PAD.top} width={cW} height={cH} fill="none" stroke="#E2E2E2" strokeWidth={1} />
+
+          {/* Quadrant labels */}
+          {QUADRANT_LABELS.map((q, i) => (
+            <g key={i}>
+              <text
+                x={`${q.x}%`}
+                y={PAD.top + (q.y / 100) * cH}
+                textAnchor="middle"
+                fill={q.color}
+                fontSize={11}
+                fontWeight={700}
+                fontFamily="Open Sans, sans-serif"
+                opacity={0.75}
+              >
+                {q.text}
+              </text>
+              <text
+                x={`${q.x}%`}
+                y={PAD.top + (q.y / 100) * cH + 14}
+                textAnchor="middle"
+                fill="#999"
+                fontSize={9}
+                fontFamily="Open Sans, sans-serif"
+              >
+                {q.sub}
+              </text>
+            </g>
+          ))}
+
+          {/* Axis labels */}
+          <text x={PAD.left + cW / 2} y={H - 6} textAnchor="middle" fill="#555" fontSize={11} fontFamily="Open Sans, sans-serif">
+            ← Lower Effort · Higher Effort →
+          </text>
+          <text
+            x={16}
+            y={PAD.top + cH / 2}
+            textAnchor="middle"
+            fill="#555"
+            fontSize={11}
+            fontFamily="Open Sans, sans-serif"
+            transform={`rotate(-90, 16, ${PAD.top + cH / 2})`}
+          >
+            ← Lower Impact · Higher Impact →
+          </text>
+
+          {/* Dots */}
+          {recommendations.map((rec) => {
+            const cx = toX(rec.effort)
+            const cy = toY(rec.impact)
+            return (
+              <g key={rec.dimensionId}>
+                <circle cx={cx} cy={cy} r={14} fill={rec.dimensionColor} opacity={0.18} />
+                <circle cx={cx} cy={cy} r={7} fill={rec.dimensionColor} />
+                <title>{rec.dimensionName}: Effort {rec.effort}/5, Impact {rec.impact}/5</title>
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 8 }}>
+        {recommendations.map(rec => (
+          <div key={rec.dimensionId} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: rec.dimensionColor, flexShrink: 0 }} />
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{rec.dimensionName}</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>E{rec.effort}/I{rec.impact}</span>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -113,7 +224,7 @@ export default function ResultsPage({ company, answers, onRestart }) {
             </div>
             <h1 className="results-title">AI Readiness Assessment Results</h1>
             <p className="results-subtitle">
-              Based on {totalAnswered} responses across 5 dimensions
+              Based on {totalAnswered} responses across 6 dimensions
             </p>
             <div className="results-date">{today}</div>
             {(company.respondentName || company.respondentRole) && (
@@ -247,6 +358,9 @@ export default function ResultsPage({ company, answers, onRestart }) {
           </div>
         </div>
 
+        {/* ── Effort × Impact Matrix ─────────────────────────────────── */}
+        <EIMatrix recommendations={recommendations} />
+
         {/* ── Recommendations ────────────────────────────────────────── */}
         <div className="recs-section">
           <div className="recs-header">
@@ -292,6 +406,27 @@ export default function ResultsPage({ company, answers, onRestart }) {
                       </li>
                     ))}
                   </ul>
+
+                  {rec.phases && (
+                    <div className="phases-timeline">
+                      {rec.phases.map((phase, pi) => (
+                        <div key={pi} className="phase-column">
+                          <div className="phase-header" style={{ borderColor: rec.dimensionColor }}>
+                            <div className="phase-label" style={{ color: rec.dimensionColor }}>{phase.label}</div>
+                            <div className="phase-theme">{phase.theme}</div>
+                          </div>
+                          <ul className="phase-actions">
+                            {phase.actions.map((a, ai) => (
+                              <li key={ai} className="phase-action-item">
+                                <div className="phase-action-dot" style={{ background: rec.dimensionColor }} />
+                                {a}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -309,7 +444,7 @@ export default function ResultsPage({ company, answers, onRestart }) {
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
             Scores are calculated by normalizing responses on a 0–100 scale across 12 behaviorally-anchored
             questions per dimension (1 = No capability → 0 pts, 5 = Advanced → 100 pts). The overall score
-            is the unweighted average of all five dimension scores. This assessment reflects self-reported maturity
+            is the unweighted average of all six dimension scores. This assessment reflects self-reported maturity
             at a single point in time and should be supplemented with multi-stakeholder validation and
             domain expert review for strategic decision-making. Responses are stored only in your browser
             and are never transmitted externally.

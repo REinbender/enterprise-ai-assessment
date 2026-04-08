@@ -1,6 +1,6 @@
 import { dimensions } from '../data/questions'
 
-const dimIcons = ['🎯', '🗄️', '⚖️', '👥', '⚙️']
+const dimIcons = ['🎯', '🗄️', '⚖️', '👥', '⚙️', '🤖']
 
 export default function IntroScreen({ onStart }) {
   return (
@@ -15,23 +15,23 @@ export default function IntroScreen({ onStart }) {
       </h1>
 
       <p className="intro-subtitle">
-        A structured, evidence-based evaluation across 5 critical dimensions.
+        A structured, evidence-based evaluation across 6 critical dimensions — including GenAI &amp; LLM readiness.
         Benchmark your organization's AI maturity and receive prioritized, actionable recommendations.
       </p>
 
       <div className="intro-stats">
         <div className="intro-stat">
-          <span className="intro-stat-value">5</span>
+          <span className="intro-stat-value">6</span>
           <span className="intro-stat-label">Dimensions</span>
         </div>
         <div className="intro-stat-divider" />
         <div className="intro-stat">
-          <span className="intro-stat-value">60</span>
+          <span className="intro-stat-value">72</span>
           <span className="intro-stat-label">Questions</span>
         </div>
         <div className="intro-stat-divider" />
         <div className="intro-stat">
-          <span className="intro-stat-value">~15</span>
+          <span className="intro-stat-value">~20</span>
           <span className="intro-stat-label">Minutes</span>
         </div>
         <div className="intro-stat-divider" />

@@ -45,7 +45,7 @@ export default function App() {
 
   // Auto-save whenever state changes (skip step 0 / results)
   useEffect(() => {
-    if (step > 0 && step < 7) {
+    if (step > 0 && step < 8) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appState))
     }
   }, [appState])
@@ -84,8 +84,8 @@ export default function App() {
     setShowResume(false)
   }
 
-  const currentDimension = step >= 2 && step <= 6 ? dimensions[step - 2] : null
-  const showSidebar = step >= 1 && step <= 6
+  const currentDimension = step >= 2 && step <= 7 ? dimensions[step - 2] : null
+  const showSidebar = step >= 1 && step <= 7
 
   if (showResume) {
     return (
@@ -121,7 +121,7 @@ export default function App() {
           />
         )}
 
-        {step >= 2 && step <= 6 && (
+        {step >= 2 && step <= 7 && (
           <DimensionAssessment
             dimension={currentDimension}
             answers={answers[currentDimension.id]}
@@ -132,12 +132,12 @@ export default function App() {
             onBack={() => goTo(step - 1)}
             isComplete={isDimensionComplete(currentDimension.id)}
             stepNumber={step}
-            totalSteps={7}
+            totalSteps={8}
             company={company}
           />
         )}
 
-        {step === 7 && (
+        {step === 8 && (
           <ResultsPage
             company={company}
             answers={answers}
