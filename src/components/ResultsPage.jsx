@@ -12,7 +12,113 @@ import {
 import { generateRecommendations } from '../data/recommendations'
 import PDFExportButton from './PDFExport'
 
-const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️', 6: '🤖' }
+const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
+
+const DIM_OWNERS = {
+  1: 'CEO / CDAO',
+  2: 'CTO / CIO',
+  3: 'CISO / CDAO',
+  4: 'CHRO / CDAO',
+  5: 'CTO / VP Engineering',
+}
+
+// Dimensions where a given role has strong vs. limited direct visibility
+const ROLE_CONFIDENCE = {
+  'CEO / President':                    { high: [1, 4], low: [2, 5] },
+  'COO / Chief Operating Officer':      { high: [1, 4], low: [2, 3] },
+  'CTO / Chief Technology Officer':     { high: [2, 5], low: [3, 4] },
+  'CIO / Chief Information Officer':    { high: [2, 3], low: [4, 5] },
+  'CDAO / Chief Data & AI Officer':     { high: [1, 2, 3], low: [] },
+  'VP / Director, Technology':          { high: [2, 5], low: [1, 4] },
+  'VP / Director, Data & Analytics':    { high: [2], low: [1, 4] },
+  'VP / Director, AI & Innovation':     { high: [1, 5], low: [4] },
+  'Head of Digital Transformation':     { high: [1, 4], low: [2, 5] },
+  'Enterprise Architect':               { high: [2, 5], low: [1, 4] },
+}
+
+const DIM_FRAMEWORKS = {
+  1: 'NIST AI RMF 1.0 (GOVERN) · OECD AI Principles',
+  2: 'DAMA-DMBOK v2 · NIST AI RMF (MAP)',
+  3: 'NIST AI RMF 1.0 (MAP/MEASURE/MANAGE) · ISO/IEC 42001:2023 · EU AI Act (2024)',
+  4: 'NIST AI RMF (GOVERN 6.x) · WEF AI Governance Alliance',
+  5: 'Google MLOps Maturity Model · Microsoft Azure MLOps Model · NIST AI RMF (MANAGE)',
+}
+
+function ConfidenceBanner({ role }) {
+  const conf = ROLE_CONFIDENCE[role]
+  if (!conf) return null
+  const shortName = { 1: 'Strategy', 2: 'Data', 3: 'Governance', 4: 'Talent', 5: 'Operations' }
+  const highDims = conf.high.map(id => shortName[id]).join(', ')
+  const lowDims  = conf.low.map(id => shortName[id]).join(', ')
+  return (
+    <div className="confidence-banner">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span>
+        <strong>Assessment perspective:</strong> Completed by a <em>{role}</em>.
+        {highDims && <> Strong domain visibility: <strong>{highDims}</strong>.</>}
+        {lowDims && <> Consider supplementing with additional stakeholders for: <strong>{lowDims}</strong>.</>}
+        {' '}Aligned with CMMI/SCAMPI multi-rater methodology and NIST AI RMF GOVERN guidance.
+      </span>
+    </div>
+  )
+}
+
+function ScorecardTable({ dimScores, recommendations }) {
+  const recByDim = Object.fromEntries(recommendations.map(r => [r.dimensionId, r]))
+  return (
+    <div className="scorecard-table-wrap card" style={{ marginBottom: 24 }}>
+      <div className="scorecard-table-header">
+        <div className="chart-title" style={{ marginBottom: 2 }}>Executive Scorecard</div>
+        <div className="chart-subtitle">Summary view across all five dimensions with accountability mapping</div>
+      </div>
+      <table className="scorecard-table">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Score</th>
+            <th>Maturity</th>
+            <th>Priority</th>
+            <th>Accountable Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          {dimScores.map(d => {
+            const lvl = getMaturityLevel(d.score)
+            const rec = recByDim[d.id]
+            const priorityColors = { Critical: '#E74C3C', High: '#E67E22', Medium: '#2EA3F2', Sustain: '#10B981' }
+            return (
+              <tr key={d.id}>
+                <td>
+                  <span style={{ marginRight: 6 }}>{dimIcons[d.id]}</span>
+                  <span style={{ fontWeight: 500 }}>{d.name}</span>
+                </td>
+                <td>
+                  <span className="scorecard-score" style={{ color: d.color }}>{d.score}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>/100</span>
+                </td>
+                <td>
+                  <span className="scorecard-maturity-pill" style={{ background: lvl.bg, color: lvl.color }}>
+                    {lvl.label}
+                  </span>
+                </td>
+                <td>
+                  {rec && (
+                    <span className="scorecard-priority-pill" style={{ color: priorityColors[rec.priority] }}>
+                      ● {rec.priority}
+                    </span>
+                  )}
+                </td>
+                <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{DIM_OWNERS[d.id]}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 function ScoreRing({ score, color, size = 160 }) {
   const r = (size / 2) - 12
@@ -187,13 +293,19 @@ const CustomRadarTooltip = ({ active, payload }) => {
   return null
 }
 
-export default function ResultsPage({ company, answers, onRestart }) {
+export default function ResultsPage({
+  company, answers, notes = {}, onRestart,
+  // Engagement mode — when onSaveToEngagement is provided, show Save/Discard buttons
+  onSaveToEngagement, onDiscard,
+  respondentName, respondentRole,
+}) {
+  const engagementMode = !!onSaveToEngagement
   const radarRef = useRef(null)
 
   const dimScores     = computeDimensionScores(answers)
   const overallScore  = computeOverallScore(dimScores)
   const maturity      = getMaturityLevel(overallScore)
-  const recommendations = generateRecommendations(dimScores)
+  const recommendations = generateRecommendations(dimScores, company)
   const narrative     = generateNarrative(company, dimScores, overallScore)
 
   const radarData = dimScores.map(d => ({
@@ -222,32 +334,59 @@ export default function ResultsPage({ company, answers, onRestart }) {
             <div className="results-company-name">
               {company.name} · {company.industry} · {company.size}
             </div>
-            <h1 className="results-title">AI Readiness Assessment Results</h1>
+            <h1 className="results-title">
+              {engagementMode ? 'Interview Results' : 'AI Readiness Assessment Results'}
+            </h1>
+            {engagementMode && (respondentName || respondentRole) && (
+              <div className="results-respondent-banner">
+                <span>{respondentName}</span>
+                {respondentRole && <span> · {respondentRole}</span>}
+              </div>
+            )}
             <p className="results-subtitle">
-              Based on {totalAnswered} responses across 6 dimensions
+              Based on {totalAnswered} responses across 5 dimensions
             </p>
             <div className="results-date">{today}</div>
-            {(company.respondentName || company.respondentRole) && (
+            {!engagementMode && (company.respondentName || company.respondentRole) && (
               <div className="results-respondent">
                 Completed by{company.respondentName ? ` ${company.respondentName}` : ''}
                 {company.respondentRole ? ` · ${company.respondentRole}` : ''}
-                {' '}· Self-reported; validate with multi-stakeholder consensus
+                {' '}· Single-respondent; validate with multi-stakeholder consensus
               </div>
             )}
+            {!engagementMode && company.respondentRole && <ConfidenceBanner role={company.respondentRole} />}
+            {engagementMode && respondentRole && <ConfidenceBanner role={respondentRole} />}
           </div>
 
           <div className="results-header-actions">
-            <PDFExportButton
-              company={company}
-              answers={answers}
-              radarChartRef={radarRef}
-            />
-            <button className="btn btn-secondary" onClick={onRestart}>
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-              </svg>
-              Retake
-            </button>
+            {engagementMode ? (
+              <>
+                <button className="btn btn-primary" onClick={onSaveToEngagement}>
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2v-7a2 2 0 00-2-2h-1" />
+                  </svg>
+                  Save to Engagement
+                </button>
+                <button className="btn btn-ghost" onClick={onDiscard}>
+                  Discard
+                </button>
+              </>
+            ) : (
+              <>
+                <PDFExportButton
+                  company={company}
+                  answers={answers}
+                  notes={notes}
+                  radarChartRef={radarRef}
+                />
+                <button className="btn btn-secondary" onClick={onRestart}>
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                  Retake
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -268,6 +407,9 @@ export default function ResultsPage({ company, answers, onRestart }) {
             ))}
           </div>
         </div>
+
+        {/* ── Executive Scorecard ────────────────────────────────────── */}
+        <ScorecardTable dimScores={dimScores} recommendations={recommendations} />
 
         {/* ── Overall Score ──────────────────────────────────────────── */}
         <div className="card score-summary" style={{ marginBottom: 24 }}>
@@ -359,7 +501,7 @@ export default function ResultsPage({ company, answers, onRestart }) {
         </div>
 
         {/* ── Effort × Impact Matrix ─────────────────────────────────── */}
-        <EIMatrix recommendations={recommendations} />
+        <EIMatrix recommendations={recommendations.filter(r => r.tier !== 'sustain')} />
 
         {/* ── Recommendations ────────────────────────────────────────── */}
         <div className="recs-section">
@@ -372,10 +514,12 @@ export default function ResultsPage({ company, answers, onRestart }) {
           </div>
 
           {recommendations.map((rec, idx) => {
+            const isSustain = rec.tier === 'sustain'
             const priorityClass = `priority-${rec.priority.toLowerCase()}`
+            const dimNotes = notes[rec.dimensionId]
             return (
-              <div key={rec.dimensionId} className="rec-card">
-                <div className="rec-card-border" style={{ background: rec.dimensionColor }} />
+              <div key={rec.dimensionId} className={`rec-card${isSustain ? ' rec-card--sustain' : ''}`}>
+                <div className="rec-card-border" style={{ background: isSustain ? '#10B981' : rec.dimensionColor }} />
                 <div style={{ paddingLeft: 16 }}>
                   <div className="rec-card-top">
                     <div>
@@ -390,24 +534,48 @@ export default function ResultsPage({ company, answers, onRestart }) {
                         {rec.score}/100
                       </div>
                       <div className={`priority-badge ${priorityClass}`}>
-                        {idx === 0 ? '↑↑ ' : ''}{rec.priority}
+                        {isSustain ? '✓ ' : idx === 0 ? '↑↑ ' : ''}{rec.priority}
                       </div>
                     </div>
                   </div>
 
+                  {isSustain && (
+                    <div className="rec-sustain-banner">
+                      <span>✦ Leading</span> — This dimension is performing at a high-maturity level. Focus on sustaining and leveraging this capability rather than remediation.
+                    </div>
+                  )}
+
                   <p className="rec-card-desc">{rec.description}</p>
 
-                  <div className="rec-actions-title">Recommended Actions</div>
+                  {rec.industryContext && (
+                    <div className="rec-industry-context">
+                      <span className="rec-industry-context-label">◆ {company.industry} Context</span>
+                      <span className="rec-industry-context-text">{rec.industryContext}</span>
+                    </div>
+                  )}
+
+                  {rec.keyRisk && (
+                    <div className={isSustain ? 'rec-sustain-risk' : 'rec-key-risk'}>
+                      <span className={isSustain ? 'rec-sustain-risk-label' : 'rec-key-risk-label'}>
+                        {isSustain ? '◎ Watch For' : '⚠ Key Risk if Not Addressed'}
+                      </span>
+                      <span className={isSustain ? 'rec-sustain-risk-text' : 'rec-key-risk-text'}>{rec.keyRisk}</span>
+                    </div>
+                  )}
+
+                  <div className="rec-actions-title">
+                    {isSustain ? 'Maintain & Leverage' : 'Recommended Actions'}
+                  </div>
                   <ul className="rec-actions-list">
                     {rec.actions.map((action, ai) => (
                       <li key={ai} className="rec-action-item">
-                        <div className="rec-action-dot" style={{ background: rec.dimensionColor }} />
+                        <div className="rec-action-dot" style={{ background: isSustain ? '#10B981' : rec.dimensionColor }} />
                         {action}
                       </li>
                     ))}
                   </ul>
 
-                  {rec.phases && (
+                  {!isSustain && rec.phases && (
                     <div className="phases-timeline">
                       {rec.phases.map((phase, pi) => (
                         <div key={pi} className="phase-column">
@@ -427,69 +595,137 @@ export default function ResultsPage({ company, answers, onRestart }) {
                       ))}
                     </div>
                   )}
+
+                  {rec.sizeNote && (
+                    <div className="rec-size-note">
+                      <span className="rec-size-note-label">⚖ Scale Consideration</span>
+                      <span className="rec-size-note-text">{rec.sizeNote}</span>
+                    </div>
+                  )}
+
+                  {dimNotes && (
+                    <div className="rec-consultant-notes">
+                      <span className="rec-consultant-notes-label">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ verticalAlign: 'middle', marginRight: 4 }}>
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Consultant Observations
+                      </span>
+                      <p className="rec-consultant-notes-text">{dimNotes}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )
           })}
         </div>
 
-        {/* ── Methodology note ──────────────────────────────────────── */}
-        <div style={{
-          padding: '20px 24px', background: 'var(--card)',
-          border: '1px solid var(--border)', borderRadius: 12, marginBottom: 32,
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
-            Assessment Methodology
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-            Scores are calculated by normalizing responses on a 0–100 scale across 12 behaviorally-anchored
-            questions per dimension (1 = No capability → 0 pts, 5 = Advanced → 100 pts). The overall score
-            is the unweighted average of all six dimension scores. This assessment reflects self-reported maturity
-            at a single point in time and should be supplemented with multi-stakeholder validation and
-            domain expert review for strategic decision-making. Responses are stored only in your browser
-            and are never transmitted externally.
+        {/* ── About This Assessment ─────────────────────────────────── */}
+        <div className="about-assessment" style={{ marginBottom: 32 }}>
+          <div className="about-assessment-title">About This Assessment</div>
+          <p className="about-assessment-body">
+            This assessment evaluates organizational AI maturity across five dimensions using a behaviorally-anchored
+            scoring model (1 = No capability → 5 = Advanced). Scores are normalized to a 0–100 scale per dimension;
+            the overall score is the unweighted average. Findings reflect self-reported maturity at a single point in
+            time and should be supplemented with multi-stakeholder validation and domain expert review before
+            strategic investment decisions are made. This tool does not evaluate individual AI project performance,
+            specific vendor relationships, or detailed technical architecture. Responses are stored only in your
+            browser and are never transmitted externally.
           </p>
+          <div className="framework-alignment">
+            <div className="framework-alignment-title">Framework Alignment</div>
+            <div className="framework-grid">
+              {dimScores.map(d => (
+                <div key={d.id} className="framework-row">
+                  <span className="framework-dim-label" style={{ color: d.color }}>
+                    {dimIcons[d.id]} {d.shortName}
+                  </span>
+                  <span className="framework-refs">{DIM_FRAMEWORKS[d.id]}</span>
+                </div>
+              ))}
+            </div>
+            <p className="framework-note">
+              Scoring methodology informed by CMMI/SCAMPI appraisal standards and NIST AI RMF multi-stakeholder
+              guidance. ISO/IEC 42001:2023 is the certifiable AI Management System standard published by ISO/IEC.
+              EU AI Act (Regulation (EU) 2024/1689) entered into force August 2024.
+            </p>
+          </div>
         </div>
 
         {/* ── Logic2020 CTA ──────────────────────────────────────────── */}
-        <div className="cta-section">
-          <div className="cta-logo-row">
-            <div className="cta-logo-mark">L20</div>
-            <span className="cta-logo-text">Logic2020</span>
-          </div>
-          <h3 className="cta-title">Ready to turn these findings into a roadmap?</h3>
-          <p className="cta-desc">
-            Logic2020's AI advisory team helps enterprises move from assessment to execution —
-            building AI strategies, data foundations, governance frameworks, and the talent
-            capabilities needed to scale AI with confidence.
-          </p>
-          <div className="cta-actions">
-            <a
-              href="https://www.logic2020.com/contact"
-              className="btn-cta-primary"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Connect with an AI Advisor
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </a>
-            <span className="cta-sub">
-              Schedule a complimentary 30-minute debrief to walk through your results with an advisor
-            </span>
-          </div>
-        </div>
+        {(() => {
+          const ctaTier =
+            overallScore <= 40 ? {
+              badge: 'Recommended Next Step',
+              engagement: 'AI Strategy Diagnostic Session',
+              desc: 'Your assessment indicates foundational gaps that benefit from structured expert facilitation. Logic2020\'s 2-hour AI Strategy Diagnostic Session aligns your leadership team on priorities, surfaces hidden risks, and produces a clear starting point for your AI investment plan.',
+              cta: 'Book a Diagnostic Session',
+            } : overallScore <= 65 ? {
+              badge: 'Recommended Next Step',
+              engagement: 'AI Foundations Engagement',
+              desc: 'Your organization has AI momentum but needs execution rigor to scale. Logic2020\'s 4-week AI Foundations Engagement delivers a prioritized roadmap, governance framework, and quick-win implementation plan — translating these findings into funded, accountable action.',
+              cta: 'Start a Foundations Engagement',
+            } : {
+              badge: 'Recommended Next Step',
+              engagement: 'AI Acceleration Program',
+              desc: 'Your AI maturity positions you for competitive differentiation. Logic2020\'s AI Acceleration Program helps leading organizations build proprietary capabilities, optimize AI operations at scale, and establish thought leadership — turning your existing investment into sustainable advantage.',
+              cta: 'Explore the Acceleration Program',
+            }
+          return (
+            <div className="cta-section">
+              <div className="cta-logo-row">
+                <div className="cta-logo-mark">L20</div>
+                <span className="cta-logo-text">Logic2020</span>
+                <span className="cta-engagement-badge">{ctaTier.badge}</span>
+              </div>
+              <h3 className="cta-title">{ctaTier.engagement}</h3>
+              <p className="cta-desc">{ctaTier.desc}</p>
+              <div className="cta-actions">
+                <a
+                  href="https://www.logic2020.com/contact"
+                  className="btn-cta-primary"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {ctaTier.cta}
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  </svg>
+                </a>
+                <span className="cta-sub">
+                  Schedule a complimentary 30-minute debrief to walk through your results with an advisor
+                </span>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── Footer actions ─────────────────────────────────────────── */}
         <div className="results-actions">
-          <PDFExportButton company={company} answers={answers} radarChartRef={radarRef} />
-          <button className="btn btn-primary btn-lg" onClick={onRestart}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-            Start New Assessment
-          </button>
+          {engagementMode ? (
+            <>
+              <button className="btn btn-primary btn-lg" onClick={onSaveToEngagement}>
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2v-7a2 2 0 00-2-2h-1" />
+                </svg>
+                Save to Engagement
+              </button>
+              <button className="btn btn-secondary" onClick={onDiscard}>
+                Discard Interview
+              </button>
+            </>
+          ) : (
+            <>
+              <PDFExportButton company={company} answers={answers} notes={notes} radarChartRef={radarRef} />
+              <button className="btn btn-primary btn-lg" onClick={onRestart}>
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                Start New Assessment
+              </button>
+            </>
+          )}
         </div>
 
       </div>

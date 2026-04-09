@@ -1,6 +1,7 @@
-// Recommendations keyed by dimension id, then score tier: 'low' (<40), 'medium' (40-70), 'high' (>70)
+// Recommendations keyed by dimension id, then score tier: 'low' (<40), 'medium' (40-70), 'high' (70-75), 'sustain' (>=75)
 // Each entry includes: title, priority, description, actions[], effort (1-5), impact (1-5), phases[]
 // phases: [{ label, theme, actions[] }] — 30/60/90-day implementation roadmap
+import { getIndustryContext, getSizeNote } from './industryContext'
 
 export const recommendationData = {
   1: {
@@ -8,6 +9,7 @@ export const recommendationData = {
       title: 'Establish a Formal AI Strategy',
       priority: 'Critical',
       description: 'Your organization lacks foundational strategic direction for AI. Without this, AI efforts will remain fragmented and fail to deliver business value.',
+      keyRisk: 'Without executive-sponsored AI strategy, AI investments remain fragmented and unable to demonstrate ROI — increasing the risk of budget reallocation away from AI as competing priorities arise.',
       effort: 4,
       impact: 5,
       actions: [
@@ -51,6 +53,7 @@ export const recommendationData = {
       title: 'Mature & Operationalize Your AI Strategy',
       priority: 'High',
       description: 'You have the basics of an AI strategy in place, but need to strengthen execution rigor, value tracking, and organizational alignment.',
+      keyRisk: 'The absence of rigorous execution governance means AI investments may deliver isolated wins but fail to compound into enterprise-scale value — widening the gap between AI spend and measurable business outcomes over time.',
       effort: 3,
       impact: 4,
       actions: [
@@ -94,6 +97,7 @@ export const recommendationData = {
       title: 'Drive AI-Led Competitive Advantage',
       priority: 'Medium',
       description: 'Your AI strategy is mature. Focus now on using AI for differentiation, new business models, and ecosystem influence.',
+      keyRisk: 'Failure to continuously evolve AI strategy alongside rapidly shifting technology and competitive landscapes risks obsolescence — directing resources toward sustaining current capabilities rather than building differentiated future ones.',
       effort: 2,
       impact: 3,
       actions: [
@@ -132,6 +136,20 @@ export const recommendationData = {
         },
       ],
     },
+    sustain: {
+      title: 'Sustain & Leverage AI Strategy Leadership',
+      priority: 'Sustain',
+      description: 'Your AI strategy is mature and well-integrated with business objectives. Maintain momentum by continuously scanning the horizon, refreshing strategic priorities, and leveraging your position to drive ecosystem influence and competitive differentiation.',
+      keyRisk: 'Strategic atrophy — mature AI strategies require continuous refresh as the technology and competitive landscape evolves; failing to revisit priorities annually risks your organization falling behind peers who are advancing rapidly.',
+      effort: 1,
+      impact: 2,
+      actions: [
+        'Conduct an annual AI strategy review tied to board-level planning cycles to keep priorities current.',
+        'Benchmark against external peers and publish insights to reinforce thought leadership.',
+        'Use your strategic clarity to attract talent and partners who gravitate toward organizations with a clear AI vision.',
+        'Embed AI opportunity scanning into existing M&A and partnership evaluation processes.',
+      ],
+    },
   },
 
   2: {
@@ -139,6 +157,7 @@ export const recommendationData = {
       title: 'Build Your Data & AI Infrastructure Foundation',
       priority: 'Critical',
       description: 'Significant gaps in data quality, governance, and infrastructure will directly limit your ability to build and deploy reliable AI systems.',
+      keyRisk: 'Data quality and governance gaps will directly undermine model reliability in production — AI systems built on unreliable foundations will erode stakeholder trust and create operational risk that compounds as deployment scales.',
       effort: 5,
       impact: 5,
       actions: [
@@ -182,6 +201,7 @@ export const recommendationData = {
       title: 'Strengthen Data Quality & Infrastructure Scalability',
       priority: 'High',
       description: 'Your data capabilities are developing but inconsistencies in quality, pipeline reliability, and scalability are creating risk for AI at scale.',
+      keyRisk: 'Unresolved pipeline inconsistencies and silo gaps become a bottleneck as AI scales — increasing development costs and introducing reliability risk that grows disproportionately in customer-facing or regulated use cases.',
       effort: 4,
       impact: 4,
       actions: [
@@ -225,6 +245,7 @@ export const recommendationData = {
       title: 'Optimize for AI-Scale Data Operations',
       priority: 'Medium',
       description: 'Strong data and infrastructure foundations are in place. Focus on optimization, real-time capabilities, and next-generation AI infrastructure.',
+      keyRisk: 'Without proactive investment in real-time capabilities and infrastructure cost governance, the data estate will constrain AI scaling — particularly as large model inference and streaming workloads increase infrastructure demand.',
       effort: 2,
       impact: 3,
       actions: [
@@ -263,6 +284,20 @@ export const recommendationData = {
         },
       ],
     },
+    sustain: {
+      title: 'Sustain & Leverage Data & Infrastructure Excellence',
+      priority: 'Sustain',
+      description: 'Your data infrastructure is a genuine AI enabler. Sustain this advantage by investing in next-generation capabilities — real-time data, synthetic data generation, and AI-optimized cost governance.',
+      keyRisk: 'Infrastructure debt accumulation — as AI workloads scale and new model types emerge, data infrastructure can lag adoption without proactive investment; costs can also grow faster than value without FinOps discipline.',
+      effort: 1,
+      impact: 2,
+      actions: [
+        'Expand real-time streaming capabilities to enable lower-latency AI applications and reduce time-to-insight.',
+        'Invest in synthetic data generation to address training data gaps and reduce regulatory risk from real data use.',
+        'Institutionalize AI FinOps practices to keep infrastructure costs proportional to business value delivered.',
+        'Leverage your data maturity as a recruiting asset — highlight data culture and tooling in talent acquisition.',
+      ],
+    },
   },
 
   3: {
@@ -270,6 +305,7 @@ export const recommendationData = {
       title: 'Implement Core AI Governance & Risk Management',
       priority: 'Critical',
       description: 'Without foundational governance, AI systems pose significant legal, reputational, and operational risks as you scale.',
+      keyRisk: 'Continued AI deployment without formal governance creates material liability under the EU AI Act and analogous regulations — a single high-profile AI incident without established accountability structures can trigger regulatory scrutiny across the entire portfolio.',
       effort: 3,
       impact: 5,
       actions: [
@@ -313,6 +349,7 @@ export const recommendationData = {
       title: 'Strengthen AI Risk Controls & Auditability',
       priority: 'High',
       description: 'Governance foundations exist but are not consistently applied, leaving gaps in bias controls, auditability, and incident readiness.',
+      keyRisk: 'Inconsistent governance application leaves the organization with uneven audit readiness — a targeted regulatory audit or AI failure could expose structural gaps disproportionate to the risk actually present.',
       effort: 3,
       impact: 4,
       actions: [
@@ -356,6 +393,7 @@ export const recommendationData = {
       title: 'Lead on AI Trust & Responsible AI Practices',
       priority: 'Medium',
       description: 'Governance is well-established. Now focus on becoming a recognized leader in responsible AI and using it as a competitive differentiator.',
+      keyRisk: 'Failure to actively leverage governance maturity as a market signal misses a competitive opportunity — as clients, regulators, and partners increasingly require evidence of responsible AI practices, governance leadership becomes a differentiator.',
       effort: 2,
       impact: 3,
       actions: [
@@ -394,6 +432,20 @@ export const recommendationData = {
         },
       ],
     },
+    sustain: {
+      title: 'Sustain & Leverage Responsible AI Leadership',
+      priority: 'Sustain',
+      description: 'Your governance posture is strong and regulatory-ready. Translate this into a competitive asset by publishing your practices externally, engaging with regulators proactively, and helping shape industry standards.',
+      keyRisk: 'Regulatory complacency — the AI governance landscape is evolving rapidly; organizations with strong frameworks can still face exposure if they fail to update controls in response to new regulations, model types, or deployment contexts.',
+      effort: 1,
+      impact: 2,
+      actions: [
+        'Publish an annual Responsible AI Transparency Report to signal governance maturity to clients, regulators, and partners.',
+        'Engage proactively with regulators and industry bodies to help shape evolving AI standards.',
+        'Conduct regular third-party governance audits to validate controls and identify emerging blind spots.',
+        'Use governance leadership as a differentiator in enterprise sales cycles and procurement evaluations.',
+      ],
+    },
   },
 
   4: {
@@ -401,6 +453,7 @@ export const recommendationData = {
       title: 'Build Your AI Talent & Cultural Foundation',
       priority: 'Critical',
       description: 'Significant talent gaps and cultural barriers will prevent AI initiatives from succeeding regardless of technology investment.',
+      keyRisk: 'Without deliberate AI capability building, the organization will face an accelerating talent deficit as AI scales — increasing vendor dependency, elevating costs, and making it impossible to build proprietary AI capabilities that require internal expertise.',
       effort: 5,
       impact: 4,
       actions: [
@@ -444,6 +497,7 @@ export const recommendationData = {
       title: 'Accelerate AI Talent Development & Cultural Adoption',
       priority: 'High',
       description: 'You have some AI talent and cultural momentum, but gaps in enablement and cross-functional collaboration are slowing AI adoption.',
+      keyRisk: 'Unresolved enablement and change management gaps will sustain low AI adoption — making technology investments ineffective and creating organizational disillusionment that can permanently undermine AI program credibility.',
       effort: 3,
       impact: 4,
       actions: [
@@ -487,6 +541,7 @@ export const recommendationData = {
       title: 'Sustain AI Talent Leadership & Innovation Culture',
       priority: 'Medium',
       description: 'Strong AI culture and talent. Focus on retention, advanced skill development, and creating an environment that attracts world-class AI talent.',
+      keyRisk: 'Failure to retain and develop frontier AI talent will cause critical capability loss to competitors — at this maturity level, talent is the primary differentiator and the hardest organizational capability to rebuild once lost.',
       effort: 2,
       impact: 2,
       actions: [
@@ -525,6 +580,20 @@ export const recommendationData = {
         },
       ],
     },
+    sustain: {
+      title: 'Sustain & Leverage AI Talent Leadership',
+      priority: 'Sustain',
+      description: 'Your AI culture and talent base are genuine competitive advantages. Focus on retention, frontier capability development, and becoming the employer of choice for AI professionals in your sector.',
+      keyRisk: 'Talent attrition risk — at this maturity level, top AI practitioners are actively recruited by hyperscalers and well-funded competitors; losing key talent without deep bench strength can set programs back significantly.',
+      effort: 1,
+      impact: 2,
+      actions: [
+        'Develop a premier AI employer brand through publications, open-source contributions, and conference presence.',
+        'Create advanced technical tracks and sabbatical programs to retain top practitioners long-term.',
+        'Build an AI innovation lab or incubator that gives practitioners time to explore frontier capabilities with commercial potential.',
+        'Establish a fellowship or residency program with leading research institutions to deepen your external talent pipeline.',
+      ],
+    },
   },
 
   5: {
@@ -532,6 +601,7 @@ export const recommendationData = {
       title: 'Establish Core MLOps & AI Engineering Practices',
       priority: 'Critical',
       description: 'Without foundational MLOps practices, AI systems cannot be deployed reliably, monitored effectively, or improved systematically.',
+      keyRisk: 'Without foundational MLOps practices, AI models will fail to deliver consistent production value — creating a cycle of expensive redevelopment that prevents the organization from moving beyond costly proof-of-concept stages.',
       effort: 4,
       impact: 5,
       actions: [
@@ -575,6 +645,7 @@ export const recommendationData = {
       title: 'Mature MLOps & Accelerate Deployment Velocity',
       priority: 'High',
       description: 'Basic MLOps practices are in place but automation gaps and inconsistent standards are creating bottlenecks and reliability risks.',
+      keyRisk: 'Automation gaps will constrain AI iteration velocity — directly limiting the ability to respond to changing business requirements and eroding the competitive advantage of AI investments over time.',
       effort: 4,
       impact: 4,
       actions: [
@@ -618,6 +689,7 @@ export const recommendationData = {
       title: 'Optimize AI Engineering Efficiency & Scale',
       priority: 'Medium',
       description: 'MLOps is mature and reliable. Focus on engineering efficiency, cost optimization, and enabling the next generation of AI capabilities.',
+      keyRisk: 'Failure to advance toward self-service infrastructure and FinOps discipline will create unsustainable cost scaling as AI workloads grow — potentially making production AI economically unviable at scale.',
       effort: 3,
       impact: 3,
       actions: [
@@ -656,156 +728,44 @@ export const recommendationData = {
         },
       ],
     },
-  },
-
-  6: {
-    low: {
-      title: 'Establish a GenAI Governance & Readiness Foundation',
-      priority: 'Critical',
-      description: 'Your organization lacks the policies, infrastructure, and skills to deploy Generative AI safely. Without guardrails, GenAI adoption will create significant legal, security, and reputational exposure.',
-      effort: 3,
-      impact: 5,
+    sustain: {
+      title: 'Sustain & Leverage Engineering Excellence',
+      priority: 'Sustain',
+      description: 'Your MLOps practice is mature and production-reliable. Build on this foundation with self-service infrastructure, FinOps discipline, and next-generation observability to stay ahead as AI workloads scale.',
+      keyRisk: 'Scaling cost risk — mature MLOps teams face increasing pressure as model counts and inference costs grow; without proactive FinOps and self-service infrastructure, engineering teams become bottlenecks and costs can erode program ROI.',
+      effort: 1,
+      impact: 2,
       actions: [
-        'Publish an enterprise GenAI acceptable use policy covering data privacy, IP, and prohibited use cases.',
-        'Appoint a GenAI lead (or assign to an existing AI sponsor) to own adoption strategy and risk posture.',
-        'Audit current unsanctioned GenAI tool usage (shadow AI) and assess associated data exposure risks.',
-        'Identify and prioritize the top 3–5 GenAI use cases with clear business value and manageable risk.',
-        'Establish basic hallucination and output validation standards before any production deployment.',
-      ],
-      phases: [
-        {
-          label: 'Days 0–30',
-          theme: 'Foundation',
-          actions: [
-            'Publish a GenAI acceptable use policy covering data privacy, IP boundaries, and prohibited use cases.',
-            'Audit shadow AI tool usage across the organization and assess data exposure risks.',
-            'Appoint a GenAI lead or assign ownership to an existing AI executive sponsor.',
-          ],
-        },
-        {
-          label: 'Days 31–60',
-          theme: 'Build',
-          actions: [
-            'Identify and score the top 3–5 GenAI use cases using a risk-vs.-value framework.',
-            'Define hallucination and output quality validation standards for all GenAI deployments.',
-            'Launch a foundational GenAI literacy program for all employees (prompt engineering basics, safe use).',
-          ],
-        },
-        {
-          label: 'Days 61–90',
-          theme: 'Scale',
-          actions: [
-            'Pilot the top-ranked GenAI use case with a controlled user group and structured evaluation.',
-            'Establish a GenAI vendor evaluation framework (security, privacy, model quality, cost).',
-            'Report pilot results to leadership and secure approval for broader rollout.',
-          ],
-        },
-      ],
-    },
-    medium: {
-      title: 'Operationalize GenAI Use Cases & Strengthen Guardrails',
-      priority: 'High',
-      description: 'GenAI experiments are underway but lack the governance, quality controls, and measurement rigor needed to scale responsibly and capture full business value.',
-      effort: 3,
-      impact: 4,
-      actions: [
-        'Implement structured prompt libraries, evaluation frameworks, and output testing for all GenAI systems.',
-        'Deploy retrieval-augmented generation (RAG) or fine-tuning strategies to improve accuracy on enterprise data.',
-        'Build a productivity measurement program to quantify GenAI business impact across active use cases.',
-        'Establish a vendor management program for GenAI providers covering SLAs, security, and model versioning.',
-        'Create a GenAI center of excellence to share best practices and accelerate cross-team adoption.',
-      ],
-      phases: [
-        {
-          label: 'Days 0–30',
-          theme: 'Foundation',
-          actions: [
-            'Inventory all active GenAI initiatives and assess quality controls and measurement gaps.',
-            'Build shared prompt libraries and evaluation rubrics for the top 3 production use cases.',
-            'Define productivity KPIs for each active GenAI use case and assign measurement owners.',
-          ],
-        },
-        {
-          label: 'Days 31–60',
-          theme: 'Build',
-          actions: [
-            'Implement RAG architecture for enterprise knowledge–intensive GenAI use cases.',
-            'Launch GenAI vendor management program covering SLAs, data handling, and model versioning.',
-            'Stand up the GenAI CoE with initial community, resource library, and governance norms.',
-          ],
-        },
-        {
-          label: 'Days 61–90',
-          theme: 'Scale',
-          actions: [
-            'Publish the first GenAI impact report measuring productivity gains and quality metrics.',
-            'Expand CoE-approved GenAI patterns to 3+ new business units.',
-            'Integrate GenAI quality gates into the broader AI deployment review process.',
-          ],
-        },
-      ],
-    },
-    high: {
-      title: 'Lead with Differentiated GenAI at Scale',
-      priority: 'Medium',
-      description: 'GenAI capabilities are well-established. Shift focus to competitive differentiation, advanced architectures, and responsible leadership at the frontier of enterprise AI.',
-      effort: 2,
-      impact: 4,
-      actions: [
-        'Explore agentic AI architectures (multi-agent orchestration, autonomous workflows) for high-complexity processes.',
-        'Develop proprietary fine-tuned models on enterprise data for sustained competitive advantage.',
-        'Build a GenAI innovation pipeline that systematically evaluates and fast-tracks emerging capabilities.',
-        'Establish thought leadership through external publications, industry forums, and responsible AI advocacy.',
-      ],
-      phases: [
-        {
-          label: 'Days 0–30',
-          theme: 'Foundation',
-          actions: [
-            'Identify 2–3 high-complexity business processes that are strong candidates for agentic AI architecture.',
-            'Assess the feasibility and data requirements for proprietary fine-tuned model development.',
-            'Map the GenAI innovation pipeline process: how new capabilities are evaluated and fast-tracked.',
-          ],
-        },
-        {
-          label: 'Days 31–60',
-          theme: 'Build',
-          actions: [
-            'Launch a proof-of-concept for the highest-value agentic AI workflow with human-in-the-loop safeguards.',
-            'Begin data curation and preparation for the first proprietary fine-tuning project.',
-            'Publish or submit the first external GenAI thought leadership piece or case study.',
-          ],
-        },
-        {
-          label: 'Days 61–90',
-          theme: 'Scale',
-          actions: [
-            'Evaluate the agentic PoC results and develop a productionization roadmap.',
-            'Complete first fine-tuning run and measure performance uplift against base model.',
-            'Present the GenAI innovation pipeline to leadership as a standing program for capability evaluation.',
-          ],
-        },
+        'Implement model distillation, quantization, and inference optimization to keep production costs proportional to value.',
+        'Build self-service ML infrastructure enabling business teams to deploy AI without central engineering bottlenecks.',
+        'Invest in advanced observability — causal drift analysis and anomaly detection for proactive model health management.',
+        'Explore LLMOps patterns for managing foundation model-based systems as this workload type rapidly scales.',
       ],
     },
   },
 }
 
 // Alias used by PDFExport and ResultsPage
-export const generateRecommendations = (dimensionScores) => getRecommendations(dimensionScores)
+export const generateRecommendations = (dimensionScores, company) => getRecommendations(dimensionScores, company)
 
-export function getRecommendations(dimensionScores) {
+export function getRecommendations(dimensionScores, company) {
   // Sort by score ascending (lowest first = highest priority)
   const sorted = [...dimensionScores].sort((a, b) => a.score - b.score)
+  const industry = company?.industry || null
+  const sizeNote = company?.size ? getSizeNote(company.size) : null
 
   return sorted.map(dim => {
-    const tier = dim.score < 40 ? 'low' : dim.score < 70 ? 'medium' : 'high'
+    const tier = dim.score < 40 ? 'low' : dim.score < 70 ? 'medium' : dim.score < 75 ? 'high' : 'sustain'
     const rec = recommendationData[dim.id][tier]
+    const industryContext = industry ? getIndustryContext(dim.id, tier, industry) : null
     return {
       dimensionId: dim.id,
       dimensionName: dim.name,
       dimensionColor: dim.color,
       score: dim.score,
       tier,
+      industryContext,
+      sizeNote,
       ...rec,
     }
   })

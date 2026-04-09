@@ -50,12 +50,12 @@ function TopBar({ progress }) {
           <span className="topbar-logo-text">AI <span>Readiness</span></span>
         </div>
         <div className="topbar-progress">
-          <div className="topbar-progress-label">Step 1 of 8 — Company Context</div>
+          <div className="topbar-progress-label">Step 1 of 7 — Company Context</div>
           <div className="progress-bar-track">
             <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
-        <span className="topbar-step-info">1 / 8</span>
+        <span className="topbar-step-info">1 / 7</span>
       </div>
     </div>
   )
@@ -63,7 +63,7 @@ function TopBar({ progress }) {
 
 export default function CompanyForm({ company, onChange, onNext, onBack }) {
   const isValid = company.name.trim() && company.industry && company.size
-  const progress = (1 / 8) * 100
+  const progress = (1 / 7) * 100
 
   const set = (field) => (e) => onChange({ ...company, [field]: e.target.value })
 
@@ -198,8 +198,8 @@ export default function CompanyForm({ company, onChange, onNext, onBack }) {
           <div style={{ marginTop: 24, padding: '16px 20px', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12 }}>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               <strong style={{ color: 'var(--text-primary)' }}>What happens next:</strong>{' '}
-              You'll answer 12 questions across each of 6 AI readiness dimensions (including GenAI &amp; LLMs),
-              scored 1–5 using behaviorally-anchored descriptors. The assessment takes approximately 20–25 minutes
+              You'll answer 12 questions across each of 5 AI readiness dimensions,
+              scored 1–5 using behaviorally-anchored descriptors. The assessment takes approximately 15–20 minutes
               to complete thoughtfully. Results include a maturity score, radar profile, and
               prioritized recommendations with a 30/60/90-day action plan.
             </p>
@@ -213,7 +213,7 @@ export default function CompanyForm({ company, onChange, onNext, onBack }) {
             ← Back
           </button>
           <div className="nav-progress-text">
-            <strong>1</strong> of 8 steps
+            <strong>1</strong> of 7 steps
           </div>
           <button
             className="btn btn-primary"

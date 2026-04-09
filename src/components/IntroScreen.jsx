@@ -1,6 +1,7 @@
 import { dimensions } from '../data/questions'
+import InterviewGuideButton from './PDFInterviewGuide'
 
-const dimIcons = ['🎯', '🗄️', '⚖️', '👥', '⚙️', '🤖']
+const dimIcons = ['🎯', '🗄️', '⚖️', '👥', '⚙️']
 
 export default function IntroScreen({ onStart }) {
   return (
@@ -15,23 +16,23 @@ export default function IntroScreen({ onStart }) {
       </h1>
 
       <p className="intro-subtitle">
-        A structured, evidence-based evaluation across 6 critical dimensions — including GenAI &amp; LLM readiness.
+        A structured, evidence-based evaluation across 5 critical dimensions.
         Benchmark your organization's AI maturity and receive prioritized, actionable recommendations.
       </p>
 
       <div className="intro-stats">
         <div className="intro-stat">
-          <span className="intro-stat-value">6</span>
+          <span className="intro-stat-value">5</span>
           <span className="intro-stat-label">Dimensions</span>
         </div>
         <div className="intro-stat-divider" />
         <div className="intro-stat">
-          <span className="intro-stat-value">72</span>
+          <span className="intro-stat-value">60</span>
           <span className="intro-stat-label">Questions</span>
         </div>
         <div className="intro-stat-divider" />
         <div className="intro-stat">
-          <span className="intro-stat-value">~20</span>
+          <span className="intro-stat-value">~15</span>
           <span className="intro-stat-label">Minutes</span>
         </div>
         <div className="intro-stat-divider" />
@@ -65,6 +66,7 @@ export default function IntroScreen({ onStart }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
           </svg>
         </button>
+        <InterviewGuideButton />
         <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
           No account needed · All responses stay in your browser
         </p>

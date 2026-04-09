@@ -31,7 +31,6 @@ const DIM_COLORS = {
   3: [139,  92, 246],  // purple  – Governance
   4: [245, 158,  11],  // amber   – Talent
   5: [16,  185, 129],  // green   – Operations
-  6: [236,  72, 153],  // pink    – GenAI
 }
 
 // Maturity color lookup (matches questions.js maturityLevels)
@@ -77,11 +76,6 @@ const DIM_NARRATIVES = {
     medium: 'Basic MLOps practices are in place but automation gaps and inconsistent standards are creating deployment bottlenecks and reliability risk for production AI systems. Automated retraining pipelines, a shared feature store, and A/B testing infrastructure would significantly increase deployment velocity and system resilience.',
     high:   'MLOps capabilities are mature, with reliable CI/CD pipelines, automated monitoring, and systematic post-deployment review practices firmly established. AI systems are deployed at scale with high reliability and the engineering organization can iterate rapidly with confidence. The focus should advance toward self-service AI infrastructure and FinOps optimization.',
   },
-  6: {
-    low:    'The organization lacks the policy foundation, governance structure, and technical infrastructure needed to deploy Generative AI responsibly. Unmanaged adoption of consumer GenAI tools is already creating data privacy and IP risk. Establishing an acceptable use policy, appointing a GenAI sponsor, and auditing shadow AI usage are the immediate priorities before any further deployment occurs.',
-    medium: 'GenAI experimentation is underway, but the absence of consistent governance, output quality controls, and impact measurement means the organization cannot scale responsibly or demonstrate business value. Implementing RAG infrastructure, structured evaluation frameworks, and a GenAI CoE would unlock the next phase of adoption and significantly reduce operational risk.',
-    high:   'Generative AI capabilities are well-established with strong governance, quality controls, and measurable business outcomes — positioning the organization as a GenAI leader. The opportunity is to leverage proprietary data assets and agentic architectures to build differentiated capabilities that competitors cannot easily replicate, while publishing externally to shape industry practices.',
-  },
 }
 
 // ── jsPDF helpers ─────────────────────────────────────────────────────────
@@ -110,6 +104,38 @@ const ML = 18
 const MR = 18
 const CW = PW - ML - MR
 
+// ── Per-dimension framework references ────────────────────────────────────
+const DIM_FRAMEWORKS_PDF = {
+  1: 'NIST AI RMF 1.0 (GOVERN) · OECD AI Principles',
+  2: 'DAMA-DMBOK v2 · NIST AI RMF (MAP)',
+  3: 'NIST AI RMF 1.0 (MAP/MEASURE/MANAGE) · ISO/IEC 42001:2023 · EU AI Act (2024)',
+  4: 'NIST AI RMF (GOVERN 6.x) · WEF AI Governance Alliance',
+  5: 'Google MLOps Maturity Model · Microsoft Azure MLOps Model · NIST AI RMF (MANAGE)',
+}
+
+const DIM_OWNERS_PDF = {
+  1: 'CEO / CDAO',
+  2: 'CTO / CIO',
+  3: 'CISO / CDAO',
+  4: 'CHRO / CDAO',
+  5: 'CTO / VP Engineering',
+}
+
+// ── Shared page footer (CONFIDENTIAL) ─────────────────────────────────────
+function pageFooter(doc, company) {
+  const y = PH - 6
+  doc.setFontSize(6.5)
+  doc.setFont('helvetica', 'normal')
+  setTextC(doc, C.slate500)
+  doc.text('CONFIDENTIAL', ML, y)
+  const centerText = company?.name
+    ? `Prepared for ${company.name}  ·  Logic2020  ·  v1.6.0  ·  logic2020.com`
+    : `Enterprise AI Readiness Assessment  ·  Logic2020  ·  v1.6.0  ·  logic2020.com`
+  doc.text(centerText, PW / 2, y, { align: 'center' })
+  const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  doc.text(dateStr, PW - MR, y, { align: 'right' })
+}
+
 // ── Shared page header ────────────────────────────────────────────────────
 function pageHeader(doc, title, pageNum) {
   filledBox(doc, 0, 0, PW, 28, C.primary, 0)
@@ -136,154 +162,309 @@ function pageHeader(doc, title, pageNum) {
 
 // ── PAGE 1: Cover ─────────────────────────────────────────────────────────
 function drawCover(doc, company, dimScores, overallScore) {
-  filledBox(doc, 0, 0, PW, PH, C.primaryDk, 0)
-  filledBox(doc, 0, 0, PW, PH / 2.2, C.primary, 0)
+  const navy    = [12, 32, 70]
+  const mc      = maturityColor(overallScore)
+  const mlLabel = maturityLabel(overallScore)
+  const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
-  // Decorative circles
+  // ── Zone 1: Blue header band (top 40%) ──────────────────────
+  filledBox(doc, 0, 0, PW, 118, C.primary, 0)
+
+  // Decorative geometry — large offset circles for depth
+  doc.setGState(doc.GState({ opacity: 0.08 }))
   setFill(doc, C.white)
-  doc.setGState(doc.GState({ opacity: 0.04 }))
-  doc.circle(PW - 30, 40, 60, 'F')
-  doc.circle(PW - 10, 10, 30, 'F')
+  doc.circle(PW + 20, -15, 90, 'F')
+  doc.circle(PW - 10, 105, 55, 'F')
   doc.setGState(doc.GState({ opacity: 1 }))
 
-  // Logic2020 badge
-  filledBox(doc, ML, 24, 30, 10, C.primaryDk, 2)
-  setTextC(doc, C.white)
-  doc.setFontSize(7)
-  doc.setFont('helvetica', 'bold')
-  doc.text('LOGIC2020', ML + 2.5, 30.5)
-
-  // Title
-  doc.setFontSize(22)
-  doc.setFont('helvetica', 'bold')
-  setTextC(doc, C.white)
-  doc.text('Enterprise AI Readiness', ML, 56)
-  doc.text('Assessment', ML, 68)
-
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  setTextC(doc, [199, 210, 254])
-  doc.text('Confidential Assessment Report', ML, 78)
-
-  // Company name box
-  if (company.name) {
-    filledBox(doc, ML, 88, CW, 18, C.white, 3)
-    doc.setGState(doc.GState({ opacity: 0.1 }))
-    filledBox(doc, ML, 88, CW, 18, C.primary, 3)
-    doc.setGState(doc.GState({ opacity: 1 }))
-    setTextC(doc, C.white)
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text(company.name, ML + 6, 98)
-    if (company.industry) {
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-      setTextC(doc, [199, 210, 254])
-      doc.text(`${company.industry}  ·  ${company.size || ''}`, ML + 6, 105)
-    }
-  }
-
-  // Respondent line
-  if (company.respondentName || company.respondentRole) {
-    setTextC(doc, [199, 210, 254])
-    doc.setFontSize(7.5)
-    doc.setFont('helvetica', 'normal')
-    const resp = [company.respondentName, company.respondentRole].filter(Boolean).join('  ·  ')
-    doc.text(`Completed by: ${resp}`, ML, 115)
-  }
-
-  // Overall Score circle
-  const cx = ML + 30
-  const cy = 142
-  const r  = 24
-  setFill(doc, C.white)
-  doc.setGState(doc.GState({ opacity: 0.12 }))
-  doc.circle(cx, cy, r, 'F')
+  // Thin white rule under logo area
+  doc.setGState(doc.GState({ opacity: 0.2 }))
+  setDraw(doc, C.white)
+  doc.setLineWidth(0.3)
+  doc.line(ML, 30, PW - MR, 30)
   doc.setGState(doc.GState({ opacity: 1 }))
-  doc.setFillColor(255, 255, 255)
-  doc.circle(cx, cy, r - 3, 'F')
 
-  setTextC(doc, C.primary)
-  doc.setFontSize(20)
-  doc.setFont('helvetica', 'bold')
-  doc.text(`${overallScore}`, cx, cy + 3, { align: 'center' })
-  doc.setFontSize(6)
-  doc.setFont('helvetica', 'normal')
-  doc.text('%', cx, cy + 8, { align: 'center' })
-
-  setTextC(doc, C.white)
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Overall Readiness', ML + 64, cy - 8)
-  doc.setFontSize(20)
-  doc.text(`${overallScore}%`, ML + 64, cy + 2)
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  setTextC(doc, [199, 210, 254])
-  doc.text(`Maturity Level: ${maturityLabel(overallScore)}`, ML + 64, cy + 10)
-
-  // Dimension summary table
-  const tableY = 176
-  setTextC(doc, C.slate700)
+  // Logo + tagline
   doc.setFontSize(9)
   doc.setFont('helvetica', 'bold')
-  doc.text('DIMENSION SCORES', ML, tableY)
+  setTextC(doc, C.white)
+  doc.text('LOGIC2020', ML, 24)
+  doc.setFontSize(6.5)
+  doc.setFont('helvetica', 'normal')
+  setTextC(doc, [199, 225, 254])
+  doc.text('Enterprise Transformation Consulting', ML + 34, 24)
 
-  const rowH  = 14
-  const col1W = 80
-  const col2W = 55
-  const col3W = CW - col1W - col2W
-
-  filledBox(doc, ML, tableY + 3, CW, 8, C.slate50, 2)
+  // Eyebrow tag
   doc.setFontSize(7)
+  doc.setFont('helvetica', 'bold')
+  setTextC(doc, [199, 225, 254])
+  doc.text('CONFIDENTIAL ASSESSMENT REPORT', ML, 44)
+
+  // Main title — large, bold, two lines
+  doc.setFontSize(30)
+  doc.setFont('helvetica', 'bold')
+  setTextC(doc, C.white)
+  doc.text('Enterprise AI', ML, 62)
+  doc.text('Readiness', ML, 80)
+  doc.text('Assessment', ML, 98)
+
+  // ── Zone 2: White content panel (bottom 60%) ──────────────────
+  const panelY = 108
+  filledBox(doc, 0, panelY, PW, PH - panelY, C.white, 0)
+
+  // Blue left accent bar on white panel
+  setFill(doc, C.primary)
+  doc.rect(0, panelY, 5, PH - panelY, 'F')
+
+  let py = panelY + 14
+
+  // ── Client/company block ────────────────────────────────────
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'bold')
   setTextC(doc, C.slate500)
-  doc.text('DIMENSION', ML + 3, tableY + 8.5)
-  doc.text('MATURITY', ML + col1W + 3, tableY + 8.5)
-  doc.text('SCORE', ML + col1W + col2W + 3, tableY + 8.5)
+  doc.text('PREPARED FOR', ML + 8, py)
+  py += 6
+
+  if (company.name) {
+    doc.setFontSize(17)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, navy)
+    // Truncate if too wide
+    let nameText = company.name
+    while (doc.getTextWidth(nameText) > CW - 12 && nameText.length > 4) nameText = nameText.slice(0, -1)
+    if (nameText !== company.name) nameText += '…'
+    doc.text(nameText, ML + 8, py)
+    py += 8
+  } else {
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'italic')
+    setTextC(doc, C.slate500)
+    doc.text('Organization not specified', ML + 8, py)
+    py += 8
+  }
+
+  // Industry · Size on one line
+  if (company.industry || company.size) {
+    const meta = [company.industry, company.size].filter(Boolean).join('  ·  ')
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    setTextC(doc, C.slate700)
+    doc.text(doc.splitTextToSize(meta, CW - 12)[0], ML + 8, py)
+    py += 6
+  }
+
+  // Respondent
+  if (company.respondentName || company.respondentRole) {
+    const resp = [company.respondentName, company.respondentRole].filter(Boolean).join('  ·  ')
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    setTextC(doc, C.slate500)
+    doc.text(`Completed by: ${doc.splitTextToSize(resp, CW - 12)[0]}`, ML + 8, py)
+    py += 6
+  }
+
+  py += 3
+  // Section divider
+  setDraw(doc, C.slate200)
+  doc.setLineWidth(0.5)
+  doc.line(ML + 8, py, PW - MR, py)
+  py += 10
+
+  // ── Three summary stat tiles ────────────────────────────────
+  const tileGap = 5
+  const tileW   = (CW - 16 - tileGap * 2) / 3
+  const tileH   = 30
+  const tiles   = [
+    { label: 'OVERALL SCORE', value: `${overallScore}`, sub: '/ 100', color: mc },
+    { label: 'MATURITY LEVEL', value: mlLabel, sub: 'AI readiness stage', color: mc },
+    { label: 'ASSESSMENT DATE', value: dateStr.split(',')[0], sub: dateStr.split(',')[1]?.trim() || dateStr, color: C.primary },
+  ]
+
+  tiles.forEach((t, i) => {
+    const tx = ML + 8 + i * (tileW + tileGap)
+    setFill(doc, [246, 249, 252])
+    doc.roundedRect(tx, py, tileW, tileH, 3, 3, 'F')
+    setDraw(doc, C.slate200)
+    doc.roundedRect(tx, py, tileW, tileH, 3, 3, 'S')
+    // Color top accent
+    setFill(doc, t.color)
+    doc.roundedRect(tx, py, tileW, 3, 1.5, 1.5, 'F')
+    // Label
+    doc.setFontSize(6)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, C.slate500)
+    doc.text(t.label, tx + tileW / 2, py + 10, { align: 'center' })
+    // Value
+    const valFontSize = (i === 1 && t.value.length > 8) ? 10 : 15
+    doc.setFontSize(valFontSize)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, t.color)
+    doc.text(t.value, tx + tileW / 2, py + 21, { align: 'center' })
+    // Sub
+    doc.setFontSize(6)
+    doc.setFont('helvetica', 'normal')
+    setTextC(doc, C.slate500)
+    doc.text(t.sub, tx + tileW / 2, py + 27, { align: 'center' })
+  })
+  py += tileH + 10
+
+  // Section divider
+  setDraw(doc, C.slate200)
+  doc.setLineWidth(0.5)
+  doc.line(ML + 8, py, PW - MR, py)
+  py += 8
+
+  // ── Dimension scores table ───────────────────────────────────
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'bold')
+  setTextC(doc, C.slate500)
+  doc.text('DIMENSION SCORES', ML + 8, py)
+  py += 5
+
+  const rowH    = 12
+  const nameW   = 78   // dimension name column
+  const pillW2  = 36   // maturity pill column
+  const barW    = CW - 16 - nameW - pillW2  // score bar column
+
+  // Column header row
+  setFill(doc, [240, 245, 250])
+  doc.rect(ML + 8, py, CW - 16, 7, 'F')
+  doc.setFontSize(6)
+  doc.setFont('helvetica', 'bold')
+  setTextC(doc, C.slate500)
+  doc.text('DIMENSION', ML + 16, py + 5)
+  doc.text('MATURITY', ML + 8 + nameW + 2, py + 5)
+  doc.text('SCORE', ML + 8 + nameW + pillW2 + 2, py + 5)
+  py += 7
 
   dimScores.forEach((d, i) => {
-    const ry  = tableY + 11 + i * rowH
+    const ry  = py + i * rowH
     const dc  = DIM_COLORS[d.id]
-    const mc  = maturityColor(d.score)
-    const ml  = maturityLabel(d.score)
+    const dmc = maturityColor(d.score)
+    const dml = maturityLabel(d.score)
 
-    if (i % 2 === 0) filledBox(doc, ML, ry, CW, rowH, C.slate50, 0)
+    // Alternating row background
+    if (i % 2 === 0) {
+      setFill(doc, [248, 251, 254])
+      doc.rect(ML + 8, ry, CW - 16, rowH, 'F')
+    }
 
+    // Bottom border on each row
+    setDraw(doc, [235, 240, 245])
+    doc.setLineWidth(0.2)
+    doc.line(ML + 8, ry + rowH, ML + 8 + CW - 16, ry + rowH)
+
+    // Color dot
     setFill(doc, dc)
-    doc.circle(ML + 4, ry + 6, 2.5, 'F')
+    doc.circle(ML + 14, ry + 6.5, 2.5, 'F')
 
-    setTextC(doc, C.slate900)
+    // Dimension name
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
-    doc.text(d.shortName, ML + 9, ry + 7)
+    setTextC(doc, navy)
+    doc.text(d.shortName, ML + 20, ry + 7.5)
 
-    filledBox(doc, ML + col1W + 2, ry + 2, 38, 7, mc, 3)
-    doc.setFontSize(6.5)
+    // Maturity pill
+    const pW = 30
+    filledBox(doc, ML + 8 + nameW + 2, ry + 3, pW, 6, dmc, 2)
+    doc.setFontSize(5.5)
     doc.setFont('helvetica', 'bold')
     setTextC(doc, C.white)
-    doc.text(ml, ML + col1W + 21, ry + 7, { align: 'center' })
+    doc.text(dml, ML + 8 + nameW + 2 + pW / 2, ry + 7.2, { align: 'center' })
 
-    const bx = ML + col1W + col2W + 2
-    const bw = col3W - 10
-    progressBar(doc, bx, ry + 4, bw, 4, d.score, dc)
-    setTextC(doc, C.slate700)
-    doc.setFontSize(8)
+    // Score progress bar
+    const bx = ML + 8 + nameW + pillW2 + 2
+    const bw = barW - 14
+    progressBar(doc, bx, ry + 4.5, bw, 4, d.score, dc)
+
+    // Score number
+    doc.setFontSize(8.5)
     doc.setFont('helvetica', 'bold')
-    doc.text(`${d.score}%`, bx + bw + 3, ry + 8)
+    setTextC(doc, navy)
+    doc.text(`${d.score}%`, bx + bw + 3, ry + 8.5)
   })
 
-  // Footer
-  setTextC(doc, C.slate500)
-  doc.setFontSize(7)
-  doc.setFont('helvetica', 'normal')
-  const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  doc.text(`Generated ${dateStr}  ·  Enterprise AI Readiness Assessment v1.4.0  ·  logic2020.com`, PW / 2, PH - 8, { align: 'center' })
+  py += 5 * rowH + 10
+
+  pageFooter(doc, company)
 }
 
-// ── PAGE 2: Executive Summary ─────────────────────────────────────────────
+// ── PAGE 2: Table of Contents ─────────────────────────────────────────────
+function drawTOCPage(doc, company, hasRadar) {
+  doc.addPage()
+  pageHeader(doc, 'Table of Contents', 2)
+  pageFooter(doc, company)
+
+  let y = 48
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  setTextC(doc, C.slate500)
+  doc.text('SECTION', ML, y)
+  doc.text('PAGE', PW - MR, y, { align: 'right' })
+  setDraw(doc, C.slate200)
+  doc.setLineWidth(0.3)
+  doc.line(ML, y + 2, PW - MR, y + 2)
+
+  y += 10
+
+  const tocItems = [
+    { title: 'Executive Summary', sub: 'Overall score, key findings, and primary recommendation', page: 3 },
+    { title: 'Dimension Score Analysis', sub: 'In-depth assessment across all five AI readiness dimensions', page: 4 },
+    { title: 'AI Readiness Radar Profile', sub: 'Visual maturity profile across dimensions', page: hasRadar ? 5 : null },
+    { title: 'Prioritized Recommendations', sub: 'Action plans with 30/60/90-day implementation roadmap', page: hasRadar ? 6 : 5 },
+  ]
+
+  tocItems.forEach((item, i) => {
+    if (item.page === null) return
+
+    const rowH = 18
+    if (i % 2 === 0) {
+      setFill(doc, C.slate50)
+      doc.rect(ML, y - 3, CW, rowH, 'F')
+    }
+
+    // Colored left accent
+    setFill(doc, C.primary)
+    doc.rect(ML, y - 3, 3, rowH, 'F')
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, C.slate900)
+    doc.text(item.title, ML + 8, y + 4)
+
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    setTextC(doc, C.slate500)
+    doc.text(item.sub, ML + 8, y + 10)
+
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, C.primary)
+    doc.text(`${item.page}`, PW - MR, y + 5, { align: 'right' })
+
+    y += rowH + 2
+  })
+
+  // Footer note
+  y += 12
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'italic')
+  setTextC(doc, C.slate500)
+  const noteLines = doc.splitTextToSize(
+    'This report was generated by the Logic2020 Enterprise AI Readiness Assessment. ' +
+    'It reflects self-reported maturity at a single point in time. ' +
+    'Logic2020 recommends multi-stakeholder validation before strategic investment decisions are made.',
+    CW
+  )
+  doc.text(noteLines, ML, y)
+}
+
+// ── PAGE 3: Executive Summary ─────────────────────────────────────────────
 function drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs) {
   doc.addPage()
-  pageHeader(doc, 'Executive Summary', 2)
+  pageHeader(doc, 'Executive Summary', 3)
+  pageFooter(doc, company)
 
   const narrative = generateNarrative(company, dimScores, overallScore)
   const sorted    = [...dimScores].sort((a, b) => b.score - a.score)
@@ -309,6 +490,81 @@ function drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs) {
     y += lines.length * 5 + 2
   })
   y += 4
+
+  // ── Executive Scorecard table ──────────────────────────────
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'bold')
+  setTextC(doc, C.slate500)
+  doc.text('EXECUTIVE SCORECARD', ML, y)
+  y += 5
+
+  const scColW = [70, 22, 38, 28, CW - 70 - 22 - 38 - 28]
+  const scHeaders = ['DIMENSION', 'SCORE', 'MATURITY', 'PRIORITY', 'ACCOUNTABLE']
+  const scRowH = 10
+
+  // Header row
+  filledBox(doc, ML, y, CW, 7, C.slate50, 1)
+  setTextC(doc, C.slate500)
+  doc.setFontSize(6)
+  doc.setFont('helvetica', 'bold')
+  let cx = ML + 3
+  scHeaders.forEach((h, i) => {
+    doc.text(h, cx, y + 5)
+    cx += scColW[i]
+  })
+  y += 7
+
+  const priorityColors = { Critical: C.red, High: C.amber, Medium: C.primary }
+
+  dimScores.forEach((d, i) => {
+    const mc = maturityColor(d.score)
+    const ml2 = maturityLabel(d.score)
+    const rec = recs.find(r => r.dimensionId === d.id)
+    const pc = rec ? (priorityColors[rec.priority] || C.primary) : C.primary
+    const dc = DIM_COLORS[d.id]
+
+    if (i % 2 === 0) filledBox(doc, ML, y, CW, scRowH, C.slate50, 0)
+
+    cx = ML + 3
+
+    // Dim color dot + name
+    setFill(doc, dc)
+    doc.circle(cx + 2, y + 5, 2, 'F')
+    setTextC(doc, C.slate900)
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
+    doc.text(d.shortName, cx + 7, y + 6.5)
+    cx += scColW[0]
+
+    // Score
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, dc)
+    doc.text(`${d.score}`, cx, y + 6.5)
+    cx += scColW[1]
+
+    // Maturity pill
+    const pillW = doc.getTextWidth(ml2) + 6
+    filledBox(doc, cx, y + 2, pillW, 6, mc, 2)
+    doc.setFontSize(5.5)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, C.white)
+    doc.text(ml2, cx + pillW / 2, y + 6.2, { align: 'center' })
+    cx += scColW[2]
+
+    // Priority
+    doc.setFontSize(6.5)
+    setTextC(doc, pc)
+    doc.text(rec ? rec.priority : '—', cx, y + 6.5)
+    cx += scColW[3]
+
+    // Owner
+    doc.setFont('helvetica', 'normal')
+    setTextC(doc, C.slate700)
+    doc.text(DIM_OWNERS_PDF[d.id] || '—', cx, y + 6.5)
+
+    y += scRowH
+  })
+  y += 8
 
   // ── Key Findings row ───────────────────────────────────────
   doc.setFontSize(7)
@@ -405,12 +661,51 @@ function drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs) {
   const notice = 'This assessment reflects self-reported maturity at a single point in time. Logic2020 recommends supplementing these findings with multi-stakeholder validation and expert review before making strategic investment decisions.'
   const noticeLines = doc.splitTextToSize(notice, CW)
   doc.text(noticeLines, ML, y)
+  y += noticeLines.length * 4.5 + 8
+
+  // ── Framework Alignment ────────────────────────────────────
+  if (y < PH - 60) {
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, C.slate500)
+    doc.text('FRAMEWORK ALIGNMENT', ML, y)
+    y += 5
+
+    const dimShortNames = { 1: 'Strategy', 2: 'Data', 3: 'Governance', 4: 'Talent', 5: 'Operations' }
+    const refsColW = CW - 40  // refs column width (safe wrap width)
+
+    // Calculate actual total height based on wrapped refs
+    const fwEntries = Object.entries(DIM_FRAMEWORKS_PDF).map(([id, refs]) => {
+      const lines = doc.splitTextToSize(refs, refsColW)
+      return { id, refs, lines, rowH: Math.max(lines.length * 4.5 + 4, 9) }
+    })
+    const fwTotalH = fwEntries.reduce((acc, e) => acc + e.rowH, 0) + 8
+
+    filledBox(doc, ML, y, CW, fwTotalH, C.slate50, 2)
+    y += 5
+
+    fwEntries.forEach(({ id, lines, rowH }) => {
+      const dc = DIM_COLORS[parseInt(id)]
+      setFill(doc, dc)
+      doc.circle(ML + 4, y + 2.5, 2, 'F')
+      doc.setFontSize(6.5)
+      doc.setFont('helvetica', 'bold')
+      setTextC(doc, C.slate900)
+      doc.text(dimShortNames[id], ML + 9, y + 4)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(6.5)
+      setTextC(doc, C.slate500)
+      doc.text(lines, ML + 40, y + 4)
+      y += rowH
+    })
+  }
 }
 
-// ── PAGE 3: Dimension Deep-Dives ──────────────────────────────────────────
-function drawDimensionsPage(doc, dimScores) {
+// ── PAGE 4: Dimension Deep-Dives ──────────────────────────────────────────
+function drawDimensionsPage(doc, company, dimScores) {
   doc.addPage()
-  pageHeader(doc, 'Dimension Score Analysis', 3)
+  pageHeader(doc, 'Dimension Score Analysis', 4)
+  pageFooter(doc, company)
 
   let y = 42
 
@@ -425,7 +720,8 @@ function drawDimensionsPage(doc, dimScores) {
 
     if (y + cardH > PH - 20) {
       doc.addPage()
-      pageHeader(doc, 'Dimension Score Analysis (cont.)', 3)
+      pageHeader(doc, 'Dimension Score Analysis (cont.)', 4)
+      pageFooter(doc, company)
       y = 42
     }
 
@@ -478,15 +774,17 @@ function drawDimensionsPage(doc, dimScores) {
   })
 }
 
-// ── PAGE 4+: Recommendations ──────────────────────────────────────────────
-function drawRecommendationsPage(doc, recs, startPageNum) {
+// ── PAGE 5+: Recommendations ──────────────────────────────────────────────
+function drawRecommendationsPage(doc, company, recs, startPageNum, notes = {}) {
   doc.addPage()
   pageHeader(doc, 'Prioritized Recommendations', startPageNum)
+  pageFooter(doc, company)
 
   const priorityColors = {
     Critical: C.red,
     High:     C.amber,
     Medium:   C.primary,
+    Sustain:  C.green,
   }
 
   const PHASE_COL_W = (CW - 16) / 3
@@ -496,8 +794,9 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
   let currentPage = startPageNum
 
   recs.forEach((rec) => {
+    const isSustain = rec.tier === 'sustain'
     const pc = priorityColors[rec.priority] || C.slate500
-    const dc = DIM_COLORS[rec.dimensionId] || C.slate500
+    const dc = isSustain ? C.green : (DIM_COLORS[rec.dimensionId] || C.slate500)
     const descLines = doc.splitTextToSize(rec.description, CW - 16)
 
     // Calculate actions height
@@ -505,31 +804,46 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
       return acc + doc.splitTextToSize(a, CW - 26).length * 4.5
     }, 0) + rec.actions.length * 2.5
 
-    // Calculate phases height
+    // Calculate phases height (sustain has no phases)
     let phasesH = 0
-    if (rec.phases) {
+    if (!isSustain && rec.phases) {
       const maxLines = Math.max(...rec.phases.map(ph =>
         ph.actions.reduce((acc, a) => acc + doc.splitTextToSize(a, PHASE_COL_W - 6).length, 0)
       ))
       phasesH = 20 + maxLines * 4.5 + 8
     }
 
-    const cardH = 28 + descLines.length * 4.5 + 12 + actionsH + (rec.phases ? 10 + phasesH : 0) + 8
+    const sustainBannerLines = isSustain
+      ? doc.splitTextToSize('Leading — This dimension is performing at a high-maturity level. Focus on sustaining and leveraging this capability rather than remediation.', CW - 26)
+      : []
+    const sustainBannerH = isSustain ? sustainBannerLines.length * 4.2 + 12 : 0
+
+    const keyRiskLines = rec.keyRisk ? doc.splitTextToSize(rec.keyRisk, CW - 26) : []
+    const keyRiskH = rec.keyRisk ? keyRiskLines.length * 4.2 + 12 : 0
+    const industryCtxLines = rec.industryContext ? doc.splitTextToSize(rec.industryContext, CW - 26) : []
+    const industryCtxH = rec.industryContext ? industryCtxLines.length * 4.2 + 12 : 0
+    const sizeNoteLines = rec.sizeNote ? doc.splitTextToSize(rec.sizeNote, CW - 26) : []
+    const sizeNoteH = rec.sizeNote ? sizeNoteLines.length * 4.2 + 12 : 0
+    const dimNotes = notes[rec.dimensionId]
+    const notesLines = dimNotes ? doc.splitTextToSize(dimNotes, CW - 26) : []
+    const notesH = dimNotes ? notesLines.length * 4.2 + 14 : 0
+    const cardH = 28 + sustainBannerH + descLines.length * 4.5 + 4 + industryCtxH + keyRiskH + 12 + actionsH + (!isSustain && rec.phases ? 10 + phasesH : 0) + sizeNoteH + notesH + 8
 
     if (y + cardH > PH - 20) {
       doc.addPage()
       currentPage++
       pageHeader(doc, 'Prioritized Recommendations (cont.)', currentPage)
+      pageFooter(doc, company)
       y = 42
     }
 
-    setFill(doc, C.white)
+    setFill(doc, isSustain ? [240, 253, 248] : C.white)
     doc.roundedRect(ML, y, CW, cardH, 3, 3, 'F')
-    setDraw(doc, C.slate200)
+    setDraw(doc, isSustain ? [167, 243, 208] : C.slate200)
     doc.roundedRect(ML, y, CW, cardH, 3, 3, 'S')
 
     // Priority accent bar
-    setFill(doc, pc)
+    setFill(doc, isSustain ? C.green : pc)
     doc.roundedRect(ML, y, 4, cardH, 2, 2, 'F')
 
     // Priority pill
@@ -570,16 +884,72 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
     setTextC(doc, C.slate700)
     doc.text(descLines, ML + 8, y + 28)
 
+    // Sustain banner
+    let actY = y + 28 + descLines.length * 4.5 + 4
+    if (isSustain) {
+      setFill(doc, [209, 250, 229])  // green-100
+      doc.roundedRect(ML + 8, actY, CW - 16, sustainBannerH, 2, 2, 'F')
+      setFill(doc, C.green)
+      doc.roundedRect(ML + 8, actY, 3, sustainBannerH, 1.5, 1.5, 'F')
+      doc.setFontSize(6)
+      doc.setFont('helvetica', 'bold')
+      setTextC(doc, [4, 120, 87])   // green-700
+      doc.text('LEADING', ML + 14, actY + 5)
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'normal')
+      setTextC(doc, [6, 95, 70])
+      doc.text(sustainBannerLines, ML + 14, actY + 10)
+      actY += sustainBannerH + 2
+    }
+
+    // Industry Context
+    if (rec.industryContext) {
+      const ctxBoxH = industryCtxLines.length * 4.2 + 8
+      setFill(doc, [239, 246, 255])  // blue-50
+      doc.roundedRect(ML + 8, actY, CW - 16, ctxBoxH, 2, 2, 'F')
+      setFill(doc, C.primary)
+      doc.roundedRect(ML + 8, actY, 3, ctxBoxH, 1.5, 1.5, 'F')
+      doc.setFontSize(6)
+      doc.setFont('helvetica', 'bold')
+      setTextC(doc, C.primaryDk)
+      const ctxLabel = 'INDUSTRY CONTEXT'
+      doc.text(ctxLabel, ML + 14, actY + 5)
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'normal')
+      setTextC(doc, C.slate700)
+      doc.text(industryCtxLines, ML + 14, actY + 10)
+      actY += ctxBoxH + 4
+    }
+
+    // Key Risk (amber) or Watch For (green for sustain)
+    if (rec.keyRisk) {
+      const riskLines = doc.splitTextToSize(rec.keyRisk, CW - 26)
+      const riskBoxH = riskLines.length * 4.2 + 8
+      setFill(doc, isSustain ? [240, 253, 249] : [255, 247, 237])
+      doc.roundedRect(ML + 8, actY, CW - 16, riskBoxH, 2, 2, 'F')
+      setFill(doc, isSustain ? C.green : C.amber)
+      doc.roundedRect(ML + 8, actY, 3, riskBoxH, 1.5, 1.5, 'F')
+      doc.setFontSize(6)
+      doc.setFont('helvetica', 'bold')
+      setTextC(doc, isSustain ? [4, 120, 87] : C.amber)
+      doc.text(isSustain ? 'WATCH FOR' : 'KEY RISK IF NOT ADDRESSED', ML + 14, actY + 5)
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'normal')
+      setTextC(doc, C.slate700)
+      doc.text(riskLines, ML + 14, actY + 10)
+      actY += riskBoxH + 4
+    }
+
     // Actions
-    let actY = y + 28 + descLines.length * 4.5 + 6
+    actY += 2
     doc.setFontSize(7)
     doc.setFont('helvetica', 'bold')
     setTextC(doc, C.slate500)
-    doc.text('RECOMMENDED ACTIONS:', ML + 8, actY)
+    doc.text(isSustain ? 'MAINTAIN & LEVERAGE:' : 'RECOMMENDED ACTIONS:', ML + 8, actY)
     actY += 6
 
     rec.actions.forEach((action) => {
-      setFill(doc, pc)
+      setFill(doc, isSustain ? C.green : pc)
       doc.circle(ML + 11, actY - 1, 1.5, 'F')
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7.5)
@@ -589,8 +959,8 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
       actY += aLines.length * 4.5 + 2.5
     })
 
-    // Phases timeline
-    if (rec.phases) {
+    // Phases timeline (not shown for sustain tier)
+    if (!isSustain && rec.phases) {
       actY += 6
       // Divider
       setDraw(doc, C.slate200)
@@ -640,6 +1010,44 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
           phActY += aLines.length * 4 + 2
         })
       })
+      actY += phasesH
+    }
+
+    // Size Note
+    if (rec.sizeNote) {
+      actY += 4
+      const snBoxH = sizeNoteLines.length * 4.2 + 8
+      setFill(doc, [240, 253, 244])  // green-50
+      doc.roundedRect(ML + 8, actY, CW - 16, snBoxH, 2, 2, 'F')
+      setFill(doc, [34, 197, 94])    // green-500
+      doc.roundedRect(ML + 8, actY, 3, snBoxH, 1.5, 1.5, 'F')
+      doc.setFontSize(6)
+      doc.setFont('helvetica', 'bold')
+      setTextC(doc, [21, 128, 61])   // green-700
+      doc.text('SCALE CONSIDERATION', ML + 14, actY + 5)
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'normal')
+      setTextC(doc, C.slate700)
+      doc.text(sizeNoteLines, ML + 14, actY + 10)
+      actY += snBoxH + 4
+    }
+
+    // Consultant Notes
+    if (dimNotes) {
+      actY += 2
+      const notesBoxH = notesLines.length * 4.2 + 14
+      setFill(doc, [238, 242, 255])  // indigo-50
+      doc.roundedRect(ML + 8, actY, CW - 16, notesBoxH, 2, 2, 'F')
+      setFill(doc, [99, 102, 241])   // indigo-500
+      doc.roundedRect(ML + 8, actY, 3, notesBoxH, 1.5, 1.5, 'F')
+      doc.setFontSize(6)
+      doc.setFont('helvetica', 'bold')
+      setTextC(doc, [67, 56, 202])   // indigo-700
+      doc.text('CONSULTANT OBSERVATIONS', ML + 14, actY + 5)
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'normal')
+      setTextC(doc, [49, 46, 129])   // indigo-900
+      doc.text(notesLines, ML + 14, actY + 11)
     }
 
     y += cardH + 6
@@ -647,10 +1055,10 @@ function drawRecommendationsPage(doc, recs, startPageNum) {
 }
 
 // ── Main export function ──────────────────────────────────────────────────
-export async function exportToPDF(company, answers, radarChartRef) {
+export async function exportToPDF(company, answers, radarChartRef, notes = {}) {
   const dimScores    = computeDimensionScores(answers)
   const overallScore = computeOverallScore(dimScores)
-  const recs         = generateRecommendations(dimScores)
+  const recs         = generateRecommendations(dimScores, company)
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
   doc.setFont('helvetica')
@@ -658,18 +1066,23 @@ export async function exportToPDF(company, answers, radarChartRef) {
   // Page 1: Cover
   drawCover(doc, company, dimScores, overallScore)
 
-  // Page 2: Executive Summary
+  // Page 2: Table of Contents (radar presence affects page numbers)
+  const hasRadar = !!(radarChartRef?.current)
+  drawTOCPage(doc, company, hasRadar)
+
+  // Page 3: Executive Summary
   drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs)
 
-  // Page 3: Dimension Analysis
-  drawDimensionsPage(doc, dimScores)
+  // Page 4: Dimension Analysis
+  drawDimensionsPage(doc, company, dimScores)
 
-  // Page 4: Radar chart
-  let recsStartPage = 4
+  // Page 5: Radar chart
+  let recsStartPage = 5
   if (radarChartRef?.current) {
     try {
       doc.addPage()
-      pageHeader(doc, 'AI Readiness Radar', 4)
+      pageHeader(doc, 'AI Readiness Radar', 5)
+      pageFooter(doc, company)
       const canvas = await html2canvas(radarChartRef.current, {
         scale: 2, backgroundColor: '#ffffff', logging: false,
       })
@@ -677,14 +1090,14 @@ export async function exportToPDF(company, answers, radarChartRef) {
       const imgW = 140
       const imgH = (canvas.height / canvas.width) * imgW
       doc.addImage(imgData, 'PNG', (PW - imgW) / 2, 36, imgW, imgH)
-      recsStartPage = 5
+      recsStartPage = 6
     } catch (_) {
-      // radar capture failed — skip page
+      // radar capture failed — skip page, recsStartPage stays 5
     }
   }
 
-  // Page 5+: Recommendations
-  drawRecommendationsPage(doc, recs, recsStartPage)
+  // Page 5/6+: Recommendations
+  drawRecommendationsPage(doc, company, recs, recsStartPage, notes)
 
   const filename = company.name
     ? `AI_Readiness_${company.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`
@@ -694,13 +1107,13 @@ export async function exportToPDF(company, answers, radarChartRef) {
 }
 
 // ── Button component ──────────────────────────────────────────────────────
-export default function PDFExportButton({ company, answers, radarChartRef }) {
+export default function PDFExportButton({ company, answers, notes = {}, radarChartRef }) {
   const [loading, setLoading] = useState(false)
 
   const handleExport = async () => {
     setLoading(true)
     try {
-      await exportToPDF(company, answers, radarChartRef)
+      await exportToPDF(company, answers, radarChartRef, notes)
     } catch (e) {
       console.error('PDF export failed:', e)
       alert('PDF export encountered an issue. Please try again.')

@@ -1,150 +1,263 @@
 import { useState, useEffect } from 'react'
 import { dimensions } from './data/questions'
-import IntroScreen from './components/IntroScreen'
-import CompanyForm from './components/CompanyForm'
+import {
+  loadEngagement, saveEngagement, clearEngagement, createEngagement,
+  buildSession, addSession, removeSession,
+  exportSession, exportEngagement,
+  loadSessionDraft, saveSessionDraft, clearSessionDraft,
+} from './data/engagement'
 import DimensionAssessment from './components/DimensionAssessment'
-import ResultsPage from './components/ResultsPage'
 import NavigationSidebar from './components/NavigationSidebar'
-import ResumePrompt from './components/ResumePrompt'
+import EngagementSetup from './components/EngagementSetup'
+import EngagementHub from './components/EngagementHub'
+import RespondentForm from './components/RespondentForm'
+import ResultsPage from './components/ResultsPage'
+import CompositeResults from './components/CompositeResults'
+import ImportScreen from './components/ImportScreen'
 
-const STORAGE_KEY = 'ai_readiness_v1'
+// App modes:
+// 'loading'      – initial mount, reading localStorage
+// 'setup'        – EngagementSetup (create new engagement, no engagement exists)
+// 'hub'          – EngagementHub (session list, actions)
+// 'respondent'   – RespondentForm (name + role before each interview)
+// 'interview'    – DimensionAssessment flow (interviewStep 1–5)
+// 'session-done' – Individual ResultsPage with Save to Engagement button
+// 'composite'    – CompositeResults (multi-respondent aggregate)
+// 'import'       – ImportScreen (drag-and-drop JSON files)
 
-const defaultAnswers = () =>
-  dimensions.reduce((acc, d) => ({ ...acc, [d.id]: {} }), {})
-
-const defaultState = () => ({
-  step: 0,
-  company: { name: '', industry: '', size: '', respondentName: '', respondentRole: '' },
-  answers: defaultAnswers(),
-})
-
-function loadSaved() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
+const defaultAnswers = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]: {} }), {})
+const defaultNotes   = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]: '' }), {})
 
 export default function App() {
-  const [appState, setAppState] = useState(defaultState)
-  const [savedData, setSavedData] = useState(null)
-  const [showResume, setShowResume] = useState(false)
+  const [mode, setMode]               = useState('loading')
+  const [engagement, setEngagement]   = useState(null)
 
-  const { step, company, answers } = appState
+  // Current in-progress interview state
+  const [interviewStep, setInterviewStep]     = useState(1) // 1–5 = dimensions
+  const [respondentName, setRespondentName]   = useState('')
+  const [respondentRole, setRespondentRole]   = useState('')
+  const [answers, setAnswers]                 = useState(defaultAnswers)
+  const [notes, setNotes]                     = useState(defaultNotes)
+  const [completedSession, setCompletedSession] = useState(null)
 
-  // On mount: check for saved progress
+  // ── Mount: load engagement and any in-progress draft ──────────────────────
   useEffect(() => {
-    const saved = loadSaved()
-    if (saved && saved.step > 0) {
-      setSavedData(saved)
-      setShowResume(true)
+    const eng   = loadEngagement()
+    const draft = loadSessionDraft()
+
+    if (eng) {
+      setEngagement(eng)
+      if (draft && draft.respondentName) {
+        // Resume in-progress interview
+        setRespondentName(draft.respondentName || '')
+        setRespondentRole(draft.respondentRole || '')
+        setAnswers(draft.answers || defaultAnswers())
+        setNotes(draft.notes   || defaultNotes())
+        setInterviewStep(draft.step || 1)
+        setMode('interview')
+      } else {
+        setMode('hub')
+      }
+    } else {
+      setMode('setup')
     }
   }, [])
 
-  // Auto-save whenever state changes (skip step 0 / results)
+  // ── Auto-save draft during interview ──────────────────────────────────────
   useEffect(() => {
-    if (step > 0 && step < 8) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState))
+    if (mode === 'interview') {
+      saveSessionDraft({ respondentName, respondentRole, answers, notes, step: interviewStep })
     }
-  }, [appState])
+  }, [mode, interviewStep, answers, notes, respondentName, respondentRole])
 
-  const patch = (obj) => setAppState(prev => ({ ...prev, ...obj }))
+  // ── Engagement creation ────────────────────────────────────────────────────
+  const handleCreateEngagement = (company) => {
+    const eng = createEngagement(company)
+    saveEngagement(eng)
+    setEngagement(eng)
+    setMode('hub')
+  }
 
-  const goTo = (s) => patch({ step: s })
+  // ── Start a new interview ──────────────────────────────────────────────────
+  const handleStartInterview = () => {
+    setRespondentName('')
+    setRespondentRole('')
+    setAnswers(defaultAnswers())
+    setNotes(defaultNotes())
+    setInterviewStep(1)
+    clearSessionDraft()
+    setMode('respondent')
+  }
 
+  const handleRespondentSubmit = (name, role) => {
+    setRespondentName(name)
+    setRespondentRole(role)
+    setInterviewStep(1)
+    setMode('interview')
+  }
+
+  // ── Interview handlers ─────────────────────────────────────────────────────
   const handleAnswer = (dimId, qIdx, score) => {
-    patch({
-      answers: {
-        ...answers,
-        [dimId]: { ...answers[dimId], [qIdx]: score },
-      },
-    })
+    setAnswers(prev => ({ ...prev, [dimId]: { ...prev[dimId], [qIdx]: score } }))
+  }
+
+  const handleNotesChange = (dimId, text) => {
+    setNotes(prev => ({ ...prev, [dimId]: text }))
   }
 
   const isDimensionComplete = (dimId) => {
     const dim = dimensions.find(d => d.id === dimId)
-    return Object.keys(answers[dimId]).length === dim.questions.length
+    return Object.keys(answers[dimId] || {}).length === dim.questions.length
   }
 
-  const handleRestart = () => {
-    localStorage.removeItem(STORAGE_KEY)
-    setAppState(defaultState())
+  const handleInterviewNext = () => {
+    if (interviewStep < 5) {
+      setInterviewStep(s => s + 1)
+    } else {
+      // All 5 dimensions done — build session and show individual results
+      const session = buildSession({ respondentName, respondentRole, answers, notes })
+      setCompletedSession(session)
+      clearSessionDraft()
+      setMode('session-done')
+    }
   }
 
-  const handleResume = () => {
-    setAppState(savedData)
-    setShowResume(false)
+  const handleInterviewBack = () => {
+    if (interviewStep > 1) {
+      setInterviewStep(s => s - 1)
+    } else {
+      setMode('respondent')
+    }
   }
 
-  const handleStartFresh = () => {
-    localStorage.removeItem(STORAGE_KEY)
-    setSavedData(null)
-    setShowResume(false)
+  // ── Save completed session to engagement ───────────────────────────────────
+  const handleSaveSession = () => {
+    const updated = addSession(engagement, completedSession)
+    saveEngagement(updated)
+    setEngagement(updated)
+    exportSession(updated, completedSession) // auto-download JSON backup
+    setCompletedSession(null)
+    setMode('hub')
   }
 
-  const currentDimension = step >= 2 && step <= 7 ? dimensions[step - 2] : null
-  const showSidebar = step >= 1 && step <= 7
-
-  if (showResume) {
-    return (
-      <ResumePrompt
-        savedData={savedData}
-        onResume={handleResume}
-        onStartFresh={handleStartFresh}
-      />
-    )
+  // ── Discard interview (don't save) ─────────────────────────────────────────
+  const handleDiscardSession = () => {
+    setCompletedSession(null)
+    setMode('hub')
   }
 
-  return (
+  // ── Delete a session from the engagement ───────────────────────────────────
+  const handleDeleteSession = (sessionId) => {
+    const updated = removeSession(engagement, sessionId)
+    saveEngagement(updated)
+    setEngagement(updated)
+  }
+
+  // ── Import sessions from JSON files ───────────────────────────────────────
+  const handleImportSessions = (sessions) => {
+    let updated = { ...engagement }
+    sessions.forEach(s => { updated = addSession(updated, s) })
+    saveEngagement(updated)
+    setEngagement(updated)
+    setMode('hub')
+  }
+
+  // ── Reset / start fresh ────────────────────────────────────────────────────
+  const handleResetEngagement = () => {
+    clearEngagement()
+    setEngagement(null)
+    setCompletedSession(null)
+    setMode('setup')
+  }
+
+  // ── Sidebar navigation during interview ───────────────────────────────────
+  // interviewStep 1–5 maps to sidebar step 2–6
+  const sidebarStep = interviewStep + 1
+  const currentDim  = mode === 'interview' ? dimensions[interviewStep - 1] : null
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  if (mode === 'loading') return null
+
+  if (mode === 'setup') return (
+    <EngagementSetup onSubmit={handleCreateEngagement} />
+  )
+
+  if (mode === 'hub') return (
+    <EngagementHub
+      engagement={engagement}
+      onStartInterview={handleStartInterview}
+      onDeleteSession={handleDeleteSession}
+      onExportSession={(s) => exportSession(engagement, s)}
+      onGenerateComposite={() => setMode('composite')}
+      onImport={() => setMode('import')}
+      onExportEngagement={() => exportEngagement(engagement)}
+      onResetEngagement={handleResetEngagement}
+    />
+  )
+
+  if (mode === 'respondent') return (
+    <RespondentForm
+      engagement={engagement}
+      onSubmit={handleRespondentSubmit}
+      onBack={() => setMode('hub')}
+    />
+  )
+
+  if (mode === 'interview' && currentDim) return (
     <div className="app-shell">
-      {showSidebar && (
-        <NavigationSidebar
-          currentStep={step}
-          company={company}
-          answers={answers}
-          isDimensionComplete={isDimensionComplete}
-          onNavigate={goTo}
+      <NavigationSidebar
+        currentStep={sidebarStep}
+        company={engagement.company}
+        answers={answers}
+        isDimensionComplete={isDimensionComplete}
+        onNavigate={(s) => {
+          if (s >= 2 && s <= 6) setInterviewStep(s - 1)
+        }}
+      />
+      <main className="app-main with-sidebar">
+        <DimensionAssessment
+          dimension={currentDim}
+          answers={answers[currentDim.id]}
+          onAnswer={(qIdx, score) => handleAnswer(currentDim.id, qIdx, score)}
+          notes={notes[currentDim.id]}
+          onNotesChange={(text) => handleNotesChange(currentDim.id, text)}
+          onNext={handleInterviewNext}
+          onBack={handleInterviewBack}
+          isComplete={isDimensionComplete(currentDim.id)}
+          stepNumber={sidebarStep}
+          totalSteps={7}
+          company={engagement.company}
         />
-      )}
-
-      <main className={`app-main${showSidebar ? ' with-sidebar' : ''}`}>
-        {step === 0 && <IntroScreen onStart={() => goTo(1)} />}
-
-        {step === 1 && (
-          <CompanyForm
-            company={company}
-            onChange={(c) => patch({ company: c })}
-            onNext={() => goTo(2)}
-            onBack={() => goTo(0)}
-          />
-        )}
-
-        {step >= 2 && step <= 7 && (
-          <DimensionAssessment
-            dimension={currentDimension}
-            answers={answers[currentDimension.id]}
-            onAnswer={(qIdx, score) =>
-              handleAnswer(currentDimension.id, qIdx, score)
-            }
-            onNext={() => goTo(step + 1)}
-            onBack={() => goTo(step - 1)}
-            isComplete={isDimensionComplete(currentDimension.id)}
-            stepNumber={step}
-            totalSteps={8}
-            company={company}
-          />
-        )}
-
-        {step === 8 && (
-          <ResultsPage
-            company={company}
-            answers={answers}
-            onRestart={handleRestart}
-          />
-        )}
       </main>
     </div>
   )
+
+  if (mode === 'session-done' && completedSession) return (
+    <ResultsPage
+      company={engagement.company}
+      answers={completedSession.answers}
+      notes={completedSession.notes}
+      respondentName={completedSession.respondentName}
+      respondentRole={completedSession.respondentRole}
+      onSaveToEngagement={handleSaveSession}
+      onDiscard={handleDiscardSession}
+    />
+  )
+
+  if (mode === 'composite') return (
+    <CompositeResults
+      engagement={engagement}
+      onBack={() => setMode('hub')}
+    />
+  )
+
+  if (mode === 'import') return (
+    <ImportScreen
+      engagement={engagement}
+      onImport={handleImportSessions}
+      onBack={() => setMode('hub')}
+    />
+  )
+
+  return null
 }

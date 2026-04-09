@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Enterprise AI Readiness Assessment — Question Bank v1.4.0
-// 12 questions per dimension (72 total) — curated for maximum diagnostic value
+// Enterprise AI Readiness Assessment — Question Bank v1.5.0
+// 12 questions per dimension (60 total) — curated for maximum diagnostic value
 // within a 3-week client engagement. Each question carries 5 behaviorally-
 // anchored score descriptors so respondents rate against observable evidence.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ export const dimensions = [
           2: 'An informal AI vision has been discussed at leadership level but is not documented, approved, or communicated beyond a small group.',
           3: 'A documented AI strategy exists and has been shared, but lacks measurable KPIs, named owners, or formal board/C-suite sign-off.',
           4: 'A formal, C-suite-approved AI strategy exists with defined KPIs, named owners, and is reviewed on at least an annual cadence.',
-          5: 'AI strategy is fully embedded in the corporate strategic plan, reviewed semi-annually with real-time outcome dashboards and a formal refresh process tied to business planning cycles.',
+          5: 'AI strategy is fully embedded in the corporate strategic plan, reviewed semi-annually with real-time outcome dashboards, and linked to a formal refresh process aligned to annual business planning cycles. AI performance against strategic objectives is reported to the board.',
         },
       },
       {
@@ -33,7 +33,7 @@ export const dimensions = [
           2: 'One or two executives express interest in AI informally, but there is no formal sponsorship, budget ownership, or public advocacy.',
           3: 'A named executive sponsor exists for some AI projects, but sponsorship is inconsistent across the portfolio and not visible to the broader organization.',
           4: 'A C-suite AI sponsor (e.g., CDAO, CTO, or equivalent) actively champions AI in all-hands meetings, external communications, and budget discussions.',
-          5: 'The CEO and multiple C-suite members publicly champion AI internally and externally. An AI steering committee with board representation provides governance and sustained advocacy.',
+          5: 'The CEO and multiple C-suite members publicly champion AI internally and externally. A formal AI steering committee with board-level representation provides cross-enterprise governance, accountability, and strategic direction.',
         },
       },
       {
@@ -42,7 +42,7 @@ export const dimensions = [
           1: 'No formal use case identification process exists. AI projects are started based on interest or vendor pitches without business case validation.',
           2: 'A list of potential AI use cases exists informally, but few have defined ROI targets or business sponsor accountability.',
           3: 'A use case pipeline exists with estimated ROI for some initiatives, but the methodology is inconsistent and targets are rarely tracked post-deployment.',
-          4: 'A structured use case pipeline with standardized ROI templates, business case sign-off, and post-deployment tracking exists for the majority of initiatives.',
+          4: 'A structured use case pipeline with standardized ROI templates, formal business case approval, and post-deployment value tracking is consistently applied across the AI portfolio.',
           5: 'A continuously maintained use case registry links every AI initiative to a business outcome owner, ROI target, and real-time value tracking dashboard. Realized value is reported at quarterly business reviews.',
         },
       },
@@ -91,7 +91,7 @@ export const dimensions = [
         anchors: {
           1: 'Business units have limited awareness of the AI strategy and do not see AI as relevant to their operations.',
           2: 'Some business unit leaders are aware of the AI strategy, but alignment is superficial and does not translate into active collaboration or co-ownership of outcomes.',
-          3: 'Most business unit leaders are familiar with the AI strategy and support it verbally, but few have actively co-designed initiatives or taken ownership of AI-driven outcomes.',
+          3: 'Most business unit leaders are familiar with the AI strategy and express general support, but few have actively co-designed initiatives or accepted accountability for AI-driven outcomes.',
           4: 'All major business units have participated in AI strategy development, have named AI initiative owners, and are accountable for defined business outcomes in their areas.',
           5: 'Business units are full co-owners of the AI strategy. Each unit has an embedded AI champion, an AI initiative portfolio, and regular reviews with the central AI function to track cross-functional value realization.',
         },
@@ -123,7 +123,7 @@ export const dimensions = [
           2: 'The strategy is reviewed informally when significant market events occur, but there is no regular review cycle or documented update process.',
           3: 'Annual reviews of the AI strategy occur, but they are surface-level and rarely result in substantive changes based on performance data.',
           4: 'Semi-annual strategy reviews incorporate performance-to-target data, market intelligence, and stakeholder input, resulting in documented strategy updates.',
-          5: 'Quarterly strategy health checks with monthly performance monitoring trigger real-time adjustments. A version-controlled strategy document captures all changes with rationale, and board-level review occurs annually.',
+          5: 'Quarterly strategy health checks, supported by monthly performance monitoring, enable timely and informed adjustments. A version-controlled strategy document captures all changes with documented rationale, and board-level review occurs annually.',
         },
       },
       {
@@ -174,7 +174,7 @@ export const dimensions = [
         anchors: {
           1: 'No data governance framework exists. Data decisions are made locally without enterprise standards, policies, or oversight.',
           2: 'A few data-related policies exist (e.g., a data retention policy) but they are isolated, not enforced, and do not constitute a coherent governance framework.',
-          3: 'A data governance framework has been developed and includes policies, standards, and a governance committee, but adoption is incomplete and enforcement is inconsistent.',
+          3: 'A data governance framework has been developed and includes policies, standards, and a governance committee, but adoption is limited to select data domains and enforcement is inconsistent across the enterprise.',
           4: 'A fully documented data governance framework is operational with active executive sponsorship, a functioning data governance committee, defined policies, and measurable compliance.',
           5: 'Enterprise data governance is a mature capability integrated into all data-producing and data-consuming processes. Governance outcomes are measured quarterly, policies are reviewed annually, and the framework covers AI-specific data requirements including bias, lineage, and consent.',
         },
@@ -264,7 +264,7 @@ export const dimensions = [
         anchors: {
           1: 'Infrastructure cannot support production AI workloads. Training runs are bottlenecked, production inference is too slow or costly, and there is no scalability plan.',
           2: 'Infrastructure can support small-scale AI workloads but has not been tested or designed for production scale. Cost is not tracked or optimized for AI workloads specifically.',
-          3: 'Infrastructure can handle current production workloads but struggles with peak demand or large model training. FinOps practices for AI are not well established.',
+          3: 'Infrastructure can handle current production workloads but struggles with peak demand or large-scale model training. AI-specific cost monitoring and FinOps practices are nascent or absent.',
           4: 'Scalable, cloud-based or hybrid infrastructure handles current production AI workloads efficiently. Cost monitoring, right-sizing, and basic FinOps practices are applied to AI infrastructure.',
           5: 'AI infrastructure is fully elastic, cost-optimized, and governed by a mature FinOps practice that tracks cost-per-inference, cost-per-training-run, and ROI per AI workload. Infrastructure capacity planning is integrated into the AI roadmap process.',
         },
@@ -315,7 +315,7 @@ export const dimensions = [
       {
         text: 'We perform systematic bias and fairness testing on AI models prior to and during deployment.',
         anchors: {
-          1: 'No bias or fairness testing is performed. The organization is unaware of or unengaged with the risk of biased AI outcomes.',
+          1: 'No bias or fairness testing is performed. The organization is unaware of or has not engaged with the risk of biased AI outcomes.',
           2: 'Bias is acknowledged as a risk and some teams informally check for it, but no standardized testing methodology, protected attribute coverage, or formal sign-off exists.',
           3: 'Bias testing is performed for high-risk models using defined metrics (e.g., demographic parity, equalized odds) but testing is pre-deployment only and lacks ongoing monitoring.',
           4: 'Formal bias and fairness testing is a required gate for all customer-facing and high-risk AI models, covering defined protected attributes. Post-deployment fairness monitoring is in place for key models.',
@@ -325,7 +325,7 @@ export const dimensions = [
       {
         text: 'We comply with all relevant data privacy and AI regulations (e.g., GDPR, CCPA, EU AI Act).',
         anchors: {
-          1: 'Regulatory compliance requirements for AI are not identified or mapped. The organization has no systematic approach to AI-related regulatory compliance.',
+          1: 'Regulatory compliance requirements applicable to AI are not identified, mapped, or actively managed. No accountability exists for monitoring or responding to relevant data privacy or AI-specific obligations.',
           2: 'Key regulations are known at a high level, but compliance mapping is incomplete, accountability is unclear, and no formal compliance program addresses AI-specific requirements.',
           3: 'A regulatory compliance mapping exists for the most material regulations, and compliance gaps have been identified, but remediation plans are incomplete or behind schedule.',
           4: 'Formal compliance programs address all material AI-related regulations with assigned owners, documented controls, evidence repositories, and annual compliance assessments.',
@@ -367,7 +367,7 @@ export const dimensions = [
         anchors: {
           1: 'No AI audits are conducted. AI systems are deployed and never independently reviewed for accuracy, fairness, or unintended consequences.',
           2: 'Informal reviews of AI outputs occur in some areas, but they are not structured, independent, or comprehensive enough to constitute a meaningful audit.',
-          3: 'Annual audits occur for the highest-risk AI systems covering key metrics (accuracy, fairness) but independent review, downstream impact analysis, and audit documentation are limited.',
+          3: 'Annual audits occur for the highest-risk AI systems covering key metrics such as accuracy and fairness, but reviews lack independence, downstream business impact analysis is absent, and audit documentation is insufficient for governance reporting.',
           4: 'Annual independent audits of all high-risk AI systems cover technical performance, fairness, explainability, and downstream business impacts. Findings are reported to governance bodies and remediation is tracked.',
           5: 'A tiered audit program conducts risk-proportionate reviews. High-risk systems receive semi-annual independent audits, medium-risk systems annual reviews. Audits cover the full AI lifecycle and critical findings trigger mandatory remediation within defined SLAs.',
         },
@@ -440,7 +440,7 @@ export const dimensions = [
         anchors: {
           1: 'Leadership makes decisions primarily based on intuition and experience. Data is rarely used to challenge or inform significant decisions.',
           2: 'Leadership acknowledges the value of data-driven decisions in principle, but data is inconsistently used, and gut-feel decisions frequently override data-backed analysis.',
-          3: 'Data is used in leadership decision-making for significant choices, but the use of data is not consistent across all leaders and levels, and qualitative analysis still dominates in many forums.',
+          3: 'Data is used in leadership decision-making for significant choices, but the use of data is not consistent across all leaders and levels, and anecdotal or qualitative judgment still prevails in many leadership forums.',
           4: 'Leadership consistently expects and models data-driven decision-making. Business reviews require data-backed analysis and decisions are documented with the data that informed them.',
           5: 'Data-driven decision-making is a core organizational value embedded in all leadership behaviors, performance criteria, and governance processes. Leaders are assessed on their ability to interpret and apply data.',
         },
@@ -601,7 +601,7 @@ export const dimensions = [
       {
         text: 'There is a defined, reliable, and tested process for model retraining and updates.',
         anchors: {
-          1: 'No retraining process exists. Models are retrained manually and infrequently in response to obvious failures, without any systematic triggers or schedule.',
+          1: 'No systematic retraining process exists. When models show obvious performance degradation, retraining is performed manually and reactively, without defined triggers, schedules, or validation steps.',
           2: 'Retraining occurs on an ad-hoc basis when performance issues are noticed, but there is no trigger criteria, automation, or validation process for retrained models.',
           3: 'A retraining process is documented for key models with some automated triggers (e.g., scheduled retraining), but validation of retrained models before deployment is inconsistent.',
           4: 'A defined retraining process with automated triggers (performance degradation thresholds, data drift alerts, scheduled retraining), automated re-evaluation, and a promotion process exists for all production models.',
@@ -670,139 +670,6 @@ export const dimensions = [
       },
     ],
   },
-
-  // ─── DIMENSION 6 ─────────────────────────────────────────────────────────
-  {
-    id: 6,
-    name: 'Generative AI & LLM Readiness',
-    shortName: 'GenAI',
-    color: '#EC4899',
-    bgColor: '#FDF2F8',
-    description:
-      'Assesses whether the organization has the strategy, governance, infrastructure, and skills to deploy Generative AI and large language models responsibly and at scale.',
-    questions: [
-      {
-        text: 'Our organization has a clear strategy for identifying and prioritizing Generative AI use cases.',
-        anchors: {
-          1: 'No GenAI strategy exists. Tool adoption is driven by individual curiosity or vendor pitches without business case evaluation or executive alignment.',
-          2: 'Some leaders are aware of GenAI potential but there is no formal process for identifying, evaluating, or prioritizing use cases across the organization.',
-          3: 'A list of potential GenAI use cases exists and some have been informally evaluated, but there is no standardized scoring model, business sponsor accountability, or executive-approved priority list.',
-          4: 'A formal GenAI use case pipeline exists with a defined scoring framework (value vs. risk), executive-approved priorities, and named business owners for the top initiatives.',
-          5: 'A continuously maintained GenAI opportunity registry links every initiative to a business owner, value hypothesis, risk assessment, and outcome KPI. The pipeline is reviewed quarterly and informs the enterprise AI investment plan.',
-        },
-      },
-      {
-        text: 'We have a published, enterprise-wide Generative AI acceptable use policy.',
-        anchors: {
-          1: 'No GenAI use policy exists. Employees use consumer GenAI tools at their own discretion with no organizational guidance, controls, or awareness of risk.',
-          2: 'A general IT acceptable use policy exists that employees interpret as covering GenAI, but no specific guidance on GenAI risks (data privacy, IP, hallucination) has been published.',
-          3: 'A GenAI use policy has been drafted and shared with some teams, but it has not been formally approved, is not widely communicated, and has no enforcement mechanism.',
-          4: 'A formally approved GenAI acceptable use policy covering prohibited use cases, data privacy obligations, IP ownership, and output validation requirements has been published and communicated company-wide.',
-          5: 'A comprehensive, regularly updated GenAI policy covers acceptable use, data classification rules, output labeling requirements, prohibited use cases, and mandatory disclosure obligations. Compliance is tracked and employees are trained annually.',
-        },
-      },
-      {
-        text: 'We have processes in place to identify and mitigate hallucination and output quality risks in GenAI systems.',
-        anchors: {
-          1: 'No hallucination mitigation practices exist. GenAI outputs are used without systematic validation, and there is no awareness of the business risk posed by inaccurate model outputs.',
-          2: 'Some users manually review GenAI outputs for obvious errors, but there are no standardized validation processes, quality metrics, or escalation paths for problematic outputs.',
-          3: 'Output quality standards and review processes are defined for some high-risk GenAI applications, but are not consistently applied across all systems and do not include automated testing.',
-          4: 'Structured output validation processes including human review gates, automated factual consistency checks, and defined quality thresholds are in place for all customer-facing or high-stakes GenAI systems.',
-          5: 'A comprehensive GenAI quality assurance program includes automated hallucination detection, red-teaming, adversarial testing, continuous output monitoring, and a defined escalation and remediation process for quality failures across all production systems.',
-        },
-      },
-      {
-        text: 'Data privacy and confidentiality are explicitly managed when using GenAI tools and APIs.',
-        anchors: {
-          1: 'Employees regularly input sensitive, confidential, or regulated data into public GenAI services without organizational guidance, controls, or awareness of the legal risk.',
-          2: 'Informal guidance advises employees not to share sensitive data with GenAI tools, but there is no technical enforcement, data classification framework applied to GenAI use, or monitoring in place.',
-          3: 'Data handling guidelines for GenAI are documented and communicated, and vendor data processing agreements exist for approved tools, but compliance is inconsistent and no technical controls prevent data exfiltration.',
-          4: 'A GenAI data governance framework classifies permissible data types by tool and use case, requires DPA reviews for all GenAI vendors, and applies technical controls (e.g., DLP, network policies) to prevent unauthorized data sharing.',
-          5: 'A mature GenAI data governance program integrates with the enterprise data classification system, applies automated policy enforcement at the model API layer, conducts regular privacy impact assessments for all GenAI systems, and maintains comprehensive audit logs of all GenAI data interactions.',
-        },
-      },
-      {
-        text: 'Our technical infrastructure is ready to support enterprise-grade GenAI development and deployment.',
-        anchors: {
-          1: 'No enterprise GenAI infrastructure exists. Employees access GenAI capabilities through personal accounts on consumer services with no organizational oversight, security controls, or cost management.',
-          2: 'The organization has enterprise accounts for one or more GenAI services, but there is no standardized development environment, API management layer, security controls, or cost monitoring framework.',
-          3: 'A basic GenAI development environment exists with approved LLM API access and some security controls, but lacks standardized tooling for prompt management, evaluation, observability, and cost optimization.',
-          4: 'An enterprise GenAI platform provides secure, audited LLM API access, standardized development tooling, prompt version control, evaluation frameworks, cost tracking per team/use case, and basic observability.',
-          5: 'A mature LLMOps platform supports the full GenAI lifecycle — including RAG infrastructure, fine-tuning pipelines, multi-model routing, output monitoring, automated evaluation, cost governance, and seamless integration with the enterprise MLOps platform.',
-        },
-      },
-      {
-        text: 'We evaluate and select GenAI vendors and foundation models using a structured due diligence framework.',
-        anchors: {
-          1: 'GenAI vendor selection is ad-hoc, driven by brand recognition or individual recommendations. No security, privacy, or model quality evaluation is performed before adoption.',
-          2: 'Basic vendor security reviews are conducted for GenAI tools (e.g., SOC 2 review), but there is no structured framework for evaluating model quality, data handling, pricing, API stability, or vendor financial viability.',
-          3: 'A vendor evaluation checklist covering security, privacy, and basic model quality criteria exists and is applied to major procurement decisions, but is not consistently used for all GenAI tool adoptions.',
-          4: 'A structured GenAI vendor due diligence framework covers security, data privacy, model quality benchmarking, API SLAs, pricing model, model versioning policy, and alignment with enterprise AI governance requirements.',
-          5: 'A comprehensive GenAI vendor management program includes initial due diligence, ongoing vendor risk monitoring, annual reassessments, competitive benchmarking across foundation models, multi-vendor architecture planning for resilience, and a formal sunset process for deprecated models.',
-        },
-      },
-      {
-        text: 'Employees across the organization have the GenAI literacy and prompt engineering skills needed to use these tools effectively.',
-        anchors: {
-          1: 'No GenAI literacy or training programs exist. Employee capability is entirely self-directed, resulting in wide variation in effectiveness, safety, and appropriate use.',
-          2: 'Some employees have self-taught GenAI skills, and ad-hoc knowledge sharing occurs, but there is no structured training program, role-specific learning paths, or skills assessment.',
-          3: 'Basic GenAI awareness training has been provided to some employee groups, but prompt engineering skill development, role-specific use case training, and ongoing upskilling programs are not in place.',
-          4: 'A structured GenAI literacy program provides all employees with foundational training and role-specific use case guidance. Prompt engineering workshops and advanced training are available for power users and AI practitioners.',
-          5: 'A comprehensive GenAI capability program delivers tiered learning paths by role (executive, manager, practitioner, power user), includes prompt engineering certification, is updated quarterly to reflect new capabilities, and tracks completion and proficiency levels across the organization.',
-        },
-      },
-      {
-        text: 'We systematically measure the productivity and business impact of Generative AI deployments.',
-        anchors: {
-          1: 'No measurement of GenAI business impact exists. GenAI tools are adopted without defined success metrics, baselines, or outcome tracking.',
-          2: 'Anecdotal evidence of productivity improvement from GenAI is captured informally (e.g., employee testimonials), but no systematic measurement, baseline comparison, or business outcome tracking is in place.',
-          3: 'Some GenAI initiatives have defined KPIs and attempt to measure impact, but measurement methodologies are inconsistent, baselines are poorly defined, and results are not aggregated or reported at an organizational level.',
-          4: 'A GenAI impact measurement framework defines standardized KPIs (productivity, quality, cost, time savings) for each use case category. Baseline data is captured before deployment and outcomes are reviewed quarterly against targets.',
-          5: 'A comprehensive GenAI value realization program tracks productivity gains, quality improvements, cost avoidance, and revenue impact across all GenAI deployments. Results are reported in the enterprise AI value dashboard, inform investment decisions, and are benchmarked against industry peers.',
-        },
-      },
-      {
-        text: 'We have a retrieval-augmented generation (RAG) or grounding strategy to improve the accuracy of GenAI on enterprise knowledge.',
-        anchors: {
-          1: 'No RAG or grounding strategy exists. GenAI systems are used with only their pre-trained knowledge, leading to hallucinations about organization-specific information and outdated responses.',
-          2: 'The concept of RAG or knowledge grounding is understood by some technical staff, but no enterprise knowledge infrastructure (vector stores, document pipelines, chunking standards) has been built.',
-          3: 'A RAG proof of concept has been completed for one or more use cases, but it has not been productionized, lacks document ingestion standards, and is not available as a reusable enterprise capability.',
-          4: 'A production RAG infrastructure exists with curated knowledge bases for the top GenAI use cases, standardized document ingestion and chunking pipelines, retrieval quality evaluation, and defined content governance processes.',
-          5: 'A mature enterprise knowledge platform supports GenAI grounding at scale — including automated knowledge ingestion from multiple sources, semantic chunking, hybrid search, retrieval quality monitoring, content freshness SLAs, and a self-service interface for teams to build RAG applications.',
-        },
-      },
-      {
-        text: 'Senior leadership is actively sponsoring and investing in GenAI as a strategic business capability.',
-        anchors: {
-          1: 'Leadership is not actively engaged with GenAI. Any adoption is bottom-up and grassroots, with no executive sponsor, dedicated budget, or board-level awareness.',
-          2: 'One or two executives are personally interested in GenAI but sponsorship is informal. There is no dedicated GenAI budget, strategic framing, or board communication.',
-          3: 'An executive sponsor for GenAI has been identified and communicates its importance, but dedicated budget is limited, the GenAI agenda is not integrated into the enterprise strategy, and board reporting is infrequent.',
-          4: 'A C-suite executive actively sponsors GenAI with a dedicated investment budget, integrates the GenAI agenda into enterprise strategy discussions, and reports quarterly to the board on progress and ROI.',
-          5: 'GenAI is a board-level strategic priority with dedicated multi-year investment, a named executive sponsor with P&L accountability for AI value, and regular external communications about the organization\'s GenAI strategy and differentiated capabilities.',
-        },
-      },
-      {
-        text: 'We have governance and audit mechanisms to ensure GenAI systems remain compliant, fair, and aligned with policy over time.',
-        anchors: {
-          1: 'No GenAI governance or audit mechanism exists. Once deployed, GenAI systems are not reviewed for policy compliance, fairness, or alignment with evolving regulatory requirements.',
-          2: 'Ad-hoc reviews of GenAI systems occur when issues are raised, but there is no scheduled audit program, compliance tracking, or formal accountability structure for GenAI governance.',
-          3: 'A governance framework for GenAI is in development or partially implemented, with some compliance checkpoints, but it is not consistently applied and audit trail capabilities are limited.',
-          4: 'A GenAI governance program includes mandatory pre-deployment compliance reviews, regular production audits, complete output audit trails, defined accountability for each deployed system, and integration with the enterprise AI ethics committee.',
-          5: 'A mature GenAI governance program provides continuous compliance monitoring, automated policy enforcement at the model layer, regular independent audits, full output provenance and audit trails, formal change management for model updates, and proactive regulatory horizon scanning.',
-        },
-      },
-      {
-        text: 'Our organization is positioned to use Generative AI as a source of competitive differentiation.',
-        anchors: {
-          1: 'GenAI is not viewed as a source of competitive advantage. The organization is reactive to GenAI trends and at risk of falling behind peers who are building differentiated capabilities.',
-          2: 'There is awareness that GenAI could create competitive advantage, but no strategic investment or proprietary capability development is underway. The organization relies entirely on commodity GenAI tools.',
-          3: 'Some GenAI initiatives aim to create competitive differentiation (e.g., customer-facing applications), but these are isolated experiments without a portfolio-level strategy for building proprietary GenAI capabilities.',
-          4: 'A GenAI differentiation strategy identifies areas where proprietary capabilities (fine-tuned models, unique data assets, workflow automation) will create sustainable competitive advantage, with active investment and executive alignment.',
-          5: 'Generative AI is a core element of the enterprise competitive strategy, with proprietary models, unique enterprise knowledge assets, and AI-native products or services that are difficult for competitors to replicate. The organization is recognized as a GenAI leader in its industry.',
-        },
-      },
-    ],
-  },
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -858,14 +725,20 @@ const narrativeContext = {
 }
 
 export function generateNarrative(company, dimScores, overallScore) {
-  const maturity = getMaturityLevel(overallScore)
-  const sorted   = [...dimScores].sort((a, b) => b.score - a.score)
+  const maturity  = getMaturityLevel(overallScore)
+  const sorted    = [...dimScores].sort((a, b) => b.score - a.score)
   const strongest = sorted[0]
   const weakest   = sorted[sorted.length - 1]
   const orgName   = company?.name || 'This organization'
+  const industry  = company?.industry
+
+  const industryLine = industry && industry !== 'Other'
+    ? `As a ${industry} organization, sector-specific regulatory obligations, competitive pressures, and data environment constraints should inform how AI investment priorities are sequenced and sized.`
+    : null
 
   return [
-    `${orgName} demonstrates a ${maturity.label} AI posture with an overall readiness score of ${overallScore}/100 across six assessed dimensions.`,
+    `${orgName} demonstrates a ${maturity.label} AI posture with an overall readiness score of ${overallScore}/100 across five assessed dimensions.`,
+    ...(industryLine ? [industryLine] : []),
     `${strongest.name} is the standout strength (${strongest.score}/100 — ${getMaturityLevel(strongest.score).label}), while ${weakest.name} represents the most significant gap at ${weakest.score}/100 (${getMaturityLevel(weakest.score).label}).`,
     narrativeContext[maturity.label],
     `Closing the gap in ${weakest.name} is the primary near-term priority, as it presents the highest-leverage opportunity for improving overall AI readiness and unlocking progress across the broader portfolio.`,
