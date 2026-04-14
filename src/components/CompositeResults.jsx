@@ -157,7 +157,7 @@ function QuestionHeatmap({ composite }) {
               return (
                 <div key={qi} className="heatmap-q-row">
                   <div className="heatmap-q-num" style={{ color: dim.color }}>Q{qi + 1}</div>
-                  <div className="heatmap-q-text">{q.question}</div>
+                  <div className="heatmap-q-text">{q.text}</div>
                   {dkRate >= 30 && (
                     <div className="heatmap-q-dk" title={`${dkRate}% of respondents said Don't Know`}>
                       {dkRate}% DK
@@ -172,6 +172,123 @@ function QuestionHeatmap({ composite }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+// ── Confidence distribution per dimension ────────────────────────────────
+const CONF_META = {
+  high:   { label: 'High',   color: '#059669', bg: '#D1FAE5' },
+  medium: { label: 'Medium', color: '#D97706', bg: '#FEF3C7' },
+  low:    { label: 'Low',    color: '#E74C3C', bg: '#FEE2E2' },
+  null:   { label: 'Not set', color: '#94A3B8', bg: '#F1F5F9' },
+}
+
+function ConfidenceDistribution({ composite }) {
+  const hasSomeConf = composite.dimensions.some(d =>
+    (d.confidenceCounts.high + d.confidenceCounts.medium + d.confidenceCounts.low) > 0
+  )
+  if (!hasSomeConf) return null
+
+  return (
+    <div className="card" style={{ marginBottom: 24, padding: 24 }}>
+      <div className="chart-title">Consultant Confidence Distribution</div>
+      <div className="chart-subtitle">
+        How confident consultants were in each dimension's scores across all sessions.
+        Low confidence flags dimensions that benefit from transcript validation.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+        {composite.dimensions.map(d => {
+          const total = composite.sessionCount
+          const counts = d.confidenceCounts
+          return (
+            <div key={d.dimId} className="conf-dist-row">
+              <div className="conf-dist-label" style={{ color: d.color }}>
+                {dimIcons[d.dimId]} {d.shortName}
+              </div>
+              <div className="conf-dist-bar">
+                {['high', 'medium', 'low', 'null'].map(level => {
+                  const n = counts[level] || 0
+                  if (!n) return null
+                  const pct = Math.round((n / total) * 100)
+                  const m = CONF_META[level]
+                  return (
+                    <div
+                      key={level}
+                      className="conf-dist-segment"
+                      style={{ width: `${pct}%`, background: m.color, opacity: level === 'null' ? 0.3 : 1 }}
+                      title={`${m.label}: ${n} session${n !== 1 ? 's' : ''} (${pct}%)`}
+                    />
+                  )
+                })}
+              </div>
+              <div className="conf-dist-chips">
+                {['high', 'medium', 'low'].map(level => {
+                  const n = counts[level] || 0
+                  if (!n) return null
+                  const m = CONF_META[level]
+                  return (
+                    <span key={level} className="conf-dist-chip" style={{ background: m.bg, color: m.color }}>
+                      {m.label}: {n}
+                    </span>
+                  )
+                })}
+                {(counts.null || 0) > 0 && (
+                  <span className="conf-dist-chip" style={{ background: '#F1F5F9', color: '#94A3B8' }}>
+                    Not set: {counts.null}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Respondent notes across all sessions ──────────────────────────────────
+function RespondentNotes({ sessions }) {
+  const sessionsWithNotes = sessions.filter(s =>
+    s.notes && Object.values(s.notes).some(n => n?.trim())
+  )
+  if (!sessionsWithNotes.length) return null
+
+  return (
+    <div className="card" style={{ marginBottom: 24, padding: 24 }}>
+      <div className="chart-title">Consultant Observations</div>
+      <div className="chart-subtitle">
+        Notes captured during each interview, organized by respondent.
+        These support transcript validation and qualitative interpretation.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 16 }}>
+        {sessionsWithNotes.map(s => {
+          const m = ROLE_GROUP_META[s.roleGroup]
+          const dimNotes = Object.entries(s.notes || {}).filter(([, n]) => n?.trim())
+          return (
+            <div key={s.sessionId} className="composite-notes-respondent">
+              <div className="composite-notes-respondent-header">
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{s.respondentName}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{s.respondentRole}</span>
+                <span style={{ padding: '1px 8px', borderRadius: 4, background: m.bg, color: m.color, fontSize: 11, fontWeight: 600 }}>
+                  {m.label}
+                </span>
+              </div>
+              {dimNotes.map(([dimId, note]) => {
+                const dim = dimensions.find(d => d.id === parseInt(dimId))
+                return (
+                  <div key={dimId} className="composite-notes-dim-row">
+                    <div className="composite-notes-dim-label" style={{ color: dim?.color }}>
+                      {dimIcons[parseInt(dimId)]} {dim?.shortName}
+                    </div>
+                    <p className="composite-notes-text">{note}</p>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -603,6 +720,12 @@ export default function CompositeResults({ engagement, onBack }) {
 
         {/* ── Respondent table ──────────────────────────────────────────── */}
         <RespondentTable sessions={sessions} />
+
+        {/* ── Confidence distribution ───────────────────────────────────── */}
+        <ConfidenceDistribution composite={composite} />
+
+        {/* ── Respondent notes ──────────────────────────────────────────── */}
+        <RespondentNotes sessions={sessions} />
 
         {/* ── Footer actions ────────────────────────────────────────────── */}
         <div className="results-actions">

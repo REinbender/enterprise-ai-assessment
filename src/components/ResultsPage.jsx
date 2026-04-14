@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, Tooltip,
@@ -306,7 +306,8 @@ export default function ResultsPage({
   respondentName, respondentRole,
   confidence = {}, dimMeta = {},
 }) {
-  const engagementMode = !!onSaveToEngagement
+  const engagementMode  = !!onSaveToEngagement
+  const [showDiscard, setShowDiscard] = useState(false)
   const radarRef = useRef(null)
 
   const dimScores     = computeDimensionScores(answers)
@@ -330,6 +331,7 @@ export default function ResultsPage({
   )
 
   return (
+    <>
     <div className="page">
       <TopBar />
 
@@ -374,7 +376,7 @@ export default function ResultsPage({
                   </svg>
                   Save to Engagement
                 </button>
-                <button className="btn btn-ghost" onClick={onDiscard}>
+                <button className="btn btn-ghost" onClick={() => setShowDiscard(true)}>
                   Discard
                 </button>
               </>
@@ -734,7 +736,7 @@ export default function ResultsPage({
                 </svg>
                 Save to Engagement
               </button>
-              <button className="btn btn-secondary" onClick={onDiscard}>
+              <button className="btn btn-secondary" onClick={() => setShowDiscard(true)}>
                 Discard Interview
               </button>
             </>
@@ -753,5 +755,32 @@ export default function ResultsPage({
 
       </div>
     </div>
+
+    {/* ── Discard confirmation modal ──────────────────────────────────── */}
+    {showDiscard && (
+      <div className="modal-overlay" onClick={() => setShowDiscard(false)}>
+        <div className="modal-box" onClick={e => e.stopPropagation()}>
+          <div className="modal-title">Discard this interview?</div>
+          <p className="modal-body">
+            The scores, notes, and confidence selections for{' '}
+            <strong>{respondentName || 'this respondent'}</strong> will not be
+            saved to the engagement.
+          </p>
+          <p className="modal-body" style={{ color: '#E74C3C' }}>
+            This cannot be undone — the interview data will be lost unless you
+            already downloaded the JSON backup.
+          </p>
+          <div className="modal-actions">
+            <button className="btn btn-ghost" onClick={() => setShowDiscard(false)}>
+              Cancel — Keep reviewing
+            </button>
+            <button className="btn btn-danger" onClick={onDiscard}>
+              Discard Interview
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

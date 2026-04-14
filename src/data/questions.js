@@ -693,7 +693,8 @@ export const maturityLevels = [
 ]
 
 export function getMaturityLevel(score) {
-  return maturityLevels.find(l => score >= l.min && score < l.max) || maturityLevels[0]
+  // Use <= for upper boundary so score of 80 correctly lands in Leading, not Advanced
+  return maturityLevels.find(l => score >= l.min && score <= l.max) || maturityLevels[0]
 }
 
 // Sentinel value for "Don't Know / Outside my area" — excluded from scoring

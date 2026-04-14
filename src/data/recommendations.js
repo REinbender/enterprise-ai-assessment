@@ -755,7 +755,9 @@ export function getRecommendations(dimensionScores, company) {
   const sizeNote = company?.size ? getSizeNote(company.size) : null
 
   return sorted.map(dim => {
-    const tier = dim.score < 40 ? 'low' : dim.score < 70 ? 'medium' : dim.score < 75 ? 'high' : 'sustain'
+    // Tiers: low 0–39, medium 40–64, high 65–79, sustain 80+
+    // Aligns with maturity bands: Sustain = Leading (80+), High = Advanced (60–79)
+    const tier = dim.score < 40 ? 'low' : dim.score < 65 ? 'medium' : dim.score < 80 ? 'high' : 'sustain'
     const rec = recommendationData[dim.id][tier]
     const industryContext = industry ? getIndustryContext(dim.id, tier, industry) : null
     return {
