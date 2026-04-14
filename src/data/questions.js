@@ -696,17 +696,29 @@ export function getMaturityLevel(score) {
   return maturityLevels.find(l => score >= l.min && score < l.max) || maturityLevels[0]
 }
 
-export function computeScore(answers, numQuestions) {
-  const keys = Object.keys(answers)
-  if (keys.length === 0) return 0
-  const sum = keys.reduce((acc, k) => acc + answers[k], 0)
-  return Math.round(((sum - keys.length) / (keys.length * 4)) * 100)
+// Sentinel value for "Don't Know / Outside my area" — excluded from scoring
+export const DK = 'dk'
+
+export function computeScore(answers) {
+  const numeric = Object.values(answers || {}).filter(v => typeof v === 'number')
+  if (!numeric.length) return 0
+  const sum = numeric.reduce((a, b) => a + b, 0)
+  return Math.round(((sum - numeric.length) / (numeric.length * 4)) * 100)
+}
+
+// Returns score + visibility metadata per dimension
+export function computeDimensionMeta(answers, numQuestions) {
+  const all     = Object.values(answers || {})
+  const numeric = all.filter(v => typeof v === 'number')
+  const dkCount = all.filter(v => v === DK).length
+  const score   = computeScore(answers)
+  return { score, answered: numeric.length, dkCount, total: numQuestions }
 }
 
 export function computeDimensionScores(allAnswers) {
   return dimensions.map(d => ({
     ...d,
-    score: computeScore(allAnswers[d.id], d.questions.length),
+    score: computeScore(allAnswers[d.id]),
   }))
 }
 

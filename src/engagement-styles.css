@@ -334,3 +334,102 @@
   background: #EDE9FE; color: #7C3AED;
   font-size: 13px; font-weight: 600; margin-bottom: 6px;
 }
+
+/* ── Don't Know option ──────────────────────────────────────────────────── */
+.scale-dk-divider {
+  width: 1px; height: 32px; background: var(--border); margin: 0 4px; flex-shrink: 0;
+}
+.scale-dk-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border);
+  font-size: 16px; font-weight: 700; color: #94A3B8; cursor: pointer;
+  background: white; transition: all 0.15s;
+}
+.scale-dk-btn:hover { border-color: #94A3B8; background: #F8FAFC; }
+.scale-dk-btn--selected {
+  border-color: #94A3B8; background: #F1F5F9; color: #64748B;
+}
+.scale-dk-label { color: #94A3B8; font-size: 11px; margin-left: auto; }
+.scale-end-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.dk-note {
+  display: flex; align-items: flex-start; gap: 6px; margin-top: 8px;
+  padding: 8px 12px; background: #F8FAFC; border-radius: 6px;
+  font-size: 12px; color: #64748B; line-height: 1.5;
+  border: 1px solid #E2E8F0;
+}
+.question-card--dk { opacity: 0.75; }
+.scale-legend-dk {
+  background: #F1F5F9; color: #64748B; font-style: normal;
+}
+
+/* ── Confidence selector ────────────────────────────────────────────────── */
+.confidence-section {
+  margin-top: 24px; margin-bottom: 0;
+  padding: 20px; background: white; border: 1px solid var(--border); border-radius: 12px;
+}
+.confidence-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  font-size: 13px;
+}
+.confidence-label { font-weight: 700; color: var(--text-primary); }
+.confidence-hint  { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
+.confidence-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.confidence-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 8px; border: 2px solid var(--border);
+  font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+  background: white; color: var(--text-secondary); transition: all 0.15s;
+}
+.confidence-btn:hover { border-color: #CBD5E1; background: #F8FAFC; }
+.confidence-btn--selected { font-weight: 700; }
+.confidence-btn-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.confidence-selected-note {
+  margin-top: 10px; padding: 8px 12px; border-radius: 6px;
+  font-size: 12px; font-style: italic;
+}
+
+/* ── Visibility chip (on rec card dimension label) ──────────────────────── */
+.visibility-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 8px; padding: 1px 7px; border-radius: 10px;
+  background: #F1F5F9; color: #64748B; font-size: 11px; font-weight: 500;
+}
+
+/* ── Confidence badge (on rec card meta) ────────────────────────────────── */
+.confidence-badge {
+  padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+}
+
+/* ── Low visibility callout (CompositeResults) ──────────────────────────── */
+.low-visibility-section {
+  background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 12px;
+  padding: 20px 24px; margin-bottom: 24px;
+}
+.low-visibility-header {
+  display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px;
+}
+.low-visibility-icon  { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.low-visibility-title { font-size: 16px; font-weight: 700; color: #0C4A6E; margin-bottom: 4px; }
+.low-visibility-sub   { font-size: 13px; color: #075985; line-height: 1.5; }
+.low-visibility-dims  { display: flex; flex-wrap: wrap; gap: 8px; }
+.low-visibility-dim-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 8px; border: 2px solid;
+  background: white; font-size: 12px;
+}
+.low-visibility-pct {
+  color: #94A3B8; font-size: 11px; margin-left: 4px;
+}
+
+/* ── Heatmap DK indicators ──────────────────────────────────────────────── */
+.heatmap-dk-rate {
+  margin-left: 8px; padding: 1px 6px; border-radius: 4px;
+  background: #F1F5F9; color: #94A3B8; font-size: 11px; font-weight: 500;
+}
+.heatmap-q-dk {
+  font-size: 10px; font-weight: 600; color: #94A3B8;
+  padding: 1px 5px; border-radius: 4px; background: #F1F5F9;
+  flex-shrink: 0; white-space: nowrap;
+}

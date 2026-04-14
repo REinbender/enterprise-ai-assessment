@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { scaleLabels } from '../data/questions'
+import { scaleLabels, DK } from '../data/questions'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
 
@@ -11,7 +11,13 @@ const scaleSummaryLabels = [
   'Advanced',
 ]
 
-function TopBar({ dimension, stepNumber, totalSteps, answeredCount, totalQuestions }) {
+const CONFIDENCE_OPTIONS = [
+  { value: 'high',   label: 'High',   color: '#059669', bg: '#D1FAE5', desc: 'Respondent had clear, direct knowledge of this area' },
+  { value: 'medium', label: 'Medium', color: '#D97706', bg: '#FEF3C7', desc: 'Some uncertainty — respondent had partial visibility' },
+  { value: 'low',    label: 'Low',    color: '#E74C3C', bg: '#FEE2E2', desc: 'Limited visibility — score should be validated further' },
+]
+
+function TopBar({ dimension, stepNumber, totalSteps, answeredCount, dkCount, totalQuestions }) {
   const progress = (stepNumber / totalSteps) * 100
 
   return (
@@ -24,7 +30,8 @@ function TopBar({ dimension, stepNumber, totalSteps, answeredCount, totalQuestio
         <div className="topbar-progress">
           <div className="topbar-progress-label">
             Dimension {stepNumber - 1} of 5 — {dimension.shortName}
-            {' '}· {answeredCount}/{totalQuestions} answered
+            {' '}· {answeredCount}/{totalQuestions} scored
+            {dkCount > 0 && <span style={{ color: '#94A3B8', marginLeft: 4 }}>· {dkCount} don't know</span>}
           </div>
           <div className="progress-bar-track">
             <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
@@ -36,13 +43,9 @@ function TopBar({ dimension, stepNumber, totalSteps, answeredCount, totalQuestio
   )
 }
 
-// Expandable behavioral anchor panel shown when a score is selected or on hover
 function AnchorPanel({ anchors, selectedValue, color }) {
   if (!anchors) return null
-
-  const display = selectedValue || null
-
-  if (!display) {
+  if (!selectedValue || selectedValue === DK) {
     return (
       <div className="anchor-hint">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -58,30 +61,29 @@ function AnchorPanel({ anchors, selectedValue, color }) {
     <div className="anchor-panel" style={{ borderLeftColor: color }}>
       <div className="anchor-panel-header">
         <div className="anchor-score-badge" style={{ background: color }}>
-          {display}
+          {selectedValue}
         </div>
         <div>
           <div className="anchor-score-label" style={{ color }}>
-            {scaleLabels[display]}
+            {scaleLabels[selectedValue]}
           </div>
           <div className="anchor-desc">
-            {anchors[display]}
+            {anchors[selectedValue]}
           </div>
         </div>
       </div>
 
-      {/* Mini scale strip showing all 5 anchors */}
       <div className="anchor-strip">
         {[1, 2, 3, 4, 5].map(v => (
           <div
             key={v}
-            className={`anchor-strip-item ${v === display ? 'selected' : ''}`}
-            style={v === display ? { borderColor: color, background: color + '10' } : {}}
+            className={`anchor-strip-item ${v === selectedValue ? 'selected' : ''}`}
+            style={v === selectedValue ? { borderColor: color, background: color + '10' } : {}}
             title={anchors[v]}
           >
             <span
               className="anchor-strip-num"
-              style={v === display ? { background: color, color: 'white' } : {}}
+              style={v === selectedValue ? { background: color, color: 'white' } : {}}
             >
               {v}
             </span>
@@ -94,17 +96,18 @@ function AnchorPanel({ anchors, selectedValue, color }) {
 }
 
 function QuestionCard({ question, index, selectedValue, onSelect, color }) {
-  const [showAllAnchors, setShowAllAnchors] = useState(false)
-  const answered = selectedValue !== undefined
+  const answered  = selectedValue !== undefined
+  const isDontKnow = selectedValue === DK
+  const isScored   = typeof selectedValue === 'number'
 
   return (
-    <div className={`question-card ${answered ? 'answered' : ''}`}>
+    <div className={`question-card ${answered ? 'answered' : ''} ${isDontKnow ? 'question-card--dk' : ''}`}>
       <div className="question-top">
         <span
           className="question-num"
           style={{
-            background: answered ? color + '20' : undefined,
-            color: answered ? color : undefined,
+            background: isDontKnow ? '#F1F5F9' : isScored ? color + '20' : undefined,
+            color:      isDontKnow ? '#94A3B8'  : isScored ? color       : undefined,
           }}
         >
           {index + 1}
@@ -112,7 +115,7 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
         <p className="question-text">{question.text}</p>
       </div>
 
-      {/* 1–5 scale */}
+      {/* 1–5 scale + Don't Know */}
       <div className="scale-row">
         {[1, 2, 3, 4, 5].map(val => (
           <label key={val} className="scale-option">
@@ -127,12 +130,7 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
               className="scale-option-btn"
               style={
                 selectedValue === val
-                  ? {
-                      background: color,
-                      borderColor: color,
-                      color: 'white',
-                      boxShadow: `0 2px 8px ${color}55`,
-                    }
+                  ? { background: color, borderColor: color, color: 'white', boxShadow: `0 2px 8px ${color}55` }
                   : {}
               }
               title={question.anchors?.[val]}
@@ -141,20 +139,91 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
             </div>
           </label>
         ))}
+
+        {/* Don't Know separator */}
+        <div className="scale-dk-divider" />
+
+        {/* Don't Know button */}
+        <label className="scale-option">
+          <input
+            type="radio"
+            name={`q-${index}`}
+            value={DK}
+            checked={isDontKnow}
+            onChange={() => onSelect(index, DK)}
+          />
+          <div
+            className={`scale-dk-btn ${isDontKnow ? 'scale-dk-btn--selected' : ''}`}
+            title="Respondent doesn't know or this is outside their area — excluded from scoring"
+          >
+            ?
+          </div>
+        </label>
       </div>
 
       <div className="scale-end-labels">
         <span>Not at all</span>
         <span>Advanced</span>
+        <span className="scale-dk-label">Don't know</span>
       </div>
 
-      {/* Behavioral anchor panel */}
-      {question.anchors && (
+      {isDontKnow && (
+        <div className="dk-note">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01" strokeLinecap="round"/>
+          </svg>
+          This question will be excluded from the dimension score. It will appear as a visibility gap in the report.
+        </div>
+      )}
+
+      {question.anchors && !isDontKnow && (
         <AnchorPanel
           anchors={question.anchors}
           selectedValue={selectedValue}
           color={color}
         />
+      )}
+    </div>
+  )
+}
+
+function ConfidenceSelector({ confidence, onConfidenceChange, color }) {
+  return (
+    <div className="confidence-section">
+      <div className="confidence-header">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="confidence-label">Consultant Confidence</span>
+        <span className="notes-optional">Optional</span>
+      </div>
+      <p className="confidence-hint">
+        How confident are you in this dimension's scores? This reflects the respondent's
+        visibility into the area — not their performance. Low confidence flags dimensions
+        for transcript validation or a follow-up conversation.
+      </p>
+      <div className="confidence-options">
+        {CONFIDENCE_OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            className={`confidence-btn ${confidence === opt.value ? 'confidence-btn--selected' : ''}`}
+            style={confidence === opt.value ? { background: opt.bg, borderColor: opt.color, color: opt.color } : {}}
+            onClick={() => onConfidenceChange(confidence === opt.value ? null : opt.value)}
+            title={opt.desc}
+          >
+            <span className="confidence-btn-dot" style={{ background: opt.color }} />
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      {confidence && (
+        <div className="confidence-selected-note" style={{
+          background: CONFIDENCE_OPTIONS.find(o => o.value === confidence)?.bg,
+          color: CONFIDENCE_OPTIONS.find(o => o.value === confidence)?.color,
+        }}>
+          {CONFIDENCE_OPTIONS.find(o => o.value === confidence)?.desc}
+        </div>
       )}
     </div>
   )
@@ -166,6 +235,8 @@ export default function DimensionAssessment({
   onAnswer,
   notes,
   onNotesChange,
+  confidence,
+  onConfidenceChange,
   onNext,
   onBack,
   isComplete,
@@ -173,7 +244,10 @@ export default function DimensionAssessment({
   totalSteps,
   company,
 }) {
-  const answeredCount = Object.keys(answers).length
+  const allEntries  = Object.values(answers)
+  const scoredCount = allEntries.filter(v => typeof v === 'number').length
+  const dkCount     = allEntries.filter(v => v === DK).length
+  const totalAnswered = scoredCount + dkCount
   const totalQuestions = dimension.questions.length
 
   return (
@@ -182,7 +256,8 @@ export default function DimensionAssessment({
         dimension={dimension}
         stepNumber={stepNumber}
         totalSteps={totalSteps}
-        answeredCount={answeredCount}
+        answeredCount={scoredCount}
+        dkCount={dkCount}
         totalQuestions={totalQuestions}
       />
 
@@ -225,6 +300,10 @@ export default function DimensionAssessment({
                 {v < 5 && <span style={{ color: 'var(--border)', marginLeft: 4 }}>·</span>}
               </div>
             ))}
+            <div className="scale-legend-item" style={{ marginLeft: 8 }}>
+              <div className="scale-legend-num scale-legend-dk">?</div>
+              <span style={{ color: 'var(--text-muted)' }}>Don't know</span>
+            </div>
           </div>
         </div>
 
@@ -234,7 +313,7 @@ export default function DimensionAssessment({
             <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
           </svg>
-          Each question includes <strong>behaviorally-anchored descriptors</strong> — select a score to see what good evidence looks like at each level.
+          Each question includes <strong>behaviorally-anchored descriptors</strong> — select a score to see what good evidence looks like at each level. Use <strong>?</strong> if the respondent lacks visibility into that question.
         </div>
 
         {/* Questions */}
@@ -252,14 +331,21 @@ export default function DimensionAssessment({
         </div>
 
         {/* Remaining nudge */}
-        {!isComplete && answeredCount > 0 && (
+        {!isComplete && totalAnswered > 0 && (
           <div className="remaining-nudge">
-            {totalQuestions - answeredCount} question
-            {totalQuestions - answeredCount !== 1 ? 's' : ''} remaining before you can continue
+            {totalQuestions - totalAnswered} question
+            {totalQuestions - totalAnswered !== 1 ? 's' : ''} remaining before you can continue
           </div>
         )}
 
-        {/* Consultant / Interviewer Notes */}
+        {/* Consultant Confidence */}
+        <ConfidenceSelector
+          confidence={confidence}
+          onConfidenceChange={onConfidenceChange}
+          color={dimension.color}
+        />
+
+        {/* Consultant Observations */}
         <div className="notes-section">
           <div className="notes-header">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -270,7 +356,7 @@ export default function DimensionAssessment({
             <span className="notes-optional">Optional</span>
           </div>
           <p className="notes-hint">
-            Capture qualitative context, notable quotes, or observations from this dimension's discussion. These notes will appear in the results and PDF report.
+            Key quotes, context, or observations that justify the scores above. These appear in the results report and can serve as your transcript validation reference.
           </p>
           <textarea
             className="notes-textarea"
@@ -290,7 +376,9 @@ export default function DimensionAssessment({
           </button>
 
           <div className="nav-progress-text">
-            <strong>{answeredCount}</strong> / {totalQuestions} answered
+            <strong>{scoredCount}</strong> scored
+            {dkCount > 0 && <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>· {dkCount} don't know</span>}
+            <span style={{ color: 'var(--text-muted)' }}> / {totalQuestions}</span>
           </div>
 
           <button

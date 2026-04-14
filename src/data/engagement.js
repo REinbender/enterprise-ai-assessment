@@ -2,7 +2,7 @@
 // Handles: engagement CRUD, session management, composite scoring,
 //          JSON export/import, role group assignment
 
-import { computeDimensionScores, computeOverallScore, dimensions } from './questions'
+import { computeDimensionScores, computeOverallScore, computeDimensionMeta, dimensions, DK } from './questions'
 
 const ENGAGEMENT_KEY    = 'ai_readiness_engagement_v1'
 const SESSION_DRAFT_KEY = 'ai_readiness_session_draft_v1'
@@ -84,10 +84,17 @@ export function clearSessionDraft() {
 }
 
 // ── Build a completed session from interview data ──────────────────────────
-export function buildSession({ respondentName, respondentRole, answers, notes }) {
+export function buildSession({ respondentName, respondentRole, answers, notes, confidence = {} }) {
   const dimScoresArr = computeDimensionScores(answers)
   const overallScore = computeOverallScore(dimScoresArr)
-  const dimScores = dimScoresArr.reduce((acc, d) => ({ ...acc, [d.id]: d.score }), {})
+  const dimScores    = dimScoresArr.reduce((acc, d) => ({ ...acc, [d.id]: d.score }), {})
+
+  // Per-dimension visibility metadata (answered count, DK count)
+  const dimMeta = dimensions.reduce((acc, d) => ({
+    ...acc,
+    [d.id]: computeDimensionMeta(answers[d.id], d.questions.length),
+  }), {})
+
   return {
     sessionId: uid(),
     respondentName,
@@ -95,6 +102,8 @@ export function buildSession({ respondentName, respondentRole, answers, notes })
     roleGroup: assignRoleGroup(respondentRole),
     answers,
     notes,
+    confidence,   // { [dimId]: 'high' | 'medium' | 'low' | null }
+    dimMeta,      // { [dimId]: { score, answered, dkCount, total } }
     completedAt: new Date().toISOString(),
     dimScores,
     overallScore,
@@ -202,12 +211,35 @@ export function computeComposite(sessions) {
       ? (execAvg > practAvg ? 'exec_higher' : 'practitioner_higher')
       : null
 
-    // Per-question averages across all sessions
+    // Per-question averages + DK rates across all sessions
     const qAvgs = dim.questions.map((_, qi) => {
-      const scores = sessions.map(s => s.answers?.[dim.id]?.[qi]).filter(n => n != null)
-      return scores.length
-        ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
-        : null
+      const vals   = sessions.map(s => s.answers?.[dim.id]?.[qi]).filter(v => v != null)
+      const nums   = vals.filter(v => typeof v === 'number')
+      const dkRate = vals.length ? Math.round((vals.filter(v => v === DK).length / vals.length) * 100) : 0
+      return {
+        avg:    nums.length ? Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) / 10 : null,
+        dkRate, // % of respondents who said don't know
+        scored: nums.length,
+        total:  vals.length,
+      }
+    })
+
+    // Dimension-level DK and visibility
+    const totalDkAcrossSessions = sessions.reduce((acc, s) => {
+      const dimAnswers = s.answers?.[dim.id] || {}
+      return acc + Object.values(dimAnswers).filter(v => v === DK).length
+    }, 0)
+    const totalPossibleAnswers = sessions.length * dim.questions.length
+    const dkRate = totalPossibleAnswers
+      ? Math.round((totalDkAcrossSessions / totalPossibleAnswers) * 100)
+      : 0
+    const lowVisibility = dkRate >= 30 // flag if 30%+ of answers are DK across respondents
+
+    // Confidence distribution across sessions
+    const confidenceCounts = { high: 0, medium: 0, low: 0, null: 0 }
+    sessions.forEach(s => {
+      const c = s.confidence?.[dim.id] || null
+      confidenceCounts[c ?? 'null'] = (confidenceCounts[c ?? 'null'] || 0) + 1
     })
 
     return {
@@ -226,6 +258,9 @@ export function computeComposite(sessions) {
       gapMagnitude,
       qAvgs,
       respondentCount: allScores.length,
+      dkRate,
+      lowVisibility,
+      confidenceCounts,
     }
   }).filter(Boolean)
 
@@ -239,6 +274,7 @@ export function computeComposite(sessions) {
     sessionCount: sessions.length,
     roleCounts,
     perceptionGapDimensions: dimComposites.filter(d => d.perceptionGap),
+    lowVisibilityDimensions: dimComposites.filter(d => d.lowVisibility),
     // Shape for existing generateRecommendations()
     asDimScores: dimComposites.map(d => ({
       id: d.dimId, name: d.name, shortName: d.shortName, color: d.color, score: d.avg,

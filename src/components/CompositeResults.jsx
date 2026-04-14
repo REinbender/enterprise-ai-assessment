@@ -17,6 +17,35 @@ function qColor(avg) {
   return { bg: '#FEE2E2', text: '#991B1B' }
 }
 
+// ── Low visibility callout ─────────────────────────────────────────────────
+function LowVisibilityCallout({ dims }) {
+  if (!dims.length) return null
+  return (
+    <div className="low-visibility-section">
+      <div className="low-visibility-header">
+        <span className="low-visibility-icon">👁</span>
+        <div>
+          <div className="low-visibility-title">Low Organizational Visibility</div>
+          <div className="low-visibility-sub">
+            These dimensions had a high rate of "Don't Know" responses across respondents.
+            Low visibility may indicate the org lacks awareness of its own capabilities in
+            these areas — which is itself a maturity finding, independent of the score.
+          </div>
+        </div>
+      </div>
+      <div className="low-visibility-dims">
+        {dims.map(d => (
+          <div key={d.dimId} className="low-visibility-dim-chip" style={{ borderColor: d.color }}>
+            <span style={{ color: d.color }}>{dimIcons[d.dimId]}</span>
+            <span style={{ fontWeight: 600, color: d.color }}>{d.shortName}</span>
+            <span className="low-visibility-pct">{d.dkRate}% don't know</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Role group score bar ───────────────────────────────────────────────────
 function GroupBar({ group, data, baseline }) {
   if (!data) return null
@@ -108,21 +137,32 @@ function QuestionHeatmap({ composite }) {
       <div className="chart-title">Question-Level Heatmap</div>
       <div className="chart-subtitle">
         Average score per question across all {composite.sessionCount} respondents (1–5 scale).
-        Red = gap area · Yellow = developing · Green = strength.
+        Red = gap area · Yellow = developing · Green = strength · Grey % = "don't know" rate.
       </div>
       {composite.dimensions.map(dim => (
         <div key={dim.dimId} className="heatmap-dim-block">
           <div className="heatmap-dim-label" style={{ color: dim.color }}>
             {dimIcons[dim.dimId]} {dim.name}
+            {dim.dkRate > 0 && (
+              <span className="heatmap-dk-rate">{dim.dkRate}% DK overall</span>
+            )}
           </div>
           <div className="heatmap-questions">
             {dimensions.find(d => d.id === dim.dimId)?.questions.map((q, qi) => {
-              const avg = dim.qAvgs[qi]
+              const qData = dim.qAvgs[qi]
+              // Support both old format (number) and new format (object)
+              const avg    = typeof qData === 'object' ? qData.avg    : qData
+              const dkRate = typeof qData === 'object' ? qData.dkRate : 0
               const { bg, text } = qColor(avg)
               return (
                 <div key={qi} className="heatmap-q-row">
                   <div className="heatmap-q-num" style={{ color: dim.color }}>Q{qi + 1}</div>
                   <div className="heatmap-q-text">{q.question}</div>
+                  {dkRate >= 30 && (
+                    <div className="heatmap-q-dk" title={`${dkRate}% of respondents said Don't Know`}>
+                      {dkRate}% DK
+                    </div>
+                  )}
                   <div className="heatmap-q-score" style={{ background: bg, color: text }}>
                     {avg !== null ? avg.toFixed(1) : '—'}
                   </div>
@@ -392,6 +432,7 @@ export default function CompositeResults({ engagement, onBack }) {
 
         {/* ── Perception gap callout ────────────────────────────────────── */}
         <PerceptionGapCallout gaps={composite.perceptionGapDimensions} />
+        <LowVisibilityCallout dims={composite.lowVisibilityDimensions} />
 
         {/* ── Composite scorecard ───────────────────────────────────────── */}
         <CompositeScorecard composite={composite} />

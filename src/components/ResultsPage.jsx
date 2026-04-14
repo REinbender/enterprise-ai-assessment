@@ -293,11 +293,18 @@ const CustomRadarTooltip = ({ active, payload }) => {
   return null
 }
 
+const CONFIDENCE_META = {
+  high:   { label: 'High Confidence',   color: '#059669', bg: '#D1FAE5' },
+  medium: { label: 'Medium Confidence', color: '#D97706', bg: '#FEF3C7' },
+  low:    { label: 'Low Confidence',    color: '#E74C3C', bg: '#FEE2E2' },
+}
+
 export default function ResultsPage({
   company, answers, notes = {}, onRestart,
   // Engagement mode — when onSaveToEngagement is provided, show Save/Discard buttons
   onSaveToEngagement, onDiscard,
   respondentName, respondentRole,
+  confidence = {}, dimMeta = {},
 }) {
   const engagementMode = !!onSaveToEngagement
   const radarRef = useRef(null)
@@ -514,9 +521,13 @@ export default function ResultsPage({
           </div>
 
           {recommendations.map((rec, idx) => {
-            const isSustain = rec.tier === 'sustain'
+            const isSustain     = rec.tier === 'sustain'
             const priorityClass = `priority-${rec.priority.toLowerCase()}`
-            const dimNotes = notes[rec.dimensionId]
+            const dimNotes      = notes[rec.dimensionId]
+            const dimConf       = confidence[rec.dimensionId]
+            const confMeta      = dimConf ? CONFIDENCE_META[dimConf] : null
+            const meta          = dimMeta[rec.dimensionId]
+            const hasDk         = meta?.dkCount > 0
             return (
               <div key={rec.dimensionId} className={`rec-card${isSustain ? ' rec-card--sustain' : ''}`}>
                 <div className="rec-card-border" style={{ background: isSustain ? '#10B981' : rec.dimensionColor }} />
@@ -525,6 +536,13 @@ export default function ResultsPage({
                     <div>
                       <div className="rec-card-dimension">
                         {dimIcons[rec.dimensionId]} {rec.dimensionName}
+                        {/* Visibility chip */}
+                        {meta && (
+                          <span className="visibility-chip">
+                            {meta.answered}/{meta.total} scored
+                            {hasDk && <span style={{ color: '#94A3B8' }}> · {meta.dkCount} DK</span>}
+                          </span>
+                        )}
                       </div>
                       <div className="rec-card-title">{rec.title}</div>
                     </div>
@@ -533,6 +551,11 @@ export default function ResultsPage({
                         <span style={{ color: getMaturityLevel(rec.score).color }}>●</span>
                         {rec.score}/100
                       </div>
+                      {confMeta && (
+                        <div className="confidence-badge" style={{ background: confMeta.bg, color: confMeta.color }}>
+                          {confMeta.label}
+                        </div>
+                      )}
                       <div className={`priority-badge ${priorityClass}`}>
                         {isSustain ? '✓ ' : idx === 0 ? '↑↑ ' : ''}{rec.priority}
                       </div>

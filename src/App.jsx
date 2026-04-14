@@ -25,8 +25,9 @@ import ImportScreen from './components/ImportScreen'
 // 'composite'    – CompositeResults (multi-respondent aggregate)
 // 'import'       – ImportScreen (drag-and-drop JSON files)
 
-const defaultAnswers = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]: {} }), {})
-const defaultNotes   = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]: '' }), {})
+const defaultAnswers    = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]: {} }), {})
+const defaultNotes      = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]: '' }), {})
+const defaultConfidence = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]: null }), {})
 
 export default function App() {
   const [mode, setMode]               = useState('loading')
@@ -36,8 +37,9 @@ export default function App() {
   const [interviewStep, setInterviewStep]     = useState(1) // 1–5 = dimensions
   const [respondentName, setRespondentName]   = useState('')
   const [respondentRole, setRespondentRole]   = useState('')
-  const [answers, setAnswers]                 = useState(defaultAnswers)
-  const [notes, setNotes]                     = useState(defaultNotes)
+  const [answers, setAnswers]                   = useState(defaultAnswers)
+  const [notes, setNotes]                       = useState(defaultNotes)
+  const [confidence, setConfidence]             = useState(defaultConfidence)
   const [completedSession, setCompletedSession] = useState(null)
 
   // ── Mount: load engagement and any in-progress draft ──────────────────────
@@ -51,8 +53,9 @@ export default function App() {
         // Resume in-progress interview
         setRespondentName(draft.respondentName || '')
         setRespondentRole(draft.respondentRole || '')
-        setAnswers(draft.answers || defaultAnswers())
-        setNotes(draft.notes   || defaultNotes())
+        setAnswers(draft.answers         || defaultAnswers())
+        setNotes(draft.notes             || defaultNotes())
+        setConfidence(draft.confidence   || defaultConfidence())
         setInterviewStep(draft.step || 1)
         setMode('interview')
       } else {
@@ -66,7 +69,7 @@ export default function App() {
   // ── Auto-save draft during interview ──────────────────────────────────────
   useEffect(() => {
     if (mode === 'interview') {
-      saveSessionDraft({ respondentName, respondentRole, answers, notes, step: interviewStep })
+      saveSessionDraft({ respondentName, respondentRole, answers, notes, confidence, step: interviewStep })
     }
   }, [mode, interviewStep, answers, notes, respondentName, respondentRole])
 
@@ -84,6 +87,7 @@ export default function App() {
     setRespondentRole('')
     setAnswers(defaultAnswers())
     setNotes(defaultNotes())
+    setConfidence(defaultConfidence())
     setInterviewStep(1)
     clearSessionDraft()
     setMode('respondent')
@@ -105,6 +109,11 @@ export default function App() {
     setNotes(prev => ({ ...prev, [dimId]: text }))
   }
 
+  const handleConfidenceChange = (dimId, level) => {
+    setConfidence(prev => ({ ...prev, [dimId]: level }))
+  }
+
+  // A dimension is complete when every question has a numeric score OR 'dk'
   const isDimensionComplete = (dimId) => {
     const dim = dimensions.find(d => d.id === dimId)
     return Object.keys(answers[dimId] || {}).length === dim.questions.length
@@ -115,7 +124,7 @@ export default function App() {
       setInterviewStep(s => s + 1)
     } else {
       // All 5 dimensions done — build session and show individual results
-      const session = buildSession({ respondentName, respondentRole, answers, notes })
+      const session = buildSession({ respondentName, respondentRole, answers, notes, confidence })
       setCompletedSession(session)
       clearSessionDraft()
       setMode('session-done')
@@ -221,6 +230,8 @@ export default function App() {
           onAnswer={(qIdx, score) => handleAnswer(currentDim.id, qIdx, score)}
           notes={notes[currentDim.id]}
           onNotesChange={(text) => handleNotesChange(currentDim.id, text)}
+          confidence={confidence[currentDim.id]}
+          onConfidenceChange={(level) => handleConfidenceChange(currentDim.id, level)}
           onNext={handleInterviewNext}
           onBack={handleInterviewBack}
           isComplete={isDimensionComplete(currentDim.id)}
@@ -237,6 +248,8 @@ export default function App() {
       company={engagement.company}
       answers={completedSession.answers}
       notes={completedSession.notes}
+      confidence={completedSession.confidence}
+      dimMeta={completedSession.dimMeta}
       respondentName={completedSession.respondentName}
       respondentRole={completedSession.respondentRole}
       onSaveToEngagement={handleSaveSession}
