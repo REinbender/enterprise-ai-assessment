@@ -185,7 +185,13 @@ export default function App() {
   const currentDim  = mode === 'interview' ? dimensions[interviewStep - 1] : null
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  if (mode === 'loading') return null
+  if (mode === 'loading') return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 16 }}>
+      <div style={{ width: 40, height: 40, border: '4px solid #E2E8F0', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+      <div style={{ color: '#94A3B8', fontSize: 14 }}>Loading…</div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
 
   if (mode === 'setup') return (
     <EngagementSetup onSubmit={handleCreateEngagement} />

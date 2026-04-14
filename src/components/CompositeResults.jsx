@@ -6,6 +6,7 @@ import {
 import { getMaturityLevel, dimensions } from '../data/questions'
 import { generateRecommendations } from '../data/recommendations'
 import { computeComposite, ROLE_GROUP_META, exportEngagement } from '../data/engagement'
+import CompositePDFExportButton from './CompositePDFExport'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
 
@@ -729,15 +730,16 @@ export default function CompositeResults({ engagement, onBack }) {
 
         {/* ── Footer actions ────────────────────────────────────────────── */}
         <div className="results-actions">
-          <button className="btn btn-secondary btn-lg" onClick={() => exportEngagement(engagement)}>
+          <button className="btn btn-secondary btn-lg" onClick={onBack}>
+            ← Back to Hub
+          </button>
+          <button className="btn btn-ghost btn-lg" onClick={() => exportEngagement(engagement)}>
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Export Full Engagement
+            Export JSON
           </button>
-          <button className="btn btn-primary btn-lg" onClick={onBack}>
-            ← Back to Hub
-          </button>
+          <CompositePDFExportButton engagement={engagement} />
         </div>
 
       </div>
