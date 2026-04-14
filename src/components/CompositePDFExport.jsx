@@ -716,6 +716,64 @@ function drawRecommendationsPage(doc, engagement, composite, pageNum) {
       })
     }
 
+    // 30/60/90-day phases (not for Sustain tier)
+    const isSustain = rec.priority === 'Sustain'
+    if (!isSustain && rec.phases?.length) {
+      cy += 4
+      sd(doc, C.slate200)
+      doc.setLineWidth(0.3)
+      doc.line(ML + 8, cy, ML + CW - 8, cy)
+      cy += 5
+
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'bold')
+      st(doc, C.slate500)
+      doc.text('30 / 60 / 90-DAY ACTION PLAN:', ML + 8, cy)
+      cy += 5
+
+      const PHASE_COL_W = (CW - 16 - 8) / 3
+      const PHASE_GAP   = 4
+
+      const maxLines = Math.max(...rec.phases.map(ph =>
+        ph.actions.reduce((acc, a) =>
+          acc + doc.splitTextToSize(a, PHASE_COL_W - 8).length, 0)
+      ))
+      const phasesH = 20 + maxLines * 4.5 + 8
+
+      rec.phases.forEach((phase, pi) => {
+        const colX = ML + 8 + pi * (PHASE_COL_W + PHASE_GAP)
+
+        sf(doc, C.slate50)
+        doc.roundedRect(colX, cy, PHASE_COL_W, phasesH - 10, 2, 2, 'F')
+
+        sf(doc, dc)
+        doc.roundedRect(colX, cy, 3, phasesH - 10, 1.5, 1.5, 'F')
+
+        doc.setFontSize(6.5)
+        doc.setFont('helvetica', 'bold')
+        st(doc, dc)
+        doc.text(phase.label, colX + 6, cy + 6)
+
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'bold')
+        st(doc, C.slate900)
+        doc.text(phase.theme, colX + 6, cy + 12)
+
+        let phActY = cy + 17
+        phase.actions.forEach(a => {
+          sf(doc, dc)
+          doc.circle(colX + 8, phActY - 1, 1, 'F')
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(6.5)
+          st(doc, C.slate700)
+          const aLines = doc.splitTextToSize(a, PHASE_COL_W - 12)
+          doc.text(aLines, colX + 11, phActY)
+          phActY += aLines.length * 4 + 2
+        })
+      })
+      cy += phasesH
+    }
+
     y += safeH + 6
   })
 
@@ -723,10 +781,22 @@ function drawRecommendationsPage(doc, engagement, composite, pageNum) {
 }
 
 function estimateRecHeight(doc, rec) {
+  const isSustain  = rec.priority === 'Sustain'
   const titleLines = doc.splitTextToSize(rec.title || '', CW - 40).length
   const descLines  = Math.min(doc.splitTextToSize(rec.description || '', CW - 12).length, 3)
   const actionCount = Math.min(rec.actions?.length || 0, 3)
-  return 16 + titleLines * 5 + descLines * 4.5 + actionCount * 5 + 12
+
+  let phasesH = 0
+  if (!isSustain && rec.phases?.length) {
+    const PHASE_COL_W = (CW - 16 - 8) / 3
+    const maxLines = Math.max(...rec.phases.map(ph =>
+      ph.actions.reduce((acc, a) =>
+        acc + doc.splitTextToSize(a, PHASE_COL_W - 8).length, 0)
+    ))
+    phasesH = 10 + 20 + maxLines * 4.5 + 8
+  }
+
+  return 16 + titleLines * 5 + descLines * 4.5 + actionCount * 5 + phasesH + 12
 }
 
 // ── PAGE: Respondent Summary ──────────────────────────────────────────────
