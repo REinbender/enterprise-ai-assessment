@@ -100,34 +100,16 @@ function sectionTitle(doc, text, y) {
   st(doc, C.navy); doc.text(text, ML, y)
 }
 
-// Approximate donut ring: outer filled circle, inner white circle
+// Score badge: rounded square with big score number (reliable jsPDF alternative to donut)
 function scoreDonut(doc, cx, cy, outerR, innerR, score, mc) {
-  // Background ring (grey)
-  sf(doc, C.slate200); doc.circle(cx, cy, outerR, 'F')
-  // Score arc approximation: filled wedge of colored arc
-  // We approximate with a filled sector via many triangles
-  const pct = score / 100
-  const segments = 60
-  const startAngle = -Math.PI / 2
-  const endAngle   = startAngle + 2 * Math.PI * pct
-  sf(doc, mc)
-  for (let i = 0; i < Math.round(segments * pct); i++) {
-    const a1 = startAngle + (i / segments) * 2 * Math.PI
-    const a2 = startAngle + ((i + 1) / segments) * 2 * Math.PI
-    const pts = [
-      [cx, cy],
-      [cx + outerR * Math.cos(a1), cy + outerR * Math.sin(a1)],
-      [cx + outerR * Math.cos(a2), cy + outerR * Math.sin(a2)],
-    ]
-    doc.triangle(pts[0][0], pts[0][1], pts[1][0], pts[1][1], pts[2][0], pts[2][1], 'F')
-  }
-  // White inner circle (donut hole)
-  sf(doc, C.white); doc.circle(cx, cy, innerR, 'F')
-  // Score text
-  doc.setFontSize(14); doc.setFont('helvetica', 'bold')
-  st(doc, mc); doc.text(`${score}`, cx, cy + 2, { align: 'center' })
+  const size = outerR * 2
+  const x    = cx - outerR
+  const y    = cy - outerR
+  fbox(doc, x, y, size, size, mc, 6)
+  doc.setFontSize(16); doc.setFont('helvetica', 'bold')
+  st(doc, C.white); doc.text(`${score}`, cx, cy + 3, { align: 'center' })
   doc.setFontSize(6); doc.setFont('helvetica', 'normal')
-  st(doc, C.slate500); doc.text('out of 100', cx, cy + 7.5, { align: 'center' })
+  st(doc, [255, 255, 255]); doc.text('/ 100', cx, cy + 9, { align: 'center' })
 }
 
 // ── Shared header / footer ─────────────────────────────────────────────────
