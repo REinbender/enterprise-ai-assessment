@@ -5,33 +5,40 @@ import { dimensions } from '../data/questions'
 import { generateRecommendations } from '../data/recommendations'
 import { computeComposite, ROLE_GROUP_META } from '../data/engagement'
 
-// ── Colour palette ────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// DESIGN SYSTEM
+// ─────────────────────────────────────────────────────────────────────────────
 const C = {
   primary:   [46,  163, 242],
   primaryDk: [26,  140, 216],
-  slate900:  [51,  51,  51],
-  slate700:  [85,  85,  85],
-  slate500:  [153, 153, 153],
-  slate200:  [226, 226, 226],
-  slate50:   [243, 243, 243],
-  white:     [255, 255, 255],
-  green:     [16,  185, 129],
-  amber:     [245, 158,  11],
-  red:       [239,  68,  68],
-  purple:    [139,  92, 246],
-  sky:       [14,  165, 233],
   navy:      [12,  32,  70],
+  slate700:  [71,  85, 105],
+  slate500:  [100, 116, 139],
+  slate300:  [203, 213, 225],
+  slate100:  [241, 245, 249],
+  slate50:   [248, 250, 252],
+  white:     [255, 255, 255],
+  green:     [22,  163,  74],
+  amber:     [217, 119,   6],
+  red:       [220,  38,  38],
+  blue:      [37,   99, 235],
+  purple:    [124,  58, 237],
 }
+
+// Page layout
+const PW = 210, PH = 297
+const ML = 16, MR = 16, CW = PW - ML - MR   // 178mm content width
+const CONTENT_TOP = 34, CONTENT_BOT = 286    // usable vertical range
 
 const DIM_COLORS = {
-  1: [46,  163, 242],
-  2: [14,  165, 233],
-  3: [139,  92, 246],
-  4: [245, 158,  11],
-  5: [16,  185, 129],
+  1: [46,  163, 242],  // blue    – Strategy
+  2: [14,  165, 233],  // sky     – Data
+  3: [124,  58, 237],  // purple  – Governance
+  4: [217, 119,   6],  // amber   – Talent
+  5: [22,  163,  74],  // green   – Operations
 }
 
-const DIM_SHORT = {
+const DIM_NAMES = {
   1: 'AI Strategy',
   2: 'Data & Infrastructure',
   3: 'Governance & Ethics',
@@ -39,944 +46,750 @@ const DIM_SHORT = {
   5: 'AI Operations',
 }
 
-const ROLE_COLORS = {
-  executive:    { fg: [99,  102, 241], bg: [238, 242, 255] },
-  management:   { fg: [14,  165, 233], bg: [240, 249, 255] },
-  practitioner: { fg: [16,  185, 129], bg: [240, 253, 244] },
+const DIM_SHORT_LABEL = {
+  1: 'Strategy', 2: 'Data', 3: 'Governance', 4: 'Talent', 5: 'Operations',
 }
 
-function maturityColor(score) {
-  if (score < 20) return [231, 76,  60]
-  if (score < 40) return [230, 126, 34]
-  if (score < 60) return [241, 196, 15]
-  if (score < 80) return [46,  163, 242]
-  return              [39,  174, 96]
+const ROLE_STYLE = {
+  executive:    { fg: [99,  102, 241], bg: [238, 242, 255], label: 'Executive'    },
+  management:   { fg: [14,  165, 233], bg: [240, 249, 255], label: 'Management'   },
+  practitioner: { fg: [22,  163,  74], bg: [240, 253, 244], label: 'Practitioner' },
 }
-function maturityLabel(score) {
+
+function matColor(score) {
+  if (score === undefined || score === null) return C.slate500
+  if (score < 20) return C.red
+  if (score < 40) return [234, 88, 12]
+  if (score < 60) return C.amber
+  if (score < 80) return C.blue
+  return C.green
+}
+function matLabel(score) {
   if (score < 20) return 'Beginning'
   if (score < 40) return 'Developing'
   if (score < 60) return 'Maturing'
   if (score < 80) return 'Advanced'
-  return              'Leading'
-}
-function hexToRgb(hex) {
-  return [
-    parseInt(hex.slice(1,3), 16),
-    parseInt(hex.slice(3,5), 16),
-    parseInt(hex.slice(5,7), 16),
-  ]
+  return 'Leading'
 }
 
-// ── jsPDF helpers ─────────────────────────────────────────────────────────
-const PW = 210, PH = 297, ML = 18, MR = 18, CW = PW - ML - MR
+// ─────────────────────────────────────────────────────────────────────────────
+// DRAWING PRIMITIVES
+// ─────────────────────────────────────────────────────────────────────────────
+const sf = (d, c) => d.setFillColor(c[0], c[1], c[2])
+const sd = (d, c) => d.setDrawColor(c[0], c[1], c[2])
+const st = (d, c) => d.setTextColor(c[0], c[1], c[2])
 
-function sf(doc, rgb) { doc.setFillColor(rgb[0], rgb[1], rgb[2]) }
-function sd(doc, rgb) { doc.setDrawColor(rgb[0], rgb[1], rgb[2]) }
-function st(doc, rgb) { doc.setTextColor(rgb[0], rgb[1], rgb[2]) }
-
-function fbox(doc, x, y, w, h, rgb, r = 3) {
-  sf(doc, rgb); doc.roundedRect(x, y, w, h, r, r, 'F')
+function rbox(doc, x, y, w, h, fill, r = 3) {
+  sf(doc, fill); doc.roundedRect(x, y, w, h, r, r, 'F')
+}
+function rboxS(doc, x, y, w, h, fill, stroke, r = 3) {
+  sf(doc, fill); sd(doc, stroke); doc.setLineWidth(0.3)
+  doc.roundedRect(x, y, w, h, r, r, 'FD')
 }
 
-function pbar(doc, x, y, w, h, pct, rgb) {
-  sf(doc, C.slate200); doc.roundedRect(x, y, w, h, h/2, h/2, 'F')
+function pbar(doc, x, y, w, h, pct, fill) {
+  rbox(doc, x, y, w, h, C.slate100, h / 2)
   if (pct > 0) {
-    sf(doc, rgb); doc.roundedRect(x, y, Math.max(w*(pct/100), h), h, h/2, h/2, 'F')
+    const bw = Math.max(w * (pct / 100), h)
+    sf(doc, fill); doc.roundedRect(x, y, bw, h, h / 2, h / 2, 'F')
   }
 }
 
-function divider(doc, y, indent = 0) {
-  sd(doc, C.slate200); doc.setLineWidth(0.3)
-  doc.line(ML + indent, y, PW - MR, y)
+function txt(doc, text, x, y, size, color, style = 'normal', opts = {}) {
+  doc.setFontSize(size); doc.setFont('helvetica', style); st(doc, color)
+  doc.text(String(text ?? ''), x, y, opts)
 }
 
-function sectionEyebrow(doc, text, y) {
-  doc.setFontSize(6.5); doc.setFont('helvetica', 'bold')
-  st(doc, C.slate500); doc.text(text.toUpperCase(), ML, y)
+function wrapped(doc, text, x, y, maxW, size, color, style = 'normal', maxLines = 99) {
+  doc.setFontSize(size); doc.setFont('helvetica', style)
+  const lines = doc.splitTextToSize(String(text ?? ''), maxW).slice(0, maxLines)
+  st(doc, color); doc.text(lines, x, y)
+  return lines.length
 }
 
-function sectionTitle(doc, text, y) {
-  doc.setFontSize(11); doc.setFont('helvetica', 'bold')
-  st(doc, C.navy); doc.text(text, ML, y)
+function pill(doc, label, x, y, w, h, bg, fg) {
+  rbox(doc, x, y, w, h, bg, 3)
+  txt(doc, label, x + w / 2, y + h - 1.8, 6.5, fg, 'bold', { align: 'center' })
 }
 
-// Score badge: rounded square with big score number (reliable jsPDF alternative to donut)
-function scoreDonut(doc, cx, cy, outerR, innerR, score, mc) {
-  const size = outerR * 2
-  const x    = cx - outerR
-  const y    = cy - outerR
-  fbox(doc, x, y, size, size, mc, 6)
-  doc.setFontSize(16); doc.setFont('helvetica', 'bold')
-  st(doc, C.white); doc.text(`${score}`, cx, cy + 3, { align: 'center' })
-  doc.setFontSize(6); doc.setFont('helvetica', 'normal')
-  st(doc, [255, 255, 255]); doc.text('/ 100', cx, cy + 9, { align: 'center' })
+function scoreBadge(doc, score, x, y, size = 22) {
+  const mc = matColor(score)
+  rbox(doc, x, y, size, size, mc, 4)
+  txt(doc, `${score}`, x + size / 2, y + size / 2 + 3.5, 14, C.white, 'bold', { align: 'center' })
+  txt(doc, '/100', x + size / 2, y + size / 2 + 8.5, 5.5, [255, 255, 255], 'normal', { align: 'center' })
 }
 
-// ── Shared header / footer ─────────────────────────────────────────────────
+function matPill(doc, score, x, y, w = 28, h = 7) {
+  pill(doc, matLabel(score), x, y, w, h, matColor(score), C.white)
+}
+
+function sectionHeader(doc, title, subtitle, y) {
+  txt(doc, title, ML, y, 13, C.navy, 'bold')
+  if (subtitle) {
+    txt(doc, subtitle, ML, y + 7, 8, C.slate500, 'normal')
+    return y + 14
+  }
+  return y + 10
+}
+
+function cardBase(doc, x, y, w, h, accentColor) {
+  rboxS(doc, x, y, w, h, C.slate50, C.slate300, 3)
+  if (accentColor) {
+    sf(doc, accentColor); doc.roundedRect(x, y, 4, h, 3, 0, 'F')
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED HEADER / FOOTER
+// ─────────────────────────────────────────────────────────────────────────────
+function pageHeader(doc, title, pageNum) {
+  rbox(doc, 0, 0, PW, 26, C.primary, 0)
+  rbox(doc, ML, 7, 12, 12, C.primaryDk, 2)
+  txt(doc, 'AI', ML + 3, 15, 7, C.white, 'bold')
+  txt(doc, title, ML + 17, 15, 11, C.white, 'bold')
+  txt(doc, 'Enterprise AI Readiness Assessment  ·  Logic2020', ML + 17, 21, 6.5, [199, 220, 254], 'normal')
+  txt(doc, `Page ${pageNum}`, PW - MR, 15, 8, [199, 220, 254], 'normal', { align: 'right' })
+}
+
 function pageFooter(doc, company, pageNum) {
   const y = PH - 6
-  doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-  doc.text('CONFIDENTIAL', ML, y)
+  txt(doc, 'CONFIDENTIAL', ML, y, 6.5, C.slate500)
   const center = company?.name
-    ? `Composite Report  ·  ${company.name}  ·  Logic2020  ·  logic2020.com`
-    : `Composite AI Readiness Report  ·  Logic2020  ·  logic2020.com`
-  doc.text(center, PW/2, y, { align: 'center' })
-  doc.text(`Page ${pageNum}`, PW - MR, y, { align: 'right' })
+    ? `${company.name}  ·  Logic2020  ·  logic2020.com`
+    : 'Composite AI Readiness Report  ·  Logic2020  ·  logic2020.com'
+  txt(doc, center, PW / 2, y, 6.5, C.slate500, 'normal', { align: 'center' })
+  txt(doc, `Page ${pageNum}`, PW - MR, y, 6.5, C.slate500, 'normal', { align: 'right' })
 }
 
-function pageHeader(doc, title, pageNum) {
-  fbox(doc, 0, 0, PW, 28, C.primary, 0)
-  fbox(doc, ML, 8, 14, 8, C.primaryDk, 2)
-  doc.setFontSize(6); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-  doc.text('AI', ML + 4, 13.5)
-  doc.setFontSize(11); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-  doc.text(title, ML + 20, 16)
-  doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, [199, 210, 254])
-  doc.text('Enterprise AI Readiness Assessment  ·  Logic2020', ML + 20, 22)
-  st(doc, [199, 210, 254]); doc.text(`Page ${pageNum}`, PW - ML, 16, { align: 'right' })
+function newPage(doc, title, company, pageNum) {
+  doc.addPage()
+  pageHeader(doc, title, pageNum)
+  pageFooter(doc, company, pageNum)
+  return CONTENT_TOP
 }
 
-// ── PAGE 1: Cover ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE 1 — COVER
+// ─────────────────────────────────────────────────────────────────────────────
 function drawCover(doc, engagement, composite, pageNum) {
   const { company } = engagement
-  const mc    = maturityColor(composite.overallAvg)
-  const ml    = maturityLabel(composite.overallAvg)
+  const mc    = matColor(composite.overallAvg)
+  const ml    = matLabel(composite.overallAvg)
   const date  = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   const rc    = composite.roleCounts
 
-  fbox(doc, 0, 0, PW, 118, C.primary, 0)
-  doc.setGState(doc.GState({ opacity: 0.08 }))
-  sf(doc, C.white); doc.circle(PW + 20, -15, 90, 'F'); doc.circle(PW - 10, 105, 55, 'F')
+  // Blue header band
+  rbox(doc, 0, 0, PW, 125, C.primary, 0)
+  doc.setGState(doc.GState({ opacity: 0.07 }))
+  sf(doc, C.white); doc.circle(PW + 15, -10, 95, 'F'); doc.circle(PW - 8, 112, 52, 'F')
   doc.setGState(doc.GState({ opacity: 1 }))
 
-  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-  doc.text('LOGIC2020', ML, 24)
-  doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); st(doc, [199, 225, 254])
-  doc.text('Enterprise Transformation Consulting', ML + 34, 24)
-  doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, [199, 225, 254])
-  doc.text('CONFIDENTIAL · COMPOSITE ASSESSMENT REPORT', ML, 44)
-  doc.setFontSize(28); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-  doc.text('Composite AI', ML, 62); doc.text('Readiness', ML, 80); doc.text('Report', ML, 98)
+  // Logo
+  txt(doc, 'LOGIC2020', ML, 22, 9, C.white, 'bold')
+  txt(doc, 'Enterprise Transformation Consulting', ML + 36, 22, 6.5, [199, 225, 254], 'normal')
 
-  const panelY = 108
-  fbox(doc, 0, panelY, PW, PH - panelY, C.white, 0)
-  sf(doc, C.primary); doc.rect(0, panelY, 5, PH - panelY, 'F')
+  // Eyebrow
+  txt(doc, 'CONFIDENTIAL  ·  COMPOSITE ASSESSMENT REPORT', ML, 40, 7, [199, 225, 254], 'bold')
 
-  let py = panelY + 14
-  doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, C.slate500)
-  doc.text('PREPARED FOR', ML + 8, py); py += 6
-  doc.setFontSize(17); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
+  // Title
+  txt(doc, 'Composite AI', ML, 62, 30, C.white, 'bold')
+  txt(doc, 'Readiness', ML, 82, 30, C.white, 'bold')
+  txt(doc, 'Report', ML, 102, 30, C.white, 'bold')
+
+  // White panel
+  rbox(doc, 0, 115, PW, PH - 115, C.white, 0)
+  sf(doc, C.primary); doc.rect(0, 115, 5, PH - 115, 'F')
+
+  let py = 130
+
+  // Prepared for
+  txt(doc, 'PREPARED FOR', ML + 8, py, 7, C.slate500, 'bold'); py += 7
+
   let nameText = company.name || 'Organization'
-  while (doc.getTextWidth(nameText) > CW - 12 && nameText.length > 4) nameText = nameText.slice(0, -1)
+  doc.setFontSize(20); doc.setFont('helvetica', 'bold')
+  while (doc.getTextWidth(nameText) > CW - 12 && nameText.length > 4)
+    nameText = nameText.slice(0, -1)
   if (nameText !== (company.name || 'Organization')) nameText += '…'
-  doc.text(nameText, ML + 8, py); py += 8
+  txt(doc, nameText, ML + 8, py, 20, C.navy, 'bold'); py += 10
+
   if (company.industry || company.size) {
     const meta = [company.industry, company.size].filter(Boolean).join('  ·  ')
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); st(doc, C.slate700)
-    doc.text(meta, ML + 8, py); py += 6
+    txt(doc, meta, ML + 8, py, 9, C.slate700); py += 7
   }
-  py += 3; divider(doc, py); py += 10
 
-  // Summary tiles
+  py += 2; sd(doc, C.slate300); doc.setLineWidth(0.4)
+  doc.line(ML + 8, py, PW - MR, py); py += 10
+
+  // 3 summary tiles
   const rcParts = []
   if (rc.executive    > 0) rcParts.push(`${rc.executive} Exec`)
   if (rc.management   > 0) rcParts.push(`${rc.management} Mgmt`)
   if (rc.practitioner > 0) rcParts.push(`${rc.practitioner} Practitioner`)
 
-  const tileW = (CW - 16 - 10) / 3, tileH = 30
+  const tileW = (CW - 16 - 8) / 3, tileH = 34
   const tiles = [
-    { label: 'COMPOSITE SCORE', value: `${composite.overallAvg}`, sub: '/ 100', color: mc },
-    { label: 'MATURITY LEVEL',  value: ml, sub: 'AI readiness stage', color: mc },
+    { label: 'COMPOSITE SCORE', value: `${composite.overallAvg}`, sub: '/ 100',                color: mc },
+    { label: 'MATURITY LEVEL',  value: ml,                         sub: 'AI readiness stage',   color: mc },
     { label: 'RESPONDENTS',     value: `${composite.sessionCount}`, sub: rcParts.join(' · ') || 'across roles', color: C.primary },
   ]
   tiles.forEach((t, i) => {
-    const tx = ML + 8 + i * (tileW + 5)
-    sf(doc, [246, 249, 252]); doc.roundedRect(tx, py, tileW, tileH, 3, 3, 'F')
-    sd(doc, C.slate200);      doc.roundedRect(tx, py, tileW, tileH, 3, 3, 'S')
-    sf(doc, t.color);         doc.roundedRect(tx, py, tileW, 3, 1.5, 1.5, 'F')
-    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); st(doc, C.slate500)
-    doc.text(t.label, tx + tileW/2, py + 10, { align: 'center' })
-    const vfs = (i === 1 && t.value.length > 8) ? 10 : 15
-    doc.setFontSize(vfs); doc.setFont('helvetica', 'bold'); st(doc, t.color)
-    doc.text(t.value, tx + tileW/2, py + 21, { align: 'center' })
-    doc.setFontSize(6); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-    const subTxt = t.sub.length > 22 ? t.sub.slice(0, 21) + '…' : t.sub
-    doc.text(subTxt, tx + tileW/2, py + 27, { align: 'center' })
+    const tx = ML + 8 + i * (tileW + 4)
+    rboxS(doc, tx, py, tileW, tileH, C.slate50, C.slate300, 3)
+    sf(doc, t.color); doc.roundedRect(tx, py, tileW, 3, 1.5, 1.5, 'F')
+    txt(doc, t.label, tx + tileW / 2, py + 12, 6, C.slate500, 'bold', { align: 'center' })
+    const vfs = i === 1 && t.value.length > 8 ? 11 : 16
+    txt(doc, t.value, tx + tileW / 2, py + 24, vfs, t.color, 'bold', { align: 'center' })
+    const subTxt = t.sub.length > 24 ? t.sub.slice(0, 23) + '…' : t.sub
+    txt(doc, subTxt, tx + tileW / 2, py + 31, 6, C.slate500, 'normal', { align: 'center' })
   })
-  py += tileH + 10; divider(doc, py); py += 8
+  py += tileH + 10
 
-  // Date + report info
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
-  doc.text(`Assessment Date: ${date}`, ML + 8, py); py += 5
+  sd(doc, C.slate300); doc.setLineWidth(0.4)
+  doc.line(ML + 8, py, PW - MR, py); py += 8
+
+  txt(doc, `Assessment Date: ${date}`, ML + 8, py, 8, C.slate700); py += 7
+
   const gapCount = composite.perceptionGapDimensions?.length || 0
-  const lowVisCount = composite.lowVisibilityDimensions?.length || 0
-  if (gapCount > 0 || lowVisCount > 0) {
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, [180, 80, 0])
+  const lvCount  = composite.lowVisibilityDimensions?.length  || 0
+  if (gapCount > 0 || lvCount > 0) {
     const flags = []
-    if (gapCount > 0)    flags.push(`${gapCount} perception gap${gapCount > 1 ? 's' : ''} detected`)
-    if (lowVisCount > 0) flags.push(`${lowVisCount} low visibility dimension${lowVisCount > 1 ? 's' : ''}`)
-    doc.text(`⚠ Key Findings: ${flags.join('  ·  ')}`, ML + 8, py)
+    if (gapCount > 0) flags.push(`${gapCount} perception gap${gapCount > 1 ? 's' : ''} detected`)
+    if (lvCount  > 0) flags.push(`${lvCount} low-visibility dimension${lvCount > 1 ? 's' : ''}`)
+    rbox(doc, ML + 8, py, CW - 8, 10, [255, 247, 237], 3)
+    txt(doc, `⚠  Key Flags: ${flags.join('  ·  ')}`, ML + 13, py + 7, 7.5, [154, 52, 18], 'bold')
   }
 
   pageFooter(doc, company, pageNum)
 }
 
-// ── PAGE 2: Executive Summary (score ring + dim tiles + role breakdown) ────
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE 2 — EXECUTIVE SUMMARY
+// ─────────────────────────────────────────────────────────────────────────────
 function drawExecutiveSummaryPage(doc, engagement, composite, pageNum) {
-  doc.addPage()
-  pageHeader(doc, 'Executive Summary', pageNum)
-  pageFooter(doc, engagement.company, pageNum)
+  let y = newPage(doc, 'Executive Summary', engagement.company, pageNum)
 
-  const { company } = engagement
-  const mc  = maturityColor(composite.overallAvg)
-  const mll = maturityLabel(composite.overallAvg)
-  let y = 36
+  // ── Overall score block ───────────────────────────────────────────────────
+  const mc  = matColor(composite.overallAvg)
+  const mll = matLabel(composite.overallAvg)
 
-  // ── Overall score donut + headline ──────────────────────────────────────
-  const donutCX = ML + 22, donutCY = y + 24
-  scoreDonut(doc, donutCX, donutCY, 20, 12, composite.overallAvg, mc)
+  cardBase(doc, ML, y, CW, 38, mc)
+  scoreBadge(doc, composite.overallAvg, ML + 8, y + 8, 26)
 
-  // Headline text right of donut
-  const tx = ML + 50
-  doc.setFontSize(18); doc.setFont('helvetica', 'bold'); st(doc, mc)
-  doc.text(`${composite.overallAvg} / 100`, tx, y + 14)
-  fbox(doc, tx, y + 17, 32, 7, mc, 3)
-  doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-  doc.text(`${mll} Maturity`, tx + 16, y + 22.5, { align: 'center' })
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
+  txt(doc, `${composite.overallAvg} / 100`, ML + 42, y + 18, 20, mc, 'bold')
+  pill(doc, mll + ' Maturity', ML + 42, y + 22, 42, 9, mc, C.white)
+
   const rcParts = []
   if (composite.roleCounts.executive    > 0) rcParts.push(`${composite.roleCounts.executive} Executive`)
   if (composite.roleCounts.management   > 0) rcParts.push(`${composite.roleCounts.management} Management`)
   if (composite.roleCounts.practitioner > 0) rcParts.push(`${composite.roleCounts.practitioner} Practitioner`)
-  doc.text(`${composite.sessionCount} respondents  ·  ${rcParts.join(', ')}`, tx, y + 32)
-  doc.setFontSize(7); st(doc, C.slate500)
-  doc.text(new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }), tx, y + 38)
+  txt(doc, `${composite.sessionCount} respondents  ·  ${rcParts.join(', ')}`, ML + 42, y + 34, 8, C.slate700)
+  y += 46
 
-  y += 54; divider(doc, y); y += 8
+  // ── Dimension scores strip ────────────────────────────────────────────────
+  txt(doc, 'SCORE BY DIMENSION', ML, y, 7, C.slate500, 'bold'); y += 6
 
-  // ── Dimension score tiles ────────────────────────────────────────────────
-  sectionEyebrow(doc, 'Score by Dimension', y); y += 6
-  const tileW = (CW - 16) / 5, tileH = 32
+  const dimCardW = (CW - 16) / 5, dimCardH = 36
   composite.dimensions.forEach((d, i) => {
-    const tx2 = ML + i * (tileW + 4)
-    const dc  = DIM_COLORS[d.dimId]
-    const dmc = maturityColor(d.avg)
-    sf(doc, [246, 249, 252]); doc.roundedRect(tx2, y, tileW, tileH, 3, 3, 'F')
-    sf(doc, dc); doc.roundedRect(tx2, y, tileW, 3, 1.5, 1.5, 'F')
-    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); st(doc, C.slate500)
-    // Short name (2-word max)
-    const parts = DIM_SHORT[d.dimId].split(' ')
-    const label = parts[0]
-    doc.text(label, tx2 + tileW/2, y + 11, { align: 'center' })
-    doc.setFontSize(13); doc.setFont('helvetica', 'bold'); st(doc, dc)
-    doc.text(`${d.avg}`, tx2 + tileW/2, y + 22, { align: 'center' })
-    fbox(doc, tx2 + 2, y + 25, tileW - 4, 5.5, dmc, 2)
-    doc.setFontSize(4.5); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-    doc.text(maturityLabel(d.avg), tx2 + tileW/2, y + 29, { align: 'center' })
+    const cx = ML + i * (dimCardW + 4)
+    const dc = DIM_COLORS[d.dimId]
+    rboxS(doc, cx, y, dimCardW, dimCardH, C.white, C.slate300, 3)
+    sf(doc, dc); doc.roundedRect(cx, y, dimCardW, 3, 1.5, 1.5, 'F')
+    txt(doc, DIM_SHORT_LABEL[d.dimId], cx + dimCardW / 2, y + 12, 6.5, C.slate700, 'bold', { align: 'center' })
+    txt(doc, `${d.avg}`, cx + dimCardW / 2, y + 24, 15, dc, 'bold', { align: 'center' })
+    matPill(doc, d.avg, cx + (dimCardW - 24) / 2, y + 28, 24, 6)
   })
-  y += tileH + 10; divider(doc, y); y += 8
+  y += dimCardH + 10
 
-  // ── Role group breakdown ─────────────────────────────────────────────────
-  sectionEyebrow(doc, 'Score by Role Group', y); y += 6
+  // ── Role group comparison ─────────────────────────────────────────────────
+  txt(doc, 'SCORE BY ROLE GROUP', ML, y, 7, C.slate500, 'bold'); y += 6
 
   const roleKeys = ['executive', 'management', 'practitioner']
-  const roleLabels = { executive: 'Executive', management: 'Management', practitioner: 'Practitioner' }
-  const cardW = (CW - 8) / 3
-
+  const roleCardW = (CW - 8) / 3, roleCardH = 32
   roleKeys.forEach((g, gi) => {
-    const count = composite.roleCounts[g]
-    if (!count) return
-    const rc2   = ROLE_COLORS[g]
-    const avg   = Math.round(
-      engagement.sessions.filter(s => s.roleGroup === g)
-        .reduce((a, s) => a + s.overallScore, 0) / count
-    )
-    const cx2   = ML + gi * (cardW + 4)
-    fbox(doc, cx2, y, cardW, 28, rc2.bg, 4)
-    sd(doc, rc2.fg); doc.setLineWidth(0.3); doc.roundedRect(cx2, y, cardW, 28, 4, 4, 'S')
-    doc.setFontSize(15); doc.setFont('helvetica', 'bold'); st(doc, rc2.fg)
-    doc.text(`${avg}`, cx2 + 14, y + 14)
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); st(doc, rc2.fg)
-    doc.text('/ 100', cx2 + 14, y + 20)
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); st(doc, rc2.fg)
-    doc.text(roleLabels[g], cx2 + cardW/2 + 8, y + 12, { align: 'center' })
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); st(doc, rc2.fg)
-    doc.text(`n=${count}`, cx2 + cardW/2 + 8, y + 20, { align: 'center' })
-    pbar(doc, cx2 + 4, y + 23, cardW - 8, 3, avg, rc2.fg)
+    const count = composite.roleCounts[g] || 0
+    const rs    = ROLE_STYLE[g]
+    const cx    = ML + gi * (roleCardW + 4)
+    rboxS(doc, cx, y, roleCardW, roleCardH, rs.bg, rs.fg, 3)
+
+    if (count > 0) {
+      const groupAvg = Math.round(
+        engagement.sessions.filter(s => (s.roleGroup || 'practitioner') === g)
+          .reduce((a, s) => a + (s.overallScore || 0), 0) / count
+      )
+      txt(doc, `${groupAvg}`, cx + 14, y + 16, 18, rs.fg, 'bold')
+      txt(doc, '/100', cx + 14, y + 22, 7, rs.fg, 'normal')
+      txt(doc, rs.label, cx + roleCardW / 2 + 10, y + 14, 9, rs.fg, 'bold', { align: 'center' })
+      txt(doc, `n = ${count}`, cx + roleCardW / 2 + 10, y + 21, 7.5, rs.fg, 'normal', { align: 'center' })
+      pbar(doc, cx + 4, y + 27, roleCardW - 8, 3, groupAvg, rs.fg)
+    } else {
+      txt(doc, rs.label, cx + roleCardW / 2, y + 18, 9, rs.fg, 'bold', { align: 'center' })
+      txt(doc, 'No respondents', cx + roleCardW / 2, y + 25, 7, rs.fg, 'normal', { align: 'center' })
+    }
   })
-  y += 38; divider(doc, y); y += 8
+  y += roleCardH + 10
 
-  // ── Key findings summary ─────────────────────────────────────────────────
-  sectionEyebrow(doc, 'Key Findings', y); y += 6
+  // ── Key findings ──────────────────────────────────────────────────────────
+  txt(doc, 'KEY FINDINGS', ML, y, 7, C.slate500, 'bold'); y += 7
 
-  // Highest + lowest dimension
-  const sorted = [...composite.dimensions].sort((a, b) => b.avg - a.avg)
-  const highest = sorted[0], lowest = sorted[sorted.length - 1]
-
-  const findings = []
-  findings.push({ icon: '▲', color: [16, 185, 129], text: `Strongest area: ${DIM_SHORT[highest.dimId]} (${highest.avg}/100 — ${maturityLabel(highest.avg)})` })
-  findings.push({ icon: '▼', color: [239, 68, 68],  text: `Greatest gap: ${DIM_SHORT[lowest.dimId]} (${lowest.avg}/100 — ${maturityLabel(lowest.avg)})` })
-
-  const gaps = composite.perceptionGapDimensions || []
-  if (gaps.length > 0) {
-    findings.push({ icon: '⚠', color: [230, 126, 34], text: `Perception gaps detected in: ${gaps.map(d => DIM_SHORT[d.dimId]).join(', ')}` })
-  }
-  const lowVis = composite.lowVisibilityDimensions || []
-  if (lowVis.length > 0) {
-    findings.push({ icon: '👁', color: [14, 165, 233], text: `Low visibility (high DK rate): ${lowVis.map(d => DIM_SHORT[d.dimId]).join(', ')}` })
-  }
+  const sorted  = [...composite.dimensions].sort((a, b) => b.avg - a.avg)
+  const highest = sorted[0]
+  const lowest  = sorted[sorted.length - 1]
+  const findings = [
+    { dot: C.green, text: `Strongest area: ${DIM_NAMES[highest.dimId]} — scored ${highest.avg}/100 (${matLabel(highest.avg)})` },
+    { dot: C.red,   text: `Greatest gap: ${DIM_NAMES[lowest.dimId]} — scored ${lowest.avg}/100 (${matLabel(lowest.avg)})` },
+  ]
+  const gaps  = composite.perceptionGapDimensions || []
+  const lvDims = composite.lowVisibilityDimensions || []
+  if (gaps.length)   findings.push({ dot: [230, 126, 34], text: `Perception gaps in: ${gaps.map(d => DIM_NAMES[d.dimId]).join(', ')} — see Insights page` })
+  if (lvDims.length) findings.push({ dot: C.primary,      text: `Low organizational visibility in: ${lvDims.map(d => DIM_NAMES[d.dimId]).join(', ')}` })
 
   findings.forEach(f => {
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); st(doc, f.color)
-    doc.text(f.icon, ML, y + 0.5)
-    st(doc, C.slate700)
-    const lines = doc.splitTextToSize(f.text, CW - 10)
-    doc.text(lines[0], ML + 7, y)
-    y += 6
+    sf(doc, f.dot); doc.circle(ML + 3, y - 1, 2.5, 'F')
+    const n = wrapped(doc, f.text, ML + 10, y, CW - 12, 8.5, C.slate700, 'normal', 2)
+    y += n * 5 + 3
   })
 }
 
-// ── PAGE 3: Perception Gaps & Low Visibility ──────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE 3 — PERCEPTION GAPS & LOW VISIBILITY (conditional)
+// ─────────────────────────────────────────────────────────────────────────────
 function drawInsightsPage(doc, engagement, composite, pageNum) {
-  const gaps   = composite.perceptionGapDimensions  || []
-  const lowVis = composite.lowVisibilityDimensions  || []
-  if (!gaps.length && !lowVis.length) return false
+  const gaps  = composite.perceptionGapDimensions  || []
+  const lvDims = composite.lowVisibilityDimensions || []
+  if (!gaps.length && !lvDims.length) return false
 
-  doc.addPage()
-  pageHeader(doc, 'Organizational Insights', pageNum)
-  pageFooter(doc, engagement.company, pageNum)
-  let y = 36
+  let y = newPage(doc, 'Organizational Insights', engagement.company, pageNum)
 
-  // ── Perception Gap section ───────────────────────────────────────────────
+  // ── Perception Gaps ───────────────────────────────────────────────────────
   if (gaps.length > 0) {
-    // Amber callout box
-    fbox(doc, ML, y, CW, 22, [255, 251, 235], 4)
-    sf(doc, [245, 158, 11]); doc.roundedRect(ML, y, CW, 22, 4, 4, 'S')
-    doc.setLineWidth(0)
-    sf(doc, [245, 158, 11]); doc.roundedRect(ML, y, 4, 22, 4, 0, 'F')
-
-    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); st(doc, [92, 45, 0])
-    doc.text('⚠  Perception Gap Detected', ML + 10, y + 9)
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, [120, 60, 0])
-    const sub = 'These dimensions show a 20+ point gap between Executive and Practitioner ratings — a standalone finding indicating leadership and frontline teams have meaningfully different views of AI maturity.'
-    const subLines = doc.splitTextToSize(sub, CW - 14)
-    doc.text(subLines.slice(0, 2), ML + 10, y + 15)
-    y += 28
+    y = sectionHeader(doc, 'Perception Gap Analysis', 'A 20+ point difference between Executive and Practitioner ratings — a standalone strategic finding.', y)
 
     gaps.forEach(d => {
-      const dc       = DIM_COLORS[d.dimId]
-      const execAvg  = d.byGroup.executive?.avg  ?? null
-      const pracAvg  = d.byGroup.practitioner?.avg ?? null
+      if (y > CONTENT_BOT - 50) return
+      const dc      = DIM_COLORS[d.dimId]
+      const execAvg = d.byGroup.executive?.avg   ?? null
+      const pracAvg = d.byGroup.practitioner?.avg ?? null
 
-      // Dim header row
-      fbox(doc, ML, y, CW, 9, [248, 248, 255], 0)
-      sf(doc, dc); doc.rect(ML, y, 4, 9, 'F')
-      doc.setFontSize(9); doc.setFont('helvetica', 'bold'); st(doc, dc)
-      doc.text(DIM_SHORT[d.dimId], ML + 8, y + 6.5)
-      fbox(doc, ML + CW - 32, y + 1.5, 30, 6, [255, 237, 213], 3)
-      doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); st(doc, [154, 52, 18])
-      doc.text(`${d.gapMagnitude} pt gap`, ML + CW - 17, y + 6, { align: 'center' })
-      y += 12
+      // Card
+      const cardH = execAvg != null && pracAvg != null ? 52 : 32
+      cardBase(doc, ML, y, CW, cardH, dc)
 
-      // Side-by-side bar comparison
-      const barW = CW / 2 - 10
+      // Dim title + gap badge
+      txt(doc, DIM_NAMES[d.dimId], ML + 9, y + 9, 10, dc, 'bold')
+      rbox(doc, PW - MR - 36, y + 4, 34, 9, [255, 237, 213], 3)
+      txt(doc, `${d.gapMagnitude} pt gap`, PW - MR - 19, y + 10.5, 8, [154, 52, 18], 'bold', { align: 'center' })
+
+      let cy = y + 16
+
+      // Exec bar
       if (execAvg != null) {
-        doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, ROLE_COLORS.executive.fg)
-        doc.text('Executive', ML + 2, y + 5)
-        pbar(doc, ML + 28, y, barW, 6, execAvg, ROLE_COLORS.executive.fg)
-        doc.setFontSize(8); doc.setFont('helvetica', 'bold')
-        doc.text(`${execAvg}`, ML + 28 + barW + 3, y + 5.5)
-        y += 10
+        txt(doc, 'Executive', ML + 9, cy + 5, 8, ROLE_STYLE.executive.fg, 'bold')
+        pbar(doc, ML + 44, cy, CW - 70, 8, execAvg, ROLE_STYLE.executive.fg)
+        txt(doc, `${execAvg}`, ML + 44 + CW - 70 + 4, cy + 6.5, 9, ROLE_STYLE.executive.fg, 'bold')
+        cy += 13
       }
+      // Practitioner bar
       if (pracAvg != null) {
-        doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, ROLE_COLORS.practitioner.fg)
-        doc.text('Practitioner', ML + 2, y + 5)
-        pbar(doc, ML + 28, y, barW, 6, pracAvg, ROLE_COLORS.practitioner.fg)
-        doc.setFontSize(8); doc.setFont('helvetica', 'bold')
-        doc.text(`${pracAvg}`, ML + 28 + barW + 3, y + 5.5)
-        y += 10
+        txt(doc, 'Practitioner', ML + 9, cy + 5, 8, ROLE_STYLE.practitioner.fg, 'bold')
+        pbar(doc, ML + 44, cy, CW - 70, 8, pracAvg, ROLE_STYLE.practitioner.fg)
+        txt(doc, `${pracAvg}`, ML + 44 + CW - 70 + 4, cy + 6.5, 9, ROLE_STYLE.practitioner.fg, 'bold')
+        cy += 13
       }
 
-      // Insight text
-      const insight = d.gapDirection === 'exec_higher'
-        ? `Leadership rates this dimension ${d.gapMagnitude} points higher than practitioners. This may indicate an optimism gap — leadership believes AI capabilities are stronger than those doing the work experience them to be.`
-        : `Practitioners rate this dimension ${d.gapMagnitude} points higher than leadership. This may indicate undervalued grassroots capabilities or a communication gap around existing strengths.`
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
-      const iLines = doc.splitTextToSize(insight, CW - 4)
-      doc.text(iLines.slice(0, 2), ML + 2, y)
-      y += iLines.slice(0, 2).length * 4.5 + 10
-      divider(doc, y - 4);
-    })
+      y += cardH + 5
 
-    y += 6
+      // Insight text below card
+      const insight = d.gapDirection === 'exec_higher'
+        ? `Leadership rates this dimension ${d.gapMagnitude} pts higher than practitioners. This may indicate an optimism gap — leadership believes AI capabilities are stronger than those doing the work experience them to be.`
+        : `Practitioners rate this dimension ${d.gapMagnitude} pts higher than leadership. This may indicate undervalued grassroots capability or a communication gap around existing strengths.`
+      const n = wrapped(doc, insight, ML, y, CW, 8, C.slate700, 'normal', 2)
+      y += n * 4.5 + 10
+    })
   }
 
-  // ── Low Visibility section ───────────────────────────────────────────────
-  if (lowVis.length > 0) {
-    fbox(doc, ML, y, CW, 20, [240, 249, 255], 4)
-    sf(doc, [14, 165, 233]); doc.roundedRect(ML, y, CW, 20, 4, 4, 'S')
-    doc.setLineWidth(0)
-    sf(doc, [14, 165, 233]); doc.roundedRect(ML, y, 4, 20, 4, 0, 'F')
+  // ── Low Visibility ────────────────────────────────────────────────────────
+  if (lvDims.length > 0 && y < CONTENT_BOT - 40) {
+    y = sectionHeader(doc, 'Low Organizational Visibility',
+      'Dimensions with ≥30% "Don\'t Know" responses — a maturity signal independent of the score.', y)
 
-    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); st(doc, [7, 89, 133])
-    doc.text('👁  Low Organizational Visibility', ML + 10, y + 8)
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, [7, 89, 133])
-    const lvSub = 'These dimensions had a high rate of "Don\'t Know" responses. Low visibility may indicate the org lacks awareness of its own capabilities in these areas — which is itself a maturity finding, independent of the score.'
-    const lvLines = doc.splitTextToSize(lvSub, CW - 14)
-    doc.text(lvLines.slice(0, 2), ML + 10, y + 14)
-    y += 26
-
-    lowVis.forEach(d => {
+    lvDims.forEach(d => {
+      if (y > CONTENT_BOT - 20) return
       const dc = DIM_COLORS[d.dimId]
-      fbox(doc, ML, y, CW, 12, [246, 249, 252], 3)
-      sf(doc, dc); doc.rect(ML, y, 3, 12, 'F')
-      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); st(doc, dc)
-      doc.text(DIM_SHORT[d.dimId], ML + 8, y + 8)
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-      doc.text(`${d.dkRate}% of respondents answered "Don't Know"`, ML + 8, y + 8)
-      doc.text(`${d.dkRate}% DK`, ML + CW - 20, y + 8)
-      y += 16
+      cardBase(doc, ML, y, CW, 18, dc)
+      txt(doc, DIM_NAMES[d.dimId], ML + 9, y + 7, 9, dc, 'bold')
+      txt(doc, `${d.dkRate}% of respondents answered "Don't Know"`, ML + 9, y + 14, 8, C.slate700, 'normal')
+      rbox(doc, PW - MR - 28, y + 5, 26, 8, C.slate100, 3)
+      txt(doc, `${d.dkRate}% DK`, PW - MR - 15, y + 11, 7.5, C.slate700, 'bold', { align: 'center' })
+      y += 22
     })
   }
 
   return true
 }
 
-// ── PAGE 4: Composite Scorecard table ─────────────────────────────────────
-function drawScorecardPage(doc, engagement, composite, pageNum) {
-  doc.addPage()
-  pageHeader(doc, 'Composite Scorecard', pageNum)
-  pageFooter(doc, engagement.company, pageNum)
-  let y = 36
-
-  sectionTitle(doc, 'Score Breakdown by Dimension & Role Group', y); y += 6
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-  doc.text(`Aggregated from ${composite.sessionCount} interviews  ·  ⚠ = perception gap ≥ 20 pts`, ML, y)
-  y += 10
-
-  const colW = { dim: 54, comp: 20, mat: 26, exec: 20, mgmt: 20, prac: 20, spread: 14 }
-  const rowH = 12
-  const startX = { dim: ML }
-  startX.comp   = startX.dim + colW.dim
-  startX.mat    = startX.comp + colW.comp
-  startX.exec   = startX.mat + colW.mat
-  startX.mgmt   = startX.exec + colW.exec
-  startX.prac   = startX.mgmt + colW.mgmt
-  startX.spread = startX.prac + colW.prac
-
-  // Header row
-  sf(doc, [240, 245, 250]); doc.rect(ML, y, CW, 8, 'F')
-  doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); st(doc, C.slate500)
-  doc.text('DIMENSION',    startX.dim + 2,    y + 5.5)
-  doc.text('COMPOSITE',    startX.comp + 2,   y + 5.5)
-  doc.text('MATURITY',     startX.mat + 2,    y + 5.5)
-  doc.text('EXECUTIVE',    startX.exec + 2,   y + 5.5, { maxWidth: colW.exec })
-  doc.text('MANAGEMENT',   startX.mgmt + 2,   y + 5.5, { maxWidth: colW.mgmt })
-  doc.text('PRACTITIONER', startX.prac + 2,   y + 5.5, { maxWidth: colW.prac })
-  doc.text('SPREAD',       startX.spread + 1, y + 5.5)
-  y += 8
-
-  composite.dimensions.forEach((d, i) => {
-    const ry  = y + i * rowH
-    const dc  = DIM_COLORS[d.dimId]
-    const dmc = maturityColor(d.avg)
-    if (i % 2 === 0) { sf(doc, [248, 251, 254]); doc.rect(ML, ry, CW, rowH, 'F') }
-    sd(doc, [235, 240, 245]); doc.setLineWidth(0.2)
-    doc.line(ML, ry + rowH, ML + CW, ry + rowH)
-
-    sf(doc, dc); doc.circle(ML + 4, ry + 6, 2, 'F')
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-    doc.text(DIM_SHORT[d.dimId], ML + 9, ry + 7.5)
-    if (d.perceptionGap) {
-      doc.setFontSize(5.5); st(doc, [230, 120, 30]); doc.text('⚠ Gap', ML + 9, ry + 11)
-    }
-
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); st(doc, dc)
-    doc.text(`${d.avg}`, startX.comp + 3, ry + 8)
-
-    fbox(doc, startX.mat + 1, ry + 3, 22, 5.5, dmc, 2)
-    doc.setFontSize(5); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-    doc.text(maturityLabel(d.avg), startX.mat + 12, ry + 6.8, { align: 'center' })
-
-    const roleXs = [startX.exec, startX.mgmt, startX.prac]
-    const roleGs = ['executive', 'management', 'practitioner']
-    roleGs.forEach((g, gi) => {
-      const val = d.byGroup[g]?.avg
-      const rc2 = ROLE_COLORS[g]
-      doc.setFontSize(8); doc.setFont('helvetica', val != null ? 'bold' : 'normal')
-      st(doc, val != null ? rc2.fg : C.slate500)
-      doc.text(val != null ? `${val}` : '—', roleXs[gi] + 3, ry + 8)
-    })
-
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-    doc.text(`±${d.stdDev}`, startX.spread + 1, ry + 8)
-  })
-
-  y += composite.dimensions.length * rowH + 16
-
-  // Colour legend
-  divider(doc, y); y += 6
-  doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); st(doc, C.slate500)
-  doc.text('Role Group Colours:', ML, y); y += 5
-  const roleInfo = [
-    { label: 'Executive',    fg: ROLE_COLORS.executive.fg,    bg: ROLE_COLORS.executive.bg    },
-    { label: 'Management',   fg: ROLE_COLORS.management.fg,   bg: ROLE_COLORS.management.bg   },
-    { label: 'Practitioner', fg: ROLE_COLORS.practitioner.fg, bg: ROLE_COLORS.practitioner.bg },
-  ]
-  let lx = ML
-  roleInfo.forEach(ri => {
-    fbox(doc, lx, y, 38, 7, ri.bg, 3)
-    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); st(doc, ri.fg)
-    doc.text(ri.label, lx + 19, y + 5, { align: 'center' })
-    lx += 44
-  })
-}
-
-// ── PAGE 5: Dimension Score Cards (visual grid) ───────────────────────────
-function drawDimensionCardsPage(doc, engagement, composite, pageNum) {
-  doc.addPage()
-  pageHeader(doc, 'Dimension Score Cards', pageNum)
-  pageFooter(doc, engagement.company, pageNum)
-  let y = 36
-
-  sectionEyebrow(doc, 'Five AI Readiness Dimensions — Visual Score Breakdown', y); y += 8
-
-  const cardW = (CW - 8) / 2, cardH = 52
-  composite.dimensions.forEach((d, i) => {
-    const col = i % 2, row = Math.floor(i / 2)
-    const cx2 = ML + col * (cardW + 8)
-    const cy2 = y + row * (cardH + 8)
-    const dc  = DIM_COLORS[d.dimId]
-    const dmc = maturityColor(d.avg)
-
-    sf(doc, [246, 249, 252]); doc.roundedRect(cx2, cy2, cardW, cardH, 4, 4, 'F')
-    sd(doc, [226, 232, 240]); doc.setLineWidth(0.3); doc.roundedRect(cx2, cy2, cardW, cardH, 4, 4, 'S')
-    sf(doc, dc); doc.roundedRect(cx2, cy2, cardW, 3, 2, 2, 'F')
-
-    // Title + score
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-    doc.text(DIM_SHORT[d.dimId], cx2 + 8, cy2 + 12)
-
-    doc.setFontSize(16); doc.setFont('helvetica', 'bold'); st(doc, dc)
-    doc.text(`${d.avg}`, cx2 + cardW - 10, cy2 + 14, { align: 'right' })
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-    doc.text('/100', cx2 + cardW - 10, cy2 + 19, { align: 'right' })
-
-    // Maturity pill
-    fbox(doc, cx2 + 8, cy2 + 15, 26, 6, dmc, 3)
-    doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-    doc.text(maturityLabel(d.avg), cx2 + 21, cy2 + 19.5, { align: 'center' })
-
-    // Composite progress bar
-    pbar(doc, cx2 + 8, cy2 + 24, cardW - 16, 5, d.avg, dc)
-
-    // Role bars
-    let ry2 = cy2 + 33
-    const roleGs = ['executive', 'management', 'practitioner']
-    const roleLbls = ['Exec', 'Mgmt', 'Prac']
-    roleGs.forEach((g, gi) => {
-      const val = d.byGroup[g]?.avg
-      if (!val) return
-      const rc2 = ROLE_COLORS[g]
-      doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); st(doc, rc2.fg)
-      doc.text(roleLbls[gi], cx2 + 8, ry2 + 4)
-      pbar(doc, cx2 + 18, ry2, cardW - 36, 4, val, rc2.fg)
-      doc.setFontSize(6); doc.setFont('helvetica', 'bold')
-      doc.text(`${val}`, cx2 + cardW - 10, ry2 + 3.5, { align: 'right' })
-      ry2 += 6
-    })
-
-    // Gap badge
-    if (d.perceptionGap) {
-      fbox(doc, cx2 + 8, cy2 + cardH - 10, 35, 6, [255, 237, 213], 3)
-      doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); st(doc, [154, 52, 18])
-      doc.text(`⚠ ${d.gapMagnitude}pt perception gap`, cx2 + 25, cy2 + cardH - 6, { align: 'center' })
-    }
-  })
-
-  // 5th card (last one, if odd count) sits in its own row — already handled
-  // For the 5th dim (index 4), row=2, col=0 → positioned correctly
-}
-
-// ── PAGE 6: Radar Chart (html2canvas) ────────────────────────────────────
-async function drawRadarPage(doc, engagement, composite, radarRef, pageNum) {
-  if (!radarRef?.current) return false
-  try {
-    doc.addPage()
-    pageHeader(doc, 'Composite Readiness Profile', pageNum)
-    pageFooter(doc, engagement.company, pageNum)
-
-    const canvas = await html2canvas(radarRef.current, {
-      scale: 2, backgroundColor: '#ffffff', logging: false,
-    })
-    const imgData = canvas.toDataURL('image/png')
-    const imgW = 150
-    const imgH = (canvas.height / canvas.width) * imgW
-
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-    doc.text('Composite Readiness Profile', ML, 36)
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-    doc.text('Aggregate score across all 5 dimensions (0–100 scale)', ML, 42)
-
-    doc.addImage(imgData, 'PNG', (PW - imgW) / 2, 48, imgW, imgH)
-
-    // Dimension legend below chart
-    let ly = 48 + imgH + 8
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); st(doc, C.slate500)
-    doc.text('DIMENSION REFERENCE', ML, ly); ly += 5
-    composite.dimensions.forEach((d, i) => {
-      const dc = DIM_COLORS[d.dimId]
-      sf(doc, dc); doc.circle(ML + 4, ly - 1, 2, 'F')
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.navy)
-      doc.text(`${DIM_SHORT[d.dimId]}:  ${d.avg}/100  —  ${maturityLabel(d.avg)}`, ML + 9, ly)
-      ly += 6
-    })
-    return true
-  } catch (_) {
-    return false
-  }
-}
-
-// ── PAGES 7-11: Per-dimension detail with question heatmap ────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGES 4-8 — PER-DIMENSION DETAIL
+// ─────────────────────────────────────────────────────────────────────────────
 function drawDimensionDetailPage(doc, engagement, composite, dim, questions, pageNum) {
-  doc.addPage()
+  let y = newPage(doc, DIM_NAMES[dim.dimId], engagement.company, pageNum)
   const dc = DIM_COLORS[dim.dimId]
-  pageHeader(doc, `Dimension: ${DIM_SHORT[dim.dimId]}`, pageNum)
-  pageFooter(doc, engagement.company, pageNum)
 
-  let y = 36
-
-  // Score header card
-  fbox(doc, ML, y, CW, 30, [246, 249, 252], 4)
-  sd(doc, dc); doc.setLineWidth(0.3); doc.roundedRect(ML, y, CW, 30, 4, 4, 'S')
-  sf(doc, dc); doc.roundedRect(ML, y, 4, 30, 4, 0, 'F')
-
-  const mc  = maturityColor(dim.avg)
-  doc.setFontSize(22); doc.setFont('helvetica', 'bold'); st(doc, dc)
-  doc.text(`${dim.avg}`, ML + 18, y + 17)
-  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
-  doc.text('/ 100', ML + 18, y + 23)
-  fbox(doc, ML + 46, y + 8, 30, 7, mc, 3)
-  doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-  doc.text(maturityLabel(dim.avg), ML + 61, y + 13.5, { align: 'center' })
-  pbar(doc, ML + 84, y + 10, CW - 98, 6, dim.avg, dc)
-  doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-  doc.text(`Std Dev: ±${dim.stdDev}  ·  Range: ${dim.min}–${dim.max}`, ML + 18, y + 28)
+  // ── Score header ──────────────────────────────────────────────────────────
+  cardBase(doc, ML, y, CW, 32, dc)
+  scoreBadge(doc, dim.avg, ML + 8, y + 5, 22)
+  matPill(doc, dim.avg, ML + 38, y + 10, 32, 9)
+  txt(doc, DIM_NAMES[dim.dimId], ML + 76, y + 14, 12, C.navy, 'bold')
+  txt(doc, `Std Dev ±${dim.stdDev}  ·  Range ${dim.min}–${dim.max}  ·  ${dim.respondentCount || ''} respondents`, ML + 76, y + 22, 7.5, C.slate500, 'normal')
+  pbar(doc, ML + 38, y + 22, CW - 50, 5, dim.avg, dc)
   y += 38
 
-  // Role group bars
-  sectionEyebrow(doc, 'Score by Role Group', y); y += 6
-  const roleGs = [
-    { key: 'executive',    label: 'Executive',    rc: ROLE_COLORS.executive    },
-    { key: 'management',   label: 'Management',   rc: ROLE_COLORS.management   },
-    { key: 'practitioner', label: 'Practitioner', rc: ROLE_COLORS.practitioner },
-  ]
-  roleGs.forEach(rg => {
-    const data = dim.byGroup[rg.key]
+  // ── Role group bars ───────────────────────────────────────────────────────
+  txt(doc, 'SCORE BY ROLE GROUP', ML, y, 7, C.slate500, 'bold'); y += 7
+
+  ;[['executive', 'Executive'], ['management', 'Management'], ['practitioner', 'Practitioner']].forEach(([g, label]) => {
+    const data = dim.byGroup[g]
     if (!data) return
-    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, rg.rc.fg)
-    doc.text(rg.label, ML, y + 5)
-    pbar(doc, ML + 30, y, CW - 56, 7, data.avg, rg.rc.fg)
-    doc.setFontSize(8.5); doc.setFont('helvetica', 'bold')
-    doc.text(`${data.avg}`, ML + CW - 22, y + 6)
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-    doc.text(`n=${data.count}`, ML + CW - 10, y + 6)
-    y += 11
+    const rs = ROLE_STYLE[g]
+    txt(doc, label, ML, y + 6, 8.5, rs.fg, 'bold')
+    pbar(doc, ML + 36, y, CW - 68, 9, data.avg, rs.fg)
+    txt(doc, `${data.avg}`, ML + 36 + CW - 68 + 5, y + 7, 10, rs.fg, 'bold')
+    txt(doc, `n=${data.count}`, ML + CW - 12, y + 7, 7, C.slate500, 'normal', { align: 'right' })
+    y += 13
   })
 
   if (dim.perceptionGap) {
-    fbox(doc, ML, y, CW, 10, [255, 251, 235], 3)
-    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, [120, 60, 0])
-    doc.text(`⚠ ${dim.gapMagnitude}pt perception gap detected between Executive and Practitioner`, ML + 5, y + 7)
+    rbox(doc, ML, y, CW, 10, [255, 247, 237], 3)
+    txt(doc, `⚠  ${dim.gapMagnitude}pt perception gap between Executive and Practitioner scores`, ML + 6, y + 7.5, 8, [154, 52, 18], 'bold')
     y += 14
   }
 
-  y += 4; divider(doc, y); y += 6
+  y += 4
+  sd(doc, C.slate300); doc.setLineWidth(0.3); doc.line(ML, y, PW - MR, y); y += 8
 
-  // Question heatmap
+  // ── Question heatmap ──────────────────────────────────────────────────────
+  txt(doc, 'QUESTION-LEVEL AVERAGES  (1–5 scale)', ML, y, 7, C.slate500, 'bold')
+  txt(doc, 'Green ≥4  ·  Yellow 3–3.9  ·  Red <3  ·  Grey = Don\'t Know', PW - MR, y, 6.5, C.slate500, 'normal', { align: 'right' })
+  y += 7
+
   if (questions?.length && dim.qAvgs) {
-    sectionEyebrow(doc, 'Question-Level Averages (1–5 scale) · Red = gap · Yellow = developing · Green = strength', y); y += 7
-
     questions.forEach((q, qi) => {
-      if (y > PH - 18) return
+      if (y > CONTENT_BOT - 10) return
       const qData  = dim.qAvgs[qi]
       const avg    = typeof qData === 'object' ? qData.avg    : qData
       const dkRate = typeof qData === 'object' ? qData.dkRate : 0
 
       let qc
-      if (avg === null)   qc = C.slate500
-      else if (avg >= 4)  qc = [16,  185, 129]
-      else if (avg >= 3)  qc = [180, 130, 10]
-      else                qc = [220,  50, 50]
+      if (avg === null)  qc = C.slate300
+      else if (avg >= 4) qc = C.green
+      else if (avg >= 3) qc = C.amber
+      else               qc = C.red
+
+      // Row background
+      if (qi % 2 === 0) { rbox(doc, ML, y, CW, 9, C.slate50, 0) }
 
       // Q chip
-      fbox(doc, ML, y, 9, 7, qc, 2)
-      doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-      doc.text(`Q${qi + 1}`, ML + 4.5, y + 5, { align: 'center' })
+      rbox(doc, ML + 1, y + 1, 10, 7, qc, 2)
+      txt(doc, `Q${qi + 1}`, ML + 6, y + 6.3, 6, C.white, 'bold', { align: 'center' })
 
-      // Question text
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
-      const qLines = doc.splitTextToSize(q.text, CW - 34)
-      doc.text(qLines[0] + (qLines.length > 1 ? '…' : ''), ML + 12, y + 5.5)
+      // Question text — truncated to fit
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal')
+      const qLines = doc.splitTextToSize(q.text, CW - 44)
+      st(doc, C.slate700); doc.text(qLines[0] + (qLines.length > 1 ? '…' : ''), ML + 14, y + 6.3)
 
       // DK badge
       if (dkRate >= 30) {
-        doc.setFontSize(5.5); st(doc, C.slate500)
-        doc.text(`${dkRate}% DK`, ML + CW - 38, y + 5.5)
+        rbox(doc, PW - MR - 26, y + 1.5, 24, 6, C.slate100, 2)
+        txt(doc, `${dkRate}% DK`, PW - MR - 14, y + 6, 6, C.slate500, 'bold', { align: 'center' })
       }
 
       // Score chip
-      fbox(doc, ML + CW - 18, y, 16, 7, qc, 2)
-      doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-      doc.text(avg !== null ? avg.toFixed(1) : '—', ML + CW - 10, y + 5.3, { align: 'center' })
+      rbox(doc, PW - MR - (dkRate >= 30 ? 52 : 26), y + 1, 22, 7, qc, 2)
+      txt(doc, avg !== null ? avg.toFixed(1) : '—',
+        PW - MR - (dkRate >= 30 ? 41 : 15), y + 6.3,
+        7.5, C.white, 'bold', { align: 'center' })
 
-      y += 9
+      y += 10
     })
   }
 }
 
-// ── PAGES: Recommendations (with 30/60/90) ────────────────────────────────
-function drawRecommendationsPages(doc, engagement, composite, pageNum) {
-  doc.addPage()
-  pageHeader(doc, 'Composite Action Plan', pageNum)
-  pageFooter(doc, engagement.company, pageNum)
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE — RADAR CHART
+// ─────────────────────────────────────────────────────────────────────────────
+async function drawRadarPage(doc, engagement, composite, radarRef, pageNum) {
+  if (!radarRef?.current) return false
+  try {
+    let y = newPage(doc, 'Composite Readiness Profile', engagement.company, pageNum)
+    txt(doc, 'Aggregate Score Across All 5 Dimensions (0–100 scale)', ML, y, 9, C.slate700, 'normal')
+    y += 8
 
+    const canvas = await html2canvas(radarRef.current, { scale: 2, backgroundColor: '#ffffff', logging: false })
+    const imgData = canvas.toDataURL('image/png')
+    const imgW = 148, imgH = (canvas.height / canvas.width) * imgW
+    doc.addImage(imgData, 'PNG', (PW - imgW) / 2, y, imgW, imgH)
+
+    let ly = y + imgH + 6
+    txt(doc, 'DIMENSION REFERENCE', ML, ly, 6.5, C.slate500, 'bold'); ly += 6
+    composite.dimensions.forEach(d => {
+      const dc = DIM_COLORS[d.dimId]
+      sf(doc, dc); doc.circle(ML + 3.5, ly - 1, 2.5, 'F')
+      txt(doc, `${DIM_NAMES[d.dimId]}`, ML + 9, ly, 8, C.navy, 'bold')
+      txt(doc, `${d.avg}/100  —  ${matLabel(d.avg)}`, ML + 60, ly, 8, matColor(d.avg), 'bold')
+      ly += 6
+    })
+    return true
+  } catch (_) { return false }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGES — RECOMMENDATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+function drawRecommendationsPages(doc, engagement, composite, pageNum) {
+  let y = newPage(doc, 'Composite Action Plan', engagement.company, pageNum)
   const { company } = engagement
   const recommendations = generateRecommendations(composite.asDimScores, company)
-  let y = 36
 
-  sectionTitle(doc, 'Prioritized Recommendations', y); y += 6
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-  doc.text(`Based on aggregate scores across ${composite.sessionCount} respondents  ·  Ordered by readiness gap`, ML, y)
-  y += 10
+  txt(doc, 'Prioritized Recommendations', ML, y, 13, C.navy, 'bold'); y += 7
+  txt(doc, `Based on aggregate scores across ${composite.sessionCount} respondents  ·  Ordered by readiness gap`, ML, y, 8, C.slate500); y += 12
 
   const priorityColors = {
-    Critical: [231, 76, 60], High: [230, 126, 34], Medium: [241, 196, 15], Sustain: [16, 185, 129],
+    Critical: C.red, High: [234, 88, 12], Medium: C.amber, Sustain: C.green,
   }
+
+  const PHASE_COL_W = (CW - 20) / 3
 
   recommendations.forEach((rec, idx) => {
     const dc       = DIM_COLORS[rec.dimensionId]
     const pc       = priorityColors[rec.priority] || C.slate500
     const isSustain = rec.priority === 'Sustain'
-    const PHASE_COL_W = (CW - 16 - 8) / 3
 
-    // Calculate card height
-    const titleLines  = doc.splitTextToSize(rec.title || '', CW - 40)
-    const descLines   = doc.splitTextToSize(rec.description || '', CW - 12).slice(0, 3)
-    const actionLines = (rec.actions || []).slice(0, 4).map(a => doc.splitTextToSize(a, CW - 22)[0])
+    // Pre-calculate all text heights
+    doc.setFontSize(9.5); doc.setFont('helvetica', 'bold')
+    const titleLines = doc.splitTextToSize(rec.title || '', CW - 46)
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal')
+    const descLines = doc.splitTextToSize(rec.description || '', CW - 16).slice(0, 4)
+    const actionLinesCounts = (rec.actions || []).slice(0, 4).map(a =>
+      doc.splitTextToSize(a, CW - 26).length
+    )
+    const actionsH = actionLinesCounts.reduce((a, n) => a + n * 4.5 + 2, 0)
+
     let phasesH = 0
     if (!isSustain && rec.phases?.length) {
       const maxPL = Math.max(...rec.phases.map(ph =>
-        ph.actions.reduce((a, pa) => a + doc.splitTextToSize(pa, PHASE_COL_W - 12).length, 0)
+        ph.actions.reduce((a, pa) => a + doc.splitTextToSize(pa, PHASE_COL_W - 10).length, 0)
       ))
-      phasesH = 10 + 20 + maxPL * 4.5 + 8
+      phasesH = 24 + maxPL * 4.5 + 8
     }
-    const cardH = 18 + titleLines.length * 5 + descLines.length * 4.5 + actionLines.length * 5 + phasesH + 10
 
-    if (y + cardH > PH - 16) {
+    const cardH = 14                         // top padding + dim label row
+      + titleLines.length * 5.5 + 4          // title
+      + descLines.length * 4.8 + 6           // description
+      + (rec.actions?.length ? 8 + actionsH : 0)
+      + (phasesH > 0 ? phasesH + 8 : 0)
+      + 8                                    // bottom padding
+
+    // Page break if needed
+    if (y + cardH > CONTENT_BOT) {
       pageNum++
-      doc.addPage()
-      pageHeader(doc, 'Composite Action Plan (cont.)', pageNum)
-      pageFooter(doc, engagement.company, pageNum)
-      y = 36
+      y = newPage(doc, 'Composite Action Plan (cont.)', company, pageNum)
     }
 
-    fbox(doc, ML, y, CW, cardH, [248, 251, 254], 3)
-    sd(doc, C.slate200); doc.setLineWidth(0.3); doc.roundedRect(ML, y, CW, cardH, 3, 3, 'S')
-    sf(doc, dc); doc.roundedRect(ML, y, 4, cardH, 3, 0, 'F')
+    // Card
+    cardBase(doc, ML, y, CW, cardH, dc)
 
-    let cy = y + 7
+    let cy = y + 8
 
-    // Dim label + priority badge
-    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, dc)
-    doc.text(`${DIM_SHORT[rec.dimensionId]}  ·  Score: ${rec.score}/100`, ML + 8, cy)
-    fbox(doc, ML + CW - 30, cy - 5.5, 28, 7, pc, 3)
-    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-    doc.text(`${idx === 0 ? '↑↑ ' : ''}${rec.priority}`, ML + CW - 16, cy - 0.8, { align: 'center' })
-    cy += 6
+    // Dim label row
+    txt(doc, `${DIM_NAMES[rec.dimensionId]}  ·  Score: ${rec.score}/100`, ML + 9, cy, 7.5, dc, 'bold')
+    rbox(doc, PW - MR - 34, y + 5, 32, 9, pc, 3)
+    txt(doc, `${idx === 0 ? '↑↑ ' : ''}${rec.priority}`, PW - MR - 18, y + 11.3, 7.5, C.white, 'bold', { align: 'center' })
+    cy += 7
 
     // Title
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-    doc.text(titleLines, ML + 8, cy); cy += titleLines.length * 5 + 3
+    st(doc, C.navy); doc.setFontSize(9.5); doc.setFont('helvetica', 'bold')
+    doc.text(titleLines, ML + 9, cy)
+    cy += titleLines.length * 5.5 + 4
 
     // Description
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
-    doc.text(descLines, ML + 8, cy); cy += descLines.length * 4.5 + 3
+    st(doc, C.slate700); doc.setFontSize(8); doc.setFont('helvetica', 'normal')
+    doc.text(descLines, ML + 9, cy)
+    cy += descLines.length * 4.8 + 6
 
     // Key actions
     if (rec.actions?.length) {
-      doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-      doc.text('Key Actions:', ML + 8, cy); cy += 5
+      txt(doc, 'Key Actions:', ML + 9, cy, 8, C.navy, 'bold'); cy += 6
       rec.actions.slice(0, 4).forEach(action => {
-        sf(doc, dc); doc.circle(ML + 11, cy - 1.5, 1.5, 'F')
-        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
-        const aLine = doc.splitTextToSize(action, CW - 22)[0]
-        doc.text(aLine, ML + 15, cy); cy += 5
+        doc.setFontSize(8); doc.setFont('helvetica', 'normal')
+        const aLines = doc.splitTextToSize(action, CW - 26)
+        sf(doc, dc); doc.circle(ML + 13, cy - 1.5, 1.8, 'F')
+        st(doc, C.slate700); doc.text(aLines, ML + 18, cy)
+        cy += aLines.length * 4.5 + 2
       })
     }
 
     // 30/60/90 phases
     if (!isSustain && rec.phases?.length) {
-      cy += 3
-      sd(doc, C.slate200); doc.setLineWidth(0.3); doc.line(ML + 8, cy, ML + CW - 8, cy); cy += 5
-      doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, C.slate500)
-      doc.text('30 / 60 / 90-DAY ACTION PLAN:', ML + 8, cy); cy += 5
+      cy += 4
+      sd(doc, C.slate300); doc.setLineWidth(0.3); doc.line(ML + 9, cy, PW - MR, cy); cy += 5
+      txt(doc, '30 / 60 / 90-DAY ACTION PLAN', ML + 9, cy, 7, C.slate500, 'bold'); cy += 6
 
-      const maxLines = Math.max(...rec.phases.map(ph =>
-        ph.actions.reduce((a, pa) => a + doc.splitTextToSize(pa, PHASE_COL_W - 12).length, 0)
+      const maxPL = Math.max(...rec.phases.map(ph =>
+        ph.actions.reduce((a, pa) => a + doc.splitTextToSize(pa, PHASE_COL_W - 10).length, 0)
       ))
-      const phH = 20 + maxLines * 4.5 + 8
+      const phH = 20 + maxPL * 4.5 + 6
 
       rec.phases.forEach((phase, pi) => {
-        const px = ML + 8 + pi * (PHASE_COL_W + 4)
-        sf(doc, C.slate50); doc.roundedRect(px, cy, PHASE_COL_W, phH - 10, 2, 2, 'F')
-        sf(doc, dc); doc.roundedRect(px, cy, 3, phH - 10, 1.5, 1.5, 'F')
-        doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); st(doc, dc)
-        doc.text(phase.label, px + 6, cy + 6)
-        doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, C.slate900)
-        doc.text(phase.theme, px + 6, cy + 12)
-        let phActY = cy + 17
+        const px = ML + 9 + pi * (PHASE_COL_W + 4)
+        rbox(doc, px, cy, PHASE_COL_W, phH, C.slate50, 2)
+        sf(doc, dc); doc.roundedRect(px, cy, 3, phH, 2, 0, 'F')
+        txt(doc, phase.label, px + 6, cy + 7, 7, dc, 'bold')
+        txt(doc, phase.theme, px + 6, cy + 13, 7.5, C.navy, 'bold')
+        let phActY = cy + 20
         phase.actions.forEach(a => {
-          sf(doc, dc); doc.circle(px + 8, phActY - 1, 1, 'F')
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); st(doc, C.slate700)
-          const aLines = doc.splitTextToSize(a, PHASE_COL_W - 12)
-          doc.text(aLines, px + 11, phActY); phActY += aLines.length * 4 + 2
+          doc.setFontSize(7); doc.setFont('helvetica', 'normal')
+          const aLines = doc.splitTextToSize(a, PHASE_COL_W - 10)
+          sf(doc, dc); doc.circle(px + 7, phActY - 1, 1, 'F')
+          st(doc, C.slate700); doc.text(aLines, px + 10, phActY)
+          phActY += aLines.length * 4 + 2
         })
       })
-      cy += phH
     }
 
-    y += cardH + 6
+    y += cardH + 7
   })
 
   return pageNum
 }
 
-// ── PAGE: Respondent Summary ──────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE — RESPONDENT SUMMARY
+// ─────────────────────────────────────────────────────────────────────────────
 function drawRespondentPage(doc, engagement, composite, pageNum) {
-  doc.addPage()
-  pageHeader(doc, 'Respondent Summary', pageNum)
-  pageFooter(doc, engagement.company, pageNum)
-
+  let y = newPage(doc, 'Respondent Summary', engagement.company, pageNum)
   const { sessions } = engagement
-  let y = 36
 
-  sectionTitle(doc, 'All Respondents', y); y += 6
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-  doc.text('Individual scores by respondent and dimension', ML, y); y += 9
+  y = sectionHeader(doc, 'All Respondents', 'Individual scores by respondent and dimension', y)
 
-  const colX = { name: ML, role: ML + 38, grp: ML + 76, overall: ML + 96, d1: ML + 112, d2: ML + 127, d3: ML + 142, d4: ML + 157, d5: ML + 172 }
+  // Column layout — wider, more readable
+  const COL = {
+    name:    { x: ML,       w: 42 },
+    role:    { x: ML + 44,  w: 36 },
+    grp:     { x: ML + 82,  w: 20 },
+    overall: { x: ML + 104, w: 16 },
+    d1:      { x: ML + 122, w: 14 },
+    d2:      { x: ML + 138, w: 14 },
+    d3:      { x: ML + 154, w: 14 },
+    d4:      { x: ML + 170, w: 14 },  // fits to 184
+  }
+  // 5 dims don't all fit — use 4 + overflow label for d5
+  const dimCols = [
+    { id: 1, col: COL.d1, label: 'Strat'  },
+    { id: 2, col: COL.d2, label: 'Data'   },
+    { id: 3, col: COL.d3, label: 'Gov'    },
+    { id: 4, col: COL.d4, label: 'Talent' },
+  ]
 
-  sf(doc, [240, 245, 250]); doc.rect(ML, y, CW, 7, 'F')
-  doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); st(doc, C.slate500)
-  doc.text('NAME',    colX.name + 1, y + 5)
-  doc.text('TITLE',   colX.role + 1, y + 5)
-  doc.text('GRP',     colX.grp + 1,  y + 5)
-  doc.text('OVERALL', colX.overall + 1, y + 5)
-  doc.text('STRAT',   colX.d1 + 1, y + 5)
-  doc.text('DATA',    colX.d2 + 1, y + 5)
-  doc.text('GOV',     colX.d3 + 1, y + 5)
-  doc.text('TALENT',  colX.d4 + 1, y + 5)
-  doc.text('OPS',     colX.d5 + 1, y + 5)
-  y += 7
+  // Header row
+  rbox(doc, ML, y, CW, 9, [235, 241, 250], 0)
+  txt(doc, 'NAME',    COL.name.x    + 2, y + 6.5, 6.5, C.slate500, 'bold')
+  txt(doc, 'TITLE',   COL.role.x    + 2, y + 6.5, 6.5, C.slate500, 'bold')
+  txt(doc, 'GROUP',   COL.grp.x     + 2, y + 6.5, 6.5, C.slate500, 'bold')
+  txt(doc, 'SCORE',   COL.overall.x + 2, y + 6.5, 6.5, C.slate500, 'bold')
+  dimCols.forEach(dc2 => txt(doc, dc2.label, dc2.col.x + 2, y + 6.5, 6.5, C.slate500, 'bold'))
+  txt(doc, 'Ops', COL.d4.x + COL.d4.w + 2, y + 6.5, 6.5, C.slate500, 'bold')
+  y += 9
 
-  const rowH = 9
+  const rowH = 10
   sessions.forEach((s, i) => {
-    if (y > PH - 16) return
+    if (y > CONTENT_BOT - 12) return
     if (!s) return
 
     const roleGroup = s.roleGroup || 'practitioner'
-    const m   = ROLE_GROUP_META[roleGroup] || ROLE_GROUP_META.practitioner
-    const rc2 = ROLE_COLORS[roleGroup]     || ROLE_COLORS.practitioner
-    const mc2 = maturityColor(s.overallScore || 0)
+    const rs  = ROLE_STYLE[roleGroup] || ROLE_STYLE.practitioner
+    const mc2 = matColor(s.overallScore || 0)
+    const ds  = s.dimScores || {}
 
-    if (i % 2 === 0) { sf(doc, [248, 251, 254]); doc.rect(ML, y, CW, rowH, 'F') }
-    sd(doc, [235, 240, 245]); doc.setLineWidth(0.2); doc.line(ML, y + rowH, ML + CW, y + rowH)
+    if (i % 2 === 0) rbox(doc, ML, y, CW, rowH, C.slate50, 0)
+    sd(doc, C.slate300); doc.setLineWidth(0.2); doc.line(ML, y + rowH, ML + CW, y + rowH)
 
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-    const name    = s.respondentName || ''
-    const nameTxt = name.length > 13 ? name.slice(0, 12) + '…' : name
-    doc.text(nameTxt, colX.name + 1, y + 6.5)
+    // Name
+    const name = (s.respondentName || '').length > 18 ? s.respondentName.slice(0, 17) + '…' : (s.respondentName || '')
+    txt(doc, name, COL.name.x + 2, y + 7, 8, C.navy, 'bold')
 
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
-    const role    = s.respondentRole || ''
-    const roleTxt = role.length > 15 ? role.slice(0, 14) + '…' : role
-    doc.text(roleTxt, colX.role + 1, y + 6.5)
+    // Role
+    const role = (s.respondentRole || '').length > 19 ? s.respondentRole.slice(0, 18) + '…' : (s.respondentRole || '')
+    txt(doc, role, COL.role.x + 2, y + 7, 7.5, C.slate700, 'normal')
 
-    fbox(doc, colX.grp + 1, y + 2, 16, 5, rc2.bg, 2)
-    doc.setFontSize(5); doc.setFont('helvetica', 'bold'); st(doc, rc2.fg)
-    doc.text((m.label || '').slice(0, 4), colX.grp + 9, y + 6, { align: 'center' })
+    // Group chip
+    rbox(doc, COL.grp.x + 1, y + 2, 18, 6, rs.bg, 2)
+    txt(doc, rs.label.slice(0, 4), COL.grp.x + 10, y + 6.8, 5.5, rs.fg, 'bold', { align: 'center' })
 
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); st(doc, mc2)
-    doc.text(`${s.overallScore || 0}`, colX.overall + 4, y + 6.5)
+    // Overall
+    txt(doc, `${s.overallScore || 0}`, COL.overall.x + 4, y + 7, 9, mc2, 'bold')
 
-    const dimScores = s.dimScores || {}
-    ;[[1, colX.d1],[2, colX.d2],[3, colX.d3],[4, colX.d4],[5, colX.d5]].forEach(([id, cx3]) => {
-      const score = dimScores[id]
-      doc.setFontSize(7); doc.setFont('helvetica', score != null ? 'bold' : 'normal')
-      st(doc, score != null ? maturityColor(score) : C.slate500)
-      doc.text(score != null ? `${score}` : '—', cx3 + 4, y + 6.5)
+    // Dim scores
+    dimCols.forEach(dc2 => {
+      const score = ds[dc2.id]
+      txt(doc, score != null ? `${score}` : '—', dc2.col.x + 4, y + 7, 8, score != null ? matColor(score) : C.slate300, score != null ? 'bold' : 'normal')
     })
+    // d5 in overflow slot
+    const d5 = ds[5]
+    txt(doc, d5 != null ? `${d5}` : '—', COL.d4.x + COL.d4.w + 4, y + 7, 8, d5 != null ? matColor(d5) : C.slate300, d5 != null ? 'bold' : 'normal')
 
     y += rowH
   })
 }
 
-// ── PAGE: Confidence Distribution ────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE — CONFIDENCE DISTRIBUTION (conditional)
+// ─────────────────────────────────────────────────────────────────────────────
 function drawConfidencePage(doc, engagement, composite, pageNum) {
-  const hasSomeConf = composite.dimensions.some(d =>
-    (d.confidenceCounts?.high || 0) + (d.confidenceCounts?.medium || 0) + (d.confidenceCounts?.low || 0) > 0
+  const hasSome = composite.dimensions.some(d =>
+    ((d.confidenceCounts?.high || 0) + (d.confidenceCounts?.medium || 0) + (d.confidenceCounts?.low || 0)) > 0
   )
-  if (!hasSomeConf) return false
+  if (!hasSome) return false
 
-  doc.addPage()
-  pageHeader(doc, 'Consultant Confidence Distribution', pageNum)
-  pageFooter(doc, engagement.company, pageNum)
-  let y = 36
+  let y = newPage(doc, 'Consultant Confidence', engagement.company, pageNum)
+  y = sectionHeader(doc, 'Consultant Confidence Distribution',
+    'How confident consultants were in each dimension\'s scores. Low confidence = transcript validation recommended.', y)
 
-  sectionTitle(doc, 'Consultant Confidence Distribution', y); y += 6
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-  doc.text('How confident consultants were in each dimension\'s scores across all sessions.', ML, y); y += 5
-  doc.text('Low confidence flags dimensions that benefit from transcript validation.', ML, y); y += 12
-
-  const CONF_COLORS = {
-    high:   [5,   150, 105],
-    medium: [217, 119,  6],
-    low:    [231,  76, 60],
-    null:   [148, 163, 184],
+  const CONF = {
+    high:   { label: 'High',    color: C.green },
+    medium: { label: 'Medium',  color: C.amber },
+    low:    { label: 'Low',     color: C.red   },
+    null:   { label: 'Not set', color: C.slate300 },
   }
 
   composite.dimensions.forEach(d => {
+    if (y > CONTENT_BOT - 18) return
     const total  = composite.sessionCount
     const counts = d.confidenceCounts || {}
     const dc     = DIM_COLORS[d.dimId]
 
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-    doc.text(DIM_SHORT[d.dimId], ML, y + 5)
+    txt(doc, DIM_NAMES[d.dimId], ML, y + 6, 9, C.navy, 'bold')
 
     // Stacked bar
-    const barX = ML + 52, barW = CW - 80, barH = 8
-    sf(doc, C.slate200); doc.roundedRect(barX, y, barW, barH, 4, 4, 'F')
+    const barX = ML + 52, barW = 80, barH = 9
+    rbox(doc, barX, y, barW, barH, C.slate100, barH / 2)
     let bx = barX
     ;['high', 'medium', 'low', 'null'].forEach(level => {
       const n = counts[level] || 0
       if (!n) return
-      const segW = (n / total) * barW
-      sf(doc, CONF_COLORS[level]); doc.rect(bx, y, segW, barH, 'F')
-      bx += segW
+      const sw = (n / total) * barW
+      sf(doc, CONF[level].color); doc.roundedRect(bx, y, sw, barH, 0, 0, 'F')
+      bx += sw
     })
 
-    // Chips
-    let chipX = barX + barW + 4
+    // Legend chips
+    let chipX = barX + barW + 6
     ;['high', 'medium', 'low'].forEach(level => {
       const n = counts[level] || 0
       if (!n) return
-      const label = level.charAt(0).toUpperCase() + level.slice(1)
-      const chipW = doc.getTextWidth(`${label}: ${n}`) + 8
-      fbox(doc, chipX, y + 1, chipW, 6, CONF_COLORS[level], 2)
-      doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); st(doc, C.white)
-      doc.text(`${label}: ${n}`, chipX + chipW/2, y + 5.3, { align: 'center' })
-      chipX += chipW + 3
+      const lbl = `${CONF[level].label}: ${n}`
+      const cw  = doc.getTextWidth(lbl) + 8
+      rbox(doc, chipX, y + 1, cw, 7, CONF[level].color, 2)
+      txt(doc, lbl, chipX + cw / 2, y + 6.3, 6.5, C.white, 'bold', { align: 'center' })
+      chipX += cw + 3
     })
 
     y += 16
@@ -985,56 +798,48 @@ function drawConfidencePage(doc, engagement, composite, pageNum) {
   return true
 }
 
-// ── PAGE: Consultant Observations (notes) ────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE — CONSULTANT OBSERVATIONS (conditional)
+// ─────────────────────────────────────────────────────────────────────────────
 function drawNotesPage(doc, engagement, composite, pageNum) {
-  const sessionsWithNotes = engagement.sessions.filter(s =>
+  const withNotes = engagement.sessions.filter(s =>
     s.notes && Object.values(s.notes).some(n => n?.trim())
   )
-  if (!sessionsWithNotes.length) return false
+  if (!withNotes.length) return false
 
-  doc.addPage()
-  pageHeader(doc, 'Consultant Observations', pageNum)
-  pageFooter(doc, engagement.company, pageNum)
-  let y = 36
+  let y = newPage(doc, 'Consultant Observations', engagement.company, pageNum)
+  y = sectionHeader(doc, 'Consultant Observations',
+    'Notes captured during each interview. Supports transcript validation and qualitative interpretation.', y)
 
-  sectionTitle(doc, 'Consultant Observations', y); y += 6
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-  doc.text('Notes captured during each interview, organized by respondent.', ML, y); y += 5
-  doc.text('These support transcript validation and qualitative interpretation of scores.', ML, y); y += 12
-
-  sessionsWithNotes.forEach(s => {
-    if (y > PH - 20) return
+  withNotes.forEach(s => {
+    if (y > CONTENT_BOT - 24) return
     const roleGroup = s.roleGroup || 'practitioner'
-    const rc2       = ROLE_COLORS[roleGroup] || ROLE_COLORS.practitioner
+    const rs        = ROLE_STYLE[roleGroup] || ROLE_STYLE.practitioner
     const dimNotes  = Object.entries(s.notes || {}).filter(([, n]) => n?.trim())
 
-    // Respondent header
-    sf(doc, [248, 250, 252]); doc.roundedRect(ML, y, CW, 9, 3, 3, 'F')
-    sd(doc, C.slate200); doc.setLineWidth(0.2); doc.roundedRect(ML, y, CW, 9, 3, 3, 'S')
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-    const sName = s.respondentName || ''
-    doc.text(sName, ML + 4, y + 6.5)
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-    doc.text(s.respondentRole || '', ML + 4 + doc.getTextWidth(sName) + 6, y + 6.5)
-    fbox(doc, ML + CW - 28, y + 1.5, 26, 6, rc2.bg, 3)
-    doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); st(doc, rc2.fg)
-    doc.text(ROLE_GROUP_META[s.roleGroup]?.label || '', ML + CW - 15, y + 6, { align: 'center' })
-    y += 12
+    // Respondent header row
+    rboxS(doc, ML, y, CW, 11, [248, 250, 252], C.slate300, 3)
+    txt(doc, s.respondentName || '', ML + 5, y + 8, 9, C.navy, 'bold')
+    const nameW = doc.getTextWidth(s.respondentName || '')
+    txt(doc, s.respondentRole || '', ML + 7 + nameW, y + 8, 8, C.slate500, 'normal')
+    rbox(doc, PW - MR - 30, y + 2, 28, 7, rs.bg, 3)
+    txt(doc, rs.label, PW - MR - 16, y + 7.3, 6.5, rs.fg, 'bold', { align: 'center' })
+    y += 14
 
     dimNotes.forEach(([dimId, note]) => {
-      if (y > PH - 14) return
-      const dim = dimensions.find(d => d.id === parseInt(dimId))
-      const dc  = DIM_COLORS[parseInt(dimId)] || C.slate500
+      if (y > CONTENT_BOT - 12) return
+      const dim  = dimensions.find(d => d.id === parseInt(dimId))
+      const dc   = DIM_COLORS[parseInt(dimId)] || C.slate500
+      const maxNoteW = CW - 48
 
-      doc.setFontSize(7); doc.setFont('helvetica', 'bold'); st(doc, dc)
-      doc.text(dim?.shortName || `Dim ${dimId}`, ML + 4, y + 5)
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal')
+      const noteLines = doc.splitTextToSize(note, maxNoteW).slice(0, 3)
+      const rowH = noteLines.length * 4.8 + 6
 
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
-      const noteLines = doc.splitTextToSize(note, CW - 44)
-      doc.text(noteLines.slice(0, 3), ML + 36, y + 5)
-      y += Math.min(noteLines.length, 3) * 4.5 + 4
-
-      sd(doc, [241, 245, 249]); doc.setLineWidth(0.2); doc.line(ML + 4, y, ML + CW - 4, y); y += 3
+      txt(doc, dim?.shortName || `Dim ${dimId}`, ML + 2, y + 5, 7.5, dc, 'bold')
+      st(doc, C.slate700); doc.text(noteLines, ML + 44, y + 5)
+      sd(doc, C.slate100); doc.setLineWidth(0.2); doc.line(ML + 2, y + rowH, ML + CW - 2, y + rowH)
+      y += rowH + 2
     })
     y += 6
   })
@@ -1042,7 +847,9 @@ function drawNotesPage(doc, engagement, composite, pageNum) {
   return true
 }
 
-// ── Main export orchestrator ───────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN EXPORT ORCHESTRATOR
+// ─────────────────────────────────────────────────────────────────────────────
 async function generateCompositePDF(engagement, radarRef) {
   const composite = computeComposite(engagement.sessions)
   if (!composite) throw new Error('No sessions to aggregate')
@@ -1051,54 +858,39 @@ async function generateCompositePDF(engagement, radarRef) {
   doc.setFont('helvetica')
   let p = 1
 
-  // 1. Cover
   drawCover(doc, engagement, composite, p)
 
-  // 2. Executive Summary
   p++; drawExecutiveSummaryPage(doc, engagement, composite, p)
 
-  // 3. Perception Gaps & Low Visibility (conditional)
-  const hasInsights = (composite.perceptionGapDimensions?.length || 0) + (composite.lowVisibilityDimensions?.length || 0) > 0
+  const hasInsights = (composite.perceptionGapDimensions?.length || 0) +
+                      (composite.lowVisibilityDimensions?.length  || 0) > 0
   if (hasInsights) { p++; drawInsightsPage(doc, engagement, composite, p) }
 
-  // 4. Composite Scorecard
-  p++; drawScorecardPage(doc, engagement, composite, p)
-
-  // 5. Dimension Score Cards
-  p++; drawDimensionCardsPage(doc, engagement, composite, p)
-
-  // 6. Radar Chart
-  const radarDone = await drawRadarPage(doc, engagement, composite, radarRef, p + 1)
-  if (radarDone) p++
-
-  // 7-11. Per-dimension detail
   composite.dimensions.forEach(dim => {
     p++
     const dimDef   = dimensions.find(d => d.id === dim.dimId)
-    const questions = dimDef?.questions || []
-    drawDimensionDetailPage(doc, engagement, composite, dim, questions, p)
+    drawDimensionDetailPage(doc, engagement, composite, dim, dimDef?.questions || [], p)
   })
 
-  // 12+. Recommendations with 30/60/90
+  const radarDone = await drawRadarPage(doc, engagement, composite, radarRef, p + 1)
+  if (radarDone) p++
+
   p++; p = drawRecommendationsPages(doc, engagement, composite, p)
 
-  // Respondent Summary
   p++; drawRespondentPage(doc, engagement, composite, p)
 
-  // Confidence Distribution (conditional)
-  p++; const confDone = drawConfidencePage(doc, engagement, composite, p)
-  if (!confDone) p--
+  p++; if (!drawConfidencePage(doc, engagement, composite, p)) p--
 
-  // Consultant Observations (conditional)
-  p++; const notesDone = drawNotesPage(doc, engagement, composite, p)
-  if (!notesDone) p--
+  p++; if (!drawNotesPage(doc, engagement, composite, p)) p--
 
   const company = engagement.company?.name || 'Assessment'
   const date    = new Date().toISOString().slice(0, 10)
   doc.save(`${company.replace(/\s+/g, '-')}-AI-Readiness-Composite-${date}.pdf`)
 }
 
-// ── Button component ──────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// BUTTON COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
 export default function CompositePDFExportButton({ engagement, radarRef }) {
   const [loading, setLoading] = useState(false)
 
