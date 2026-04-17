@@ -414,7 +414,115 @@ function RespondentTable({ sessions }) {
 }
 
 // ── Main composite results page ────────────────────────────────────────────
-export default function CompositeResults({ engagement, onBack }) {
+// ── Technical Sandbox Tests ────────────────────────────────────────────────
+const SANDBOX_TESTS = [
+  {
+    id: 1,
+    name: '"Data Swamp" RAG Stress Test',
+    description: 'Ingest 5–10 of the client\'s most complex unstructured PDFs into Azure AI Search. Measures Hallucination Rate and Retrieval Accuracy.',
+    metrics: ['Hallucination Rate', 'Retrieval Accuracy'],
+  },
+  {
+    id: 2,
+    name: '"Copilot vs. Custom" Performance Benchmark',
+    description: 'Run standardized high-complexity prompts through both M365 Copilot and a custom Azure OpenAI GPT-X instance. Validates the decision matrix.',
+    metrics: ['Token Cost', 'Latency (Time to First Token)', 'Rate Limits (TPM/RPM)'],
+  },
+  {
+    id: 3,
+    name: 'Guardrail & Content Safety Probe',
+    description: 'Execute Red-Teaming diagnostic probes (prompt injections, jailbreak attempts) against the sandbox environment. Identifies if security configurations are functional.',
+    metrics: ['Content Safety Filter Effectiveness', 'Jailbreak Detection Rate'],
+  },
+  {
+    id: 4,
+    name: 'Infra & FinOps Audit (The "APIM" Check)',
+    description: 'Audit Azure tenant API Management (APIM) configuration, VNET routing, and cost-control tags. Prevents "Day 1" failures in production rollout.',
+    metrics: ['Rate-Limiting Bottlenecks', 'Configuration Gaps'],
+  },
+]
+
+const DEFAULT_SANDBOX = SANDBOX_TESTS.map(t => ({ id: t.id, observations: '', results: '' }))
+
+function SandboxSection({ sandboxResults, onChange }) {
+  const results = sandboxResults?.length === 4 ? sandboxResults : DEFAULT_SANDBOX
+
+  return (
+    <div className="sandbox-section">
+      <div className="sandbox-header">
+        <div className="section-eyebrow">Empirical GenAI Diagnostic</div>
+        <h2 className="section-title" style={{ fontSize: 22 }}>Technical Sandbox Micro-Tests</h2>
+        <p className="section-subtitle" style={{ fontSize: 14 }}>
+          Results from a 10-day GenAI Technical Architect deployment into a designated Azure Sandbox.
+          Four micro-tests capture hard telemetry and baseline the environment's performance.
+        </p>
+      </div>
+
+      <div className="sandbox-tests">
+        {SANDBOX_TESTS.map((test, i) => {
+          const result = results.find(r => r.id === test.id) || { observations: '', results: '' }
+          return (
+            <div key={test.id} className="sandbox-test-card">
+              <div className="sandbox-test-num">{test.id}</div>
+              <div className="sandbox-test-body">
+                <div className="sandbox-test-name">{test.name}</div>
+                <div className="sandbox-test-desc">{test.description}</div>
+                <div className="sandbox-metrics">
+                  <span className="sandbox-metrics-label">Key Telemetry:</span>
+                  {test.metrics.map(m => (
+                    <span key={m} className="sandbox-metric-chip">{m}</span>
+                  ))}
+                </div>
+                <div className="sandbox-inputs">
+                  <div className="sandbox-input-group">
+                    <label className="sandbox-input-label">Observations</label>
+                    <textarea
+                      className="sandbox-textarea"
+                      placeholder="Enter key observations from this test…"
+                      value={result.observations}
+                      onChange={e => onChange(test.id, 'observations', e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="sandbox-input-group">
+                    <label className="sandbox-input-label">Results / Telemetry</label>
+                    <textarea
+                      className="sandbox-textarea"
+                      placeholder="Enter specific metrics and results (e.g. 40% hallucination rate, 2.3s TTFT)…"
+                      value={result.results}
+                      onChange={e => onChange(test.id, 'results', e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="sandbox-why">
+        <div className="sandbox-why-title">Why This Matters</div>
+        <div className="sandbox-why-items">
+          <div className="sandbox-why-item">
+            <span className="sandbox-why-icon">🔬</span>
+            <div><strong>Moves Past the Architecture Bottleneck</strong> — Hard data eliminates debates about "best practices" and replaces them with current realities.</div>
+          </div>
+          <div className="sandbox-why-item">
+            <span className="sandbox-why-icon">💰</span>
+            <div><strong>Unlocks Microsoft ECIF Funding</strong> — Specific Azure consumption blockers (rate limits, high latency) make a compelling case for Phase 2 investment.</div>
+          </div>
+          <div className="sandbox-why-item">
+            <span className="sandbox-why-icon">🎯</span>
+            <div><strong>Protects Productivity Goals</strong> — Ensures the foundation is solid enough to support the mandated efficiency targets before scaling begins.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function CompositeResults({ engagement, onBack, onUpdateEngagement }) {
   const radarRef   = useRef(null)
   const contentRef = useRef(null)
   const composite = computeComposite(engagement.sessions)
@@ -728,6 +836,19 @@ export default function CompositeResults({ engagement, onBack }) {
 
         {/* ── Respondent notes ──────────────────────────────────────────── */}
         <RespondentNotes sessions={sessions} />
+
+        {/* ── Technical Sandbox ─────────────────────────────────────────── */}
+        <SandboxSection
+          sandboxResults={engagement.sandboxResults}
+          onChange={(testId, field, value) => {
+            if (!onUpdateEngagement) return
+            const current = engagement.sandboxResults?.length === 4
+              ? engagement.sandboxResults
+              : DEFAULT_SANDBOX
+            const updated = current.map(r => r.id === testId ? { ...r, [field]: value } : r)
+            onUpdateEngagement({ ...engagement, sandboxResults: updated })
+          }}
+        />
 
         {/* ── Footer actions ────────────────────────────────────────────── */}
         <div className="results-actions">

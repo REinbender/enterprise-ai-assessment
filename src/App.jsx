@@ -263,10 +263,16 @@ export default function App() {
     />
   )
 
+  const handleUpdateEngagement = (updated) => {
+    saveEngagement(updated)
+    setEngagement(updated)
+  }
+
   if (mode === 'composite') return (
     <CompositeResults
       engagement={engagement}
       onBack={() => setMode('hub')}
+      onUpdateEngagement={handleUpdateEngagement}
     />
   )
 

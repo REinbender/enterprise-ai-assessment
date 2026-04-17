@@ -206,6 +206,37 @@ function drawCover(doc, engagement, composite) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SMART SLICE — find the nearest whitespace row to avoid cutting mid-element
+// ─────────────────────────────────────────────────────────────────────────────
+function findSafeSliceY(canvas, targetYpx, searchPx = 60) {
+  const ctx    = canvas.getContext('2d')
+  const scanW  = Math.min(canvas.width, 400) // sample centre strip for speed
+  const scanX  = Math.floor((canvas.width - scanW) / 2)
+
+  let bestY     = targetYpx
+  let bestScore = -1
+
+  const lo = Math.max(0, targetYpx - searchPx)
+  const hi = Math.min(canvas.height - 1, targetYpx + searchPx)
+
+  for (let y = lo; y <= hi; y++) {
+    const data = ctx.getImageData(scanX, y, scanW, 1).data
+    let lightPx = 0
+    for (let x = 0; x < data.length; x += 4) {
+      // Count pixels that look like background (light grey / white)
+      if (data[x] > 230 && data[x+1] > 230 && data[x+2] > 230) lightPx++
+    }
+    const score = lightPx / (scanW)
+    // Prefer rows closer to target when scores tie
+    const proximity = 1 - Math.abs(y - targetYpx) / (searchPx + 1)
+    const weighted  = score * 0.7 + proximity * 0.3
+    if (weighted > bestScore) { bestScore = weighted; bestY = y }
+  }
+
+  return bestY
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CONTENT PAGES — html2canvas screenshot of the live web page content
 // ─────────────────────────────────────────────────────────────────────────────
 async function drawContentPages(doc, contentRef, companyName, date, startPage) {
@@ -230,40 +261,46 @@ async function drawContentPages(doc, contentRef, companyName, date, startPage) {
     if (actionsEl) actionsEl.style.display = ''
   }
 
-  // Scale factor: CONTENT_W mm maps to canvas.width px
-  const mmPerPx   = CONTENT_W / canvas.width
-  const totalH_mm = canvas.height * mmPerPx
+  const mmPerPx      = CONTENT_W / canvas.width
+  const pageHpx      = PAGE_CONTENT_H / mmPerPx   // how many px fit per page
+  const searchPx     = Math.round(60 / mmPerPx)    // ~60mm search window in px
 
-  // Each content page has PAGE_CONTENT_H mm of space
-  const numPages  = Math.ceil(totalH_mm / PAGE_CONTENT_H)
-  let pageNum = startPage
+  let sliceStartPx = 0
+  let pageNum      = startPage
 
-  for (let i = 0; i < numPages; i++) {
+  while (sliceStartPx < canvas.height) {
     doc.addPage()
-
-    // Header
     pageHeader(doc, 'Composite AI Readiness Report', pageNum)
 
-    // Compute the slice of the canvas for this page
-    const srcYpx  = (i * PAGE_CONTENT_H) / mmPerPx
-    const srcHpx  = Math.min(PAGE_CONTENT_H / mmPerPx, canvas.height - srcYpx)
-    const destH   = srcHpx * mmPerPx
+    // Ideal end of this slice
+    const idealEndPx = sliceStartPx + pageHpx
 
-    // Slice canvas
+    // Find the safest cut point near idealEnd (not past end of canvas)
+    let sliceEndPx
+    if (idealEndPx >= canvas.height) {
+      sliceEndPx = canvas.height
+    } else {
+      sliceEndPx = findSafeSliceY(canvas, Math.round(idealEndPx), searchPx)
+      // Never go backward from start or exceed canvas
+      sliceEndPx = Math.max(sliceStartPx + 10, Math.min(sliceEndPx, canvas.height))
+    }
+
+    const sliceHpx = sliceEndPx - sliceStartPx
+    const destH    = sliceHpx * mmPerPx
+
+    // Draw slice
     const slice = document.createElement('canvas')
     slice.width  = canvas.width
-    slice.height = Math.ceil(srcHpx)
+    slice.height = Math.ceil(sliceHpx)
     const ctx = slice.getContext('2d')
     ctx.fillStyle = '#f8fafc'
     ctx.fillRect(0, 0, slice.width, slice.height)
-    ctx.drawImage(canvas, 0, -Math.round(srcYpx))
-    const imgData = slice.toDataURL('image/jpeg', 0.95)
+    ctx.drawImage(canvas, 0, -Math.round(sliceStartPx))
 
-    doc.addImage(imgData, 'JPEG', ML, HEADER_H + 1, CONTENT_W, destH)
-
-    // Footer
+    doc.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', ML, HEADER_H + 1, CONTENT_W, destH)
     pageFooter(doc, companyName, date)
 
+    sliceStartPx = sliceEndPx
     pageNum++
   }
 
