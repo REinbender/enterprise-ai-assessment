@@ -415,7 +415,8 @@ function RespondentTable({ sessions }) {
 
 // ── Main composite results page ────────────────────────────────────────────
 export default function CompositeResults({ engagement, onBack }) {
-  const radarRef = useRef(null)
+  const radarRef   = useRef(null)
+  const contentRef = useRef(null)
   const composite = computeComposite(engagement.sessions)
 
   if (!composite) return (
@@ -463,7 +464,7 @@ export default function CompositeResults({ engagement, onBack }) {
         </div>
       </div>
 
-      <div className="page-inner page-inner--wide">
+      <div className="page-inner page-inner--wide" ref={contentRef}>
 
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div className="results-header">
@@ -739,7 +740,7 @@ export default function CompositeResults({ engagement, onBack }) {
             </svg>
             Export JSON
           </button>
-          <CompositePDFExportButton engagement={engagement} radarRef={radarRef} />
+          <CompositePDFExportButton engagement={engagement} radarRef={radarRef} contentRef={contentRef} />
         </div>
 
       </div>
