@@ -883,30 +883,36 @@ function drawRespondentPage(doc, engagement, composite, pageNum) {
   const rowH = 9
   sessions.forEach((s, i) => {
     if (y > PH - 16) return
-    const m   = ROLE_GROUP_META[s.roleGroup]
-    const mc2 = maturityColor(s.overallScore)
-    const rc2 = ROLE_COLORS[s.roleGroup]
+    if (!s) return
+
+    const roleGroup = s.roleGroup || 'practitioner'
+    const m   = ROLE_GROUP_META[roleGroup] || ROLE_GROUP_META.practitioner
+    const rc2 = ROLE_COLORS[roleGroup]     || ROLE_COLORS.practitioner
+    const mc2 = maturityColor(s.overallScore || 0)
 
     if (i % 2 === 0) { sf(doc, [248, 251, 254]); doc.rect(ML, y, CW, rowH, 'F') }
     sd(doc, [235, 240, 245]); doc.setLineWidth(0.2); doc.line(ML, y + rowH, ML + CW, y + rowH)
 
     doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-    const nameTxt = s.respondentName.length > 13 ? s.respondentName.slice(0, 12) + '…' : s.respondentName
+    const name    = s.respondentName || ''
+    const nameTxt = name.length > 13 ? name.slice(0, 12) + '…' : name
     doc.text(nameTxt, colX.name + 1, y + 6.5)
 
     doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); st(doc, C.slate700)
-    const roleTxt = (s.respondentRole || '').length > 15 ? s.respondentRole.slice(0, 14) + '…' : (s.respondentRole || '')
+    const role    = s.respondentRole || ''
+    const roleTxt = role.length > 15 ? role.slice(0, 14) + '…' : role
     doc.text(roleTxt, colX.role + 1, y + 6.5)
 
     fbox(doc, colX.grp + 1, y + 2, 16, 5, rc2.bg, 2)
     doc.setFontSize(5); doc.setFont('helvetica', 'bold'); st(doc, rc2.fg)
-    doc.text(m.label.slice(0, 4), colX.grp + 9, y + 6, { align: 'center' })
+    doc.text((m.label || '').slice(0, 4), colX.grp + 9, y + 6, { align: 'center' })
 
     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); st(doc, mc2)
-    doc.text(`${s.overallScore}`, colX.overall + 4, y + 6.5)
+    doc.text(`${s.overallScore || 0}`, colX.overall + 4, y + 6.5)
 
-    [[1, colX.d1],[2, colX.d2],[3, colX.d3],[4, colX.d4],[5, colX.d5]].forEach(([id, cx3]) => {
-      const score = s.dimScores[id]
+    const dimScores = s.dimScores || {}
+    ;[[1, colX.d1],[2, colX.d2],[3, colX.d3],[4, colX.d4],[5, colX.d5]].forEach(([id, cx3]) => {
+      const score = dimScores[id]
       doc.setFontSize(7); doc.setFont('helvetica', score != null ? 'bold' : 'normal')
       st(doc, score != null ? maturityColor(score) : C.slate500)
       doc.text(score != null ? `${score}` : '—', cx3 + 4, y + 6.5)
@@ -998,16 +1004,18 @@ function drawNotesPage(doc, engagement, composite, pageNum) {
 
   sessionsWithNotes.forEach(s => {
     if (y > PH - 20) return
-    const rc2     = ROLE_COLORS[s.roleGroup]
-    const dimNotes = Object.entries(s.notes || {}).filter(([, n]) => n?.trim())
+    const roleGroup = s.roleGroup || 'practitioner'
+    const rc2       = ROLE_COLORS[roleGroup] || ROLE_COLORS.practitioner
+    const dimNotes  = Object.entries(s.notes || {}).filter(([, n]) => n?.trim())
 
     // Respondent header
     sf(doc, [248, 250, 252]); doc.roundedRect(ML, y, CW, 9, 3, 3, 'F')
     sd(doc, C.slate200); doc.setLineWidth(0.2); doc.roundedRect(ML, y, CW, 9, 3, 3, 'S')
     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); st(doc, C.navy)
-    doc.text(s.respondentName, ML + 4, y + 6.5)
+    const sName = s.respondentName || ''
+    doc.text(sName, ML + 4, y + 6.5)
     doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.slate500)
-    doc.text(s.respondentRole || '', ML + 4 + doc.getTextWidth(s.respondentName) + 6, y + 6.5)
+    doc.text(s.respondentRole || '', ML + 4 + doc.getTextWidth(sName) + 6, y + 6.5)
     fbox(doc, ML + CW - 28, y + 1.5, 26, 6, rc2.bg, 3)
     doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); st(doc, rc2.fg)
     doc.text(ROLE_GROUP_META[s.roleGroup]?.label || '', ML + CW - 15, y + 6, { align: 'center' })
@@ -1100,7 +1108,7 @@ export default function CompositePDFExportButton({ engagement, radarRef }) {
       await generateCompositePDF(engagement, radarRef)
     } catch (e) {
       console.error('Composite PDF export failed:', e)
-      alert('PDF export failed. Please try again.')
+      alert(`PDF export failed: ${e?.message || String(e)}`)
     } finally {
       setLoading(false)
     }
