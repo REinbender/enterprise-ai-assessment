@@ -739,7 +739,7 @@ export default function CompositeResults({ engagement, onBack }) {
             </svg>
             Export JSON
           </button>
-          <CompositePDFExportButton engagement={engagement} />
+          <CompositePDFExportButton engagement={engagement} radarRef={radarRef} />
         </div>
 
       </div>
