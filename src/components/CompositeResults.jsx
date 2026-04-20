@@ -72,8 +72,21 @@ function GroupBar({ group, data, baseline }) {
 }
 
 // ── Perception gap callout ─────────────────────────────────────────────────
+const GAP_PAIR_LABELS = {
+  exec_vs_pract: ['Executive', 'Practitioner'],
+  exec_vs_mgmt:  ['Executive', 'Management'],
+  mgmt_vs_pract: ['Management', 'Practitioner'],
+}
+
 function PerceptionGapCallout({ gaps }) {
   if (!gaps.length) return null
+
+  // Determine which role groups are actually involved across all gaps
+  const allPairs = new Set(gaps.map(d => d.gapPair).filter(Boolean))
+  const subText = allPairs.size === 1 && GAP_PAIR_LABELS[allPairs.values().next().value]
+    ? `These dimensions show a 20+ point gap between ${GAP_PAIR_LABELS[allPairs.values().next().value].join(' and ')} ratings.`
+    : 'These dimensions show a 20+ point gap between role groups — a finding in itself indicating meaningfully different views of AI maturity.'
+
   return (
     <div className="perception-gap-section">
       <div className="perception-gap-header">
@@ -81,52 +94,52 @@ function PerceptionGapCallout({ gaps }) {
         <div>
           <div className="perception-gap-title">Perception Gap Detected</div>
           <div className="perception-gap-sub">
-            These dimensions show a 20+ point gap between Executive and Practitioner ratings —
-            a finding in itself. It indicates leadership and frontline teams have meaningfully
-            different views of AI maturity in this area.
+            {subText} It indicates different organizational layers have meaningfully
+            different views of AI maturity in these areas.
           </div>
         </div>
       </div>
-      {gaps.map(d => (
-        <div key={d.dimId} className="perception-gap-item">
-          <div className="perception-gap-dim">
-            <span>{dimIcons[d.dimId]}</span>
-            <span style={{ color: d.color, fontWeight: 600 }}>{d.name}</span>
-            <span className="perception-gap-magnitude">{d.gapMagnitude} pt gap</span>
-          </div>
-          <div className="perception-gap-bars">
-            <div className="perception-gap-bar-row">
-              <span style={{ color: ROLE_GROUP_META.executive.color, fontSize: 12, width: 88 }}>Executive</span>
-              <div className="pgap-bar-track">
-                <div className="pgap-bar-fill" style={{
-                  width: `${d.byGroup.executive?.avg ?? 0}%`,
-                  background: ROLE_GROUP_META.executive.color,
-                }} />
-              </div>
-              <span style={{ color: ROLE_GROUP_META.executive.color, fontSize: 13, fontWeight: 700, minWidth: 28 }}>
-                {d.byGroup.executive?.avg ?? '—'}
-              </span>
+      {gaps.map(d => {
+        // Show bars for the two groups that form the largest gap
+        const pairKey  = d.gapPair || 'exec_vs_pract'
+        const [grpA, grpB] = (GAP_PAIR_LABELS[pairKey] || ['Executive', 'Practitioner'])
+        const keyA = grpA.toLowerCase()
+        const keyB = grpB.toLowerCase()
+        const metaA = ROLE_GROUP_META[keyA]
+        const metaB = ROLE_GROUP_META[keyB]
+        const higherGroup = d.gapDirection?.split('_higher')[0]  // e.g. 'executive'
+        return (
+          <div key={d.dimId} className="perception-gap-item">
+            <div className="perception-gap-dim">
+              <span>{dimIcons[d.dimId]}</span>
+              <span style={{ color: d.color, fontWeight: 600 }}>{d.name}</span>
+              <span className="perception-gap-magnitude">{d.gapMagnitude} pt gap</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>({grpA} vs {grpB})</span>
             </div>
-            <div className="perception-gap-bar-row">
-              <span style={{ color: ROLE_GROUP_META.practitioner.color, fontSize: 12, width: 88 }}>Practitioner</span>
-              <div className="pgap-bar-track">
-                <div className="pgap-bar-fill" style={{
-                  width: `${d.byGroup.practitioner?.avg ?? 0}%`,
-                  background: ROLE_GROUP_META.practitioner.color,
-                }} />
-              </div>
-              <span style={{ color: ROLE_GROUP_META.practitioner.color, fontSize: 13, fontWeight: 700, minWidth: 28 }}>
-                {d.byGroup.practitioner?.avg ?? '—'}
-              </span>
+            <div className="perception-gap-bars">
+              {[{ key: keyA, meta: metaA, label: grpA }, { key: keyB, meta: metaB, label: grpB }].map(({ key, meta, label }) => (
+                <div key={key} className="perception-gap-bar-row">
+                  <span style={{ color: meta.color, fontSize: 12, width: 96 }}>{label}</span>
+                  <div className="pgap-bar-track">
+                    <div className="pgap-bar-fill" style={{
+                      width: `${d.byGroup[key]?.avg ?? 0}%`,
+                      background: meta.color,
+                    }} />
+                  </div>
+                  <span style={{ color: meta.color, fontSize: 13, fontWeight: 700, minWidth: 28 }}>
+                    {d.byGroup[key]?.avg ?? '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="perception-gap-insight">
+              {higherGroup === keyA
+                ? `${grpA} rates this dimension ${d.gapMagnitude} points higher than ${grpB}. This may indicate an optimism gap — ${grpA.toLowerCase()} believes AI capabilities are stronger than those closer to implementation experience them to be.`
+                : `${grpB} rates this dimension ${d.gapMagnitude} points higher than ${grpA}. This may indicate undervalued capabilities or a communication gap around existing strengths.`}
             </div>
           </div>
-          <div className="perception-gap-insight">
-            {d.gapDirection === 'exec_higher'
-              ? `Leadership rates this dimension ${d.gapMagnitude} points higher than practitioners. This may indicate an optimism gap — leadership believes AI capabilities are stronger than those doing the work experience them to be.`
-              : `Practitioners rate this dimension ${d.gapMagnitude} points higher than leadership. This may indicate undervalued grassroots capabilities or a communication gap around existing strengths.`}
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -611,18 +624,15 @@ export default function CompositeResults({ engagement, onBack, onUpdateEngagemen
                     fill="none" stroke={maturity.color} strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray={`${fill} ${circ}`}
-                    transform={`rotate(-90 ${size/2} ${size/2})`}
                     style={{ transition: 'stroke-dasharray 0.8s ease' }}
                   />
-                  <text x={size/2} y={size/2 - 6} textAnchor="middle" fill="#1E293B" fontSize={28} fontWeight={700} fontFamily="sans-serif">
-                    {composite.overallAvg}
-                  </text>
-                  <text x={size/2} y={size/2 + 14} textAnchor="middle" fill="#94A3B8" fontSize={11} fontFamily="sans-serif">
-                    out of 100
-                  </text>
                 </svg>
               )
             })()}
+            <div className="score-ring-center">
+              <div className="score-ring-value" style={{ fontSize: 34, color: maturity.color }}>{composite.overallAvg}</div>
+              <div className="score-ring-label">out of 100</div>
+            </div>
           </div>
           <div className="score-summary-content">
             <div className="score-summary-headline">
@@ -849,6 +859,23 @@ export default function CompositeResults({ engagement, onBack, onUpdateEngagemen
             onUpdateEngagement({ ...engagement, sandboxResults: updated })
           }}
         />
+
+        {/* ── Scoring methodology ───────────────────────────────────────── */}
+        <div className="card" style={{ marginBottom: 24, padding: '20px 24px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: 8 }}>METHODOLOGY NOTE</div>
+          <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.7 }}>
+            <strong style={{ color: '#1E293B' }}>How scores are calculated:</strong> Each dimension is assessed with 12 questions on a 1–5 scale
+            (1 = No capability, 3 = Developing, 5 = Advanced). Scores are normalized to a 0–100 range using the formula{' '}
+            <code style={{ background: '#E2E8F0', padding: '1px 5px', borderRadius: 3, fontSize: 12 }}>
+              ((sum − n) / (n × 4)) × 100
+            </code>
+            , where <em>n</em> is the number of answered questions. "Don't Know" responses are excluded from scoring
+            and tracked separately as a visibility indicator. Composite scores are the unweighted mean of individual
+            respondent dimension scores. Perception gaps are flagged when any two role groups diverge by 20+ points
+            on the same dimension. All scores reflect consultants' structured assessment of observable organizational
+            evidence across {composite.sessionCount} respondent{composite.sessionCount !== 1 ? 's' : ''}.
+          </div>
+        </div>
 
         {/* ── Footer actions ────────────────────────────────────────────── */}
         <div className="results-actions">

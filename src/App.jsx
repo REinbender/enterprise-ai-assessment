@@ -32,6 +32,7 @@ const defaultConfidence = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]:
 export default function App() {
   const [mode, setMode]               = useState('loading')
   const [engagement, setEngagement]   = useState(null)
+  const [storageWarning, setStorageWarning] = useState(null) // { pct, critical } | null
 
   // Current in-progress interview state
   const [interviewStep, setInterviewStep]     = useState(1) // 1–5 = dimensions
@@ -41,6 +42,18 @@ export default function App() {
   const [notes, setNotes]                       = useState(defaultNotes)
   const [confidence, setConfidence]             = useState(defaultConfidence)
   const [completedSession, setCompletedSession] = useState(null)
+
+  // ── Storage capacity listeners ─────────────────────────────────────────────
+  useEffect(() => {
+    const onWarning = (e) => setStorageWarning(e.detail)
+    const onFull    = ()   => setStorageWarning({ pct: 100, critical: true, full: true })
+    window.addEventListener('ai_storage_warning', onWarning)
+    window.addEventListener('ai_storage_full',    onFull)
+    return () => {
+      window.removeEventListener('ai_storage_warning', onWarning)
+      window.removeEventListener('ai_storage_full',    onFull)
+    }
+  }, [])
 
   // ── Mount: load engagement and any in-progress draft ──────────────────────
   useEffect(() => {
@@ -184,6 +197,41 @@ export default function App() {
   const sidebarStep = interviewStep + 1
   const currentDim  = mode === 'interview' ? dimensions[interviewStep - 1] : null
 
+  // ── Storage warning banner ─────────────────────────────────────────────────
+  const StorageWarningBanner = storageWarning && (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+      background: storageWarning.full ? '#991B1B' : storageWarning.critical ? '#B45309' : '#92400E',
+      color: '#FFF',
+      padding: '10px 20px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      fontSize: 13, fontWeight: 500, gap: 12,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+    }}>
+      <span>
+        {storageWarning.full
+          ? '⛔ Storage full — your last save failed. Export your engagement immediately to avoid data loss.'
+          : `⚠ Storage ${storageWarning.pct}% full — export your engagement as a backup to prevent data loss.`}
+      </span>
+      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        {engagement && (
+          <button
+            onClick={() => exportEngagement(engagement)}
+            style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+          >
+            Export Backup
+          </button>
+        )}
+        {!storageWarning.full && (
+          <button
+            onClick={() => setStorageWarning(null)}
+            style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+          >✕</button>
+        )}
+      </div>
+    </div>
+  )
+
   // ── Render ─────────────────────────────────────────────────────────────────
   if (mode === 'loading') return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 16 }}>
@@ -198,7 +246,7 @@ export default function App() {
   )
 
   if (mode === 'hub') return (
-    <EngagementHub
+    <>{StorageWarningBanner}<EngagementHub
       engagement={engagement}
       onStartInterview={handleStartInterview}
       onDeleteSession={handleDeleteSession}
@@ -207,50 +255,53 @@ export default function App() {
       onImport={() => setMode('import')}
       onExportEngagement={() => exportEngagement(engagement)}
       onResetEngagement={handleResetEngagement}
-    />
+    /></>
   )
 
   if (mode === 'respondent') return (
-    <RespondentForm
+    <>{StorageWarningBanner}<RespondentForm
       engagement={engagement}
       onSubmit={handleRespondentSubmit}
       onBack={() => setMode('hub')}
-    />
+    /></>
   )
 
   if (mode === 'interview' && currentDim) return (
-    <div className="app-shell">
-      <NavigationSidebar
-        currentStep={sidebarStep}
-        company={engagement.company}
-        answers={answers}
-        isDimensionComplete={isDimensionComplete}
-        onNavigate={(s) => {
-          if (s >= 2 && s <= 6) setInterviewStep(s - 1)
-        }}
-      />
-      <main className="app-main with-sidebar">
-        <DimensionAssessment
-          dimension={currentDim}
-          answers={answers[currentDim.id]}
-          onAnswer={(qIdx, score) => handleAnswer(currentDim.id, qIdx, score)}
-          notes={notes[currentDim.id]}
-          onNotesChange={(text) => handleNotesChange(currentDim.id, text)}
-          confidence={confidence[currentDim.id]}
-          onConfidenceChange={(level) => handleConfidenceChange(currentDim.id, level)}
-          onNext={handleInterviewNext}
-          onBack={handleInterviewBack}
-          isComplete={isDimensionComplete(currentDim.id)}
-          stepNumber={sidebarStep}
-          totalSteps={7}
+    <>
+      {StorageWarningBanner}
+      <div className="app-shell">
+        <NavigationSidebar
+          currentStep={sidebarStep}
           company={engagement.company}
+          answers={answers}
+          isDimensionComplete={isDimensionComplete}
+          onNavigate={(s) => {
+            if (s >= 2 && s <= 6) setInterviewStep(s - 1)
+          }}
         />
-      </main>
-    </div>
+        <main className="app-main with-sidebar">
+          <DimensionAssessment
+            dimension={currentDim}
+            answers={answers[currentDim.id]}
+            onAnswer={(qIdx, score) => handleAnswer(currentDim.id, qIdx, score)}
+            notes={notes[currentDim.id]}
+            onNotesChange={(text) => handleNotesChange(currentDim.id, text)}
+            confidence={confidence[currentDim.id]}
+            onConfidenceChange={(level) => handleConfidenceChange(currentDim.id, level)}
+            onNext={handleInterviewNext}
+            onBack={handleInterviewBack}
+            isComplete={isDimensionComplete(currentDim.id)}
+            stepNumber={sidebarStep}
+            totalSteps={7}
+            company={engagement.company}
+          />
+        </main>
+      </div>
+    </>
   )
 
   if (mode === 'session-done' && completedSession) return (
-    <ResultsPage
+    <>{StorageWarningBanner}<ResultsPage
       company={engagement.company}
       answers={completedSession.answers}
       notes={completedSession.notes}
@@ -260,7 +311,7 @@ export default function App() {
       respondentRole={completedSession.respondentRole}
       onSaveToEngagement={handleSaveSession}
       onDiscard={handleDiscardSession}
-    />
+    /></>
   )
 
   const handleUpdateEngagement = (updated) => {
@@ -269,19 +320,19 @@ export default function App() {
   }
 
   if (mode === 'composite') return (
-    <CompositeResults
+    <>{StorageWarningBanner}<CompositeResults
       engagement={engagement}
       onBack={() => setMode('hub')}
       onUpdateEngagement={handleUpdateEngagement}
-    />
+    /></>
   )
 
   if (mode === 'import') return (
-    <ImportScreen
+    <>{StorageWarningBanner}<ImportScreen
       engagement={engagement}
       onImport={handleImportSessions}
       onBack={() => setMode('hub')}
-    />
+    /></>
   )
 
   return null

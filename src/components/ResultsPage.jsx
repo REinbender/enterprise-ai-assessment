@@ -726,6 +726,22 @@ export default function ResultsPage({
           )
         })()}
 
+        {/* ── Scoring methodology ────────────────────────────────────── */}
+        <div className="card" style={{ marginBottom: 24, padding: '20px 24px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: 8 }}>METHODOLOGY NOTE</div>
+          <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.7 }}>
+            <strong style={{ color: '#1E293B' }}>How scores are calculated:</strong> Each dimension is assessed with 12 questions on a 1–5 scale
+            (1 = No capability, 3 = Developing, 5 = Advanced). Scores are normalized to a 0–100 range using the formula{' '}
+            <code style={{ background: '#E2E8F0', padding: '1px 5px', borderRadius: 3, fontSize: 12 }}>
+              ((sum − n) / (n × 4)) × 100
+            </code>
+            , where <em>n</em> is the number of answered questions. "Don't Know" responses are excluded from scoring
+            and tracked separately as a visibility indicator. The overall score is the unweighted mean of all five
+            dimension scores. All scores reflect the consultant's structured assessment of observable organizational
+            evidence, not a self-reported survey.
+          </div>
+        </div>
+
         {/* ── Footer actions ─────────────────────────────────────────── */}
         <div className="results-actions">
           {engagementMode ? (

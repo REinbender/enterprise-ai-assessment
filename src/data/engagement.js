@@ -58,8 +58,44 @@ export function loadEngagement() {
   } catch { return null }
 }
 
+// ── localStorage quota guard ───────────────────────────────────────────────
+// Returns usage ratio 0–1, or 0 if estimation not supported
+function storageUsageRatio() {
+  try {
+    let total = 0
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      total += (localStorage.getItem(key)?.length || 0) * 2 // UTF-16 = 2 bytes/char
+    }
+    // Browsers typically allow 5MB = 5_242_880 bytes
+    return total / 5_242_880
+  } catch { return 0 }
+}
+
 export function saveEngagement(eng) {
-  localStorage.setItem(ENGAGEMENT_KEY, JSON.stringify(eng))
+  try {
+    const json = JSON.stringify(eng)
+    localStorage.setItem(ENGAGEMENT_KEY, json)
+
+    // Warn when storage is >70% full — after successful save so data isn't lost
+    const ratio = storageUsageRatio()
+    if (ratio > 0.7) {
+      const pct = Math.round(ratio * 100)
+      // Use setTimeout so the warning appears after the current render cycle
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('ai_storage_warning', {
+          detail: { pct, critical: ratio > 0.9 }
+        }))
+      }, 0)
+    }
+  } catch (e) {
+    if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+      // Storage full — notify the app so it can show a blocking error modal
+      window.dispatchEvent(new CustomEvent('ai_storage_full'))
+    } else {
+      throw e
+    }
+  }
 }
 
 export function clearEngagement() {
@@ -184,7 +220,8 @@ export function computeComposite(sessions) {
   sessions.forEach(s => { roleCounts[s.roleGroup] = (roleCounts[s.roleGroup] || 0) + 1 })
 
   const dimComposites = dimensions.map(dim => {
-    const allScores = sessions.map(s => s.dimScores[dim.id]).filter(n => n != null)
+    // Filter out null scores (all-DK sessions contribute no data to this dimension)
+    const allScores = sessions.map(s => s.dimScores[dim.id]).filter(n => n != null && typeof n === 'number')
     if (!allScores.length) return null
 
     const avg = Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
@@ -203,13 +240,28 @@ export function computeComposite(sessions) {
       }
     })
 
-    const execAvg  = byGroup.executive?.avg
-    const practAvg = byGroup.practitioner?.avg
-    const gapMagnitude = execAvg != null && practAvg != null ? Math.abs(execAvg - practAvg) : 0
+    // Check all three pairwise gaps so management↔practitioner gaps aren't missed
+    const pairs = [
+      { a: 'executive',    b: 'practitioner', label: 'exec_vs_pract'  },
+      { a: 'executive',    b: 'management',   label: 'exec_vs_mgmt'   },
+      { a: 'management',   b: 'practitioner', label: 'mgmt_vs_pract'  },
+    ]
+    let gapMagnitude = 0
+    let gapDirection = null
+    let gapPair      = null
+    pairs.forEach(({ a, b, label }) => {
+      const aAvg = byGroup[a]?.avg
+      const bAvg = byGroup[b]?.avg
+      if (aAvg == null || bAvg == null) return
+      const mag = Math.abs(aAvg - bAvg)
+      if (mag > gapMagnitude) {
+        gapMagnitude = mag
+        gapPair      = label
+        gapDirection = aAvg > bAvg ? `${a}_higher` : `${b}_higher`
+      }
+    })
     const perceptionGap = gapMagnitude >= PERCEPTION_GAP_THRESHOLD
-    const gapDirection  = perceptionGap
-      ? (execAvg > practAvg ? 'exec_higher' : 'practitioner_higher')
-      : null
+    if (!perceptionGap) { gapDirection = null; gapPair = null }
 
     // Per-question averages + DK rates across all sessions
     const qAvgs = dim.questions.map((_, qi) => {
@@ -256,6 +308,7 @@ export function computeComposite(sessions) {
       perceptionGap,
       gapDirection,
       gapMagnitude,
+      gapPair,          // which pair has the largest gap e.g. 'exec_vs_pract'
       qAvgs,
       respondentCount: allScores.length,
       dkRate,

@@ -685,24 +685,25 @@ export const scaleLabels = {
 }
 
 export const maturityLevels = [
-  { label: 'Beginning',  min: 0,  max: 20,  color: '#E74C3C', bg: '#FDEDEC' },
-  { label: 'Developing', min: 20, max: 40,  color: '#E67E22', bg: '#FEF5E7' },
-  { label: 'Maturing',   min: 40, max: 60,  color: '#F1C40F', bg: '#FEFCE8' },
-  { label: 'Advanced',   min: 60, max: 80,  color: '#2EA3F2', bg: '#E8F4FD' },
-  { label: 'Leading',    min: 80, max: 101, color: '#27AE60', bg: '#EAFAF1' },
+  { label: 'Beginning',  min: 0,  max: 19,  color: '#E74C3C', bg: '#FDEDEC' },
+  { label: 'Developing', min: 20, max: 39,  color: '#E67E22', bg: '#FEF5E7' },
+  { label: 'Maturing',   min: 40, max: 59,  color: '#F1C40F', bg: '#FEFCE8' },
+  { label: 'Advanced',   min: 60, max: 79,  color: '#2EA3F2', bg: '#E8F4FD' },
+  { label: 'Leading',    min: 80, max: 100, color: '#27AE60', bg: '#EAFAF1' },
 ]
 
 export function getMaturityLevel(score) {
-  // Use <= for upper boundary so score of 80 correctly lands in Leading, not Advanced
-  return maturityLevels.find(l => score >= l.min && score <= l.max) || maturityLevels[0]
+  const s = Math.max(0, Math.min(100, score ?? 0))
+  return maturityLevels.find(l => s >= l.min && s <= l.max) ?? maturityLevels[0]
 }
 
 // Sentinel value for "Don't Know / Outside my area" — excluded from scoring
 export const DK = 'dk'
 
+// Returns null if all answers are DK (no scoreable data) — prevents false 0/100
 export function computeScore(answers) {
   const numeric = Object.values(answers || {}).filter(v => typeof v === 'number')
-  if (!numeric.length) return 0
+  if (!numeric.length) return null  // null = no visibility, not a true score of 0
   const sum = numeric.reduce((a, b) => a + b, 0)
   return Math.round(((sum - numeric.length) / (numeric.length * 4)) * 100)
 }
@@ -713,7 +714,13 @@ export function computeDimensionMeta(answers, numQuestions) {
   const numeric = all.filter(v => typeof v === 'number')
   const dkCount = all.filter(v => v === DK).length
   const score   = computeScore(answers)
-  return { score, answered: numeric.length, dkCount, total: numQuestions }
+  return {
+    score,                        // null = all-DK, no scoreable data
+    answered: numeric.length,
+    dkCount,
+    total: numQuestions,
+    noVisibility: numeric.length === 0 && dkCount > 0,  // true when entirely DK
+  }
 }
 
 export function computeDimensionScores(allAnswers) {
@@ -724,8 +731,11 @@ export function computeDimensionScores(allAnswers) {
 }
 
 export function computeOverallScore(dimensionScores) {
-  const total = dimensionScores.reduce((acc, d) => acc + d.score, 0)
-  return Math.round(total / dimensionScores.length)
+  // Exclude null-score dimensions (all-DK) from the overall average
+  const scoreable = dimensionScores.filter(d => d.score !== null && d.score !== undefined)
+  if (!scoreable.length) return 0
+  const total = scoreable.reduce((acc, d) => acc + d.score, 0)
+  return Math.round(total / scoreable.length)
 }
 
 // ── Executive summary narrative generator ─────────────────────────────────
