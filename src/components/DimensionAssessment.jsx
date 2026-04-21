@@ -1,15 +1,10 @@
 import { useState } from 'react'
-import { scaleLabels, DK } from '../data/questions'
+import { scaleLabels, scaleShortLabels, DK } from '../data/questions'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
 
-const scaleSummaryLabels = [
-  'Not at all',
-  'Early / Ad-hoc',
-  'Developing',
-  'Established',
-  'Advanced',
-]
+// scaleSummaryLabels sourced from questions.js — single source of truth
+const scaleSummaryLabels = scaleShortLabels
 
 const CONFIDENCE_OPTIONS = [
   { value: 'high',   label: 'High',   color: '#059669', bg: '#D1FAE5', desc: 'Respondent had clear, direct knowledge of this area' },
@@ -17,8 +12,18 @@ const CONFIDENCE_OPTIONS = [
   { value: 'low',    label: 'Low',    color: '#E74C3C', bg: '#FEE2E2', desc: 'Limited visibility — score should be validated further' },
 ]
 
-function TopBar({ dimension, stepNumber, totalSteps, answeredCount, dkCount, totalQuestions }) {
+function formatSavedAgo(date) {
+  if (!date) return null
+  const secs = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (secs < 5)  return 'just now'
+  if (secs < 60) return `${secs}s ago`
+  const mins = Math.floor(secs / 60)
+  return `${mins}m ago`
+}
+
+function TopBar({ dimension, stepNumber, totalSteps, answeredCount, dkCount, totalQuestions, lastSavedAt }) {
   const progress = (stepNumber / totalSteps) * 100
+  const savedLabel = formatSavedAgo(lastSavedAt)
 
   return (
     <div className="topbar">
@@ -37,7 +42,16 @@ function TopBar({ dimension, stepNumber, totalSteps, answeredCount, dkCount, tot
             <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
-        <span className="topbar-step-info">{stepNumber} / {totalSteps}</span>
+        {savedLabel ? (
+          <span className="topbar-saved-indicator" role="status" aria-live="polite">
+            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            Saved {savedLabel}
+          </span>
+        ) : (
+          <span className="topbar-step-info">{stepNumber} / {totalSteps}</span>
+        )}
       </div>
     </div>
   )
@@ -116,7 +130,7 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
       </div>
 
       {/* 1–5 scale + Don't Know */}
-      <div className="scale-row">
+      <div className="scale-row" role="radiogroup" aria-label={`Question ${index + 1} rating`}>
         {[1, 2, 3, 4, 5].map(val => (
           <label key={val} className="scale-option">
             <input
@@ -125,6 +139,7 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
               value={val}
               checked={selectedValue === val}
               onChange={() => onSelect(index, val)}
+              aria-label={`${val} — ${scaleSummaryLabels[val - 1]}`}
             />
             <div
               className="scale-option-btn"
@@ -134,6 +149,7 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
                   : {}
               }
               title={question.anchors?.[val]}
+              aria-hidden="true"
             >
               {val}
             </div>
@@ -141,7 +157,7 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
         ))}
 
         {/* Don't Know separator */}
-        <div className="scale-dk-divider" />
+        <div className="scale-dk-divider" aria-hidden="true" />
 
         {/* Don't Know button */}
         <label className="scale-option">
@@ -151,10 +167,12 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
             value={DK}
             checked={isDontKnow}
             onChange={() => onSelect(index, DK)}
+            aria-label="Don't know — excluded from scoring"
           />
           <div
             className={`scale-dk-btn ${isDontKnow ? 'scale-dk-btn--selected' : ''}`}
             title="Respondent doesn't know or this is outside their area — excluded from scoring"
+            aria-hidden="true"
           >
             ?
           </div>
@@ -162,9 +180,10 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
       </div>
 
       <div className="scale-end-labels">
-        <span>Not at all</span>
-        <span>Advanced</span>
-        <span className="scale-dk-label">Don't know</span>
+        <span>1 — Not at all</span>
+        <span style={{ flex: 1 }} />
+        <span>5 — Advanced</span>
+        <span className="scale-dk-label" style={{ marginLeft: 24 }}>? — Don't know</span>
       </div>
 
       {isDontKnow && (
@@ -202,7 +221,7 @@ function ConfidenceSelector({ confidence, onConfidenceChange, color }) {
         visibility into the area — not their performance. Low confidence flags dimensions
         for transcript validation or a follow-up conversation.
       </p>
-      <div className="confidence-options">
+      <div className="confidence-options" role="group" aria-label="Consultant confidence level">
         {CONFIDENCE_OPTIONS.map(opt => (
           <button
             key={opt.value}
@@ -210,6 +229,8 @@ function ConfidenceSelector({ confidence, onConfidenceChange, color }) {
             className={`confidence-btn ${confidence === opt.value ? 'confidence-btn--selected' : ''}`}
             style={confidence === opt.value ? { background: opt.bg, borderColor: opt.color, color: opt.color } : {}}
             onClick={() => onConfidenceChange(confidence === opt.value ? null : opt.value)}
+            aria-pressed={confidence === opt.value}
+            aria-label={`${opt.label} confidence — ${opt.desc}`}
             title={opt.desc}
           >
             <span className="confidence-btn-dot" style={{ background: opt.color }} />
@@ -243,6 +264,7 @@ export default function DimensionAssessment({
   stepNumber,
   totalSteps,
   company,
+  lastSavedAt,
 }) {
   const allEntries  = Object.values(answers)
   const scoredCount = allEntries.filter(v => typeof v === 'number').length
@@ -259,6 +281,7 @@ export default function DimensionAssessment({
         answeredCount={scoredCount}
         dkCount={dkCount}
         totalQuestions={totalQuestions}
+        lastSavedAt={lastSavedAt}
       />
 
       <div className="page-inner">
@@ -334,7 +357,7 @@ export default function DimensionAssessment({
         {!isComplete && totalAnswered > 0 && (
           <div className="remaining-nudge">
             {totalQuestions - totalAnswered} question
-            {totalQuestions - totalAnswered !== 1 ? 's' : ''} remaining before you can continue
+            {totalQuestions - totalAnswered !== 1 ? 's' : ''} remaining — score each one or mark as <strong>?</strong> (Don't know) to continue
           </div>
         )}
 

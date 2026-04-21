@@ -64,15 +64,16 @@ function SessionRow({ session, onExport, onDelete }) {
       <div className="hub-session-actions">
         <button
           className="btn-icon"
+          aria-label={`Re-download JSON for ${session.respondentName}`}
           title="Re-download session JSON"
           onClick={onExport}
         >
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
         </button>
         {confirmDelete ? (
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div role="group" aria-label="Confirm delete" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: '#E74C3C' }}>Delete?</span>
             <button className="btn btn-danger btn-xs" onClick={onDelete}>Yes</button>
             <button className="btn btn-ghost btn-xs" onClick={() => setConfirmDelete(false)}>No</button>
@@ -80,10 +81,11 @@ function SessionRow({ session, onExport, onDelete }) {
         ) : (
           <button
             className="btn-icon btn-icon--danger"
+            aria-label={`Delete session for ${session.respondentName}`}
             title="Delete session"
             onClick={() => setConfirmDelete(true)}
           >
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </button>
@@ -269,9 +271,9 @@ export default function EngagementHub({
 
       {/* ── Reset confirmation modal ─────────────────────────────────────── */}
       {showReset && (
-        <div className="modal-overlay" onClick={() => setShowReset(false)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reset-modal-title" onClick={() => setShowReset(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Start a New Engagement?</div>
+            <div className="modal-title" id="reset-modal-title">Start a New Engagement?</div>
             <p className="modal-body">
               This will permanently delete the current engagement for{' '}
               <strong>{company.name}</strong> and all {sessions.length} session

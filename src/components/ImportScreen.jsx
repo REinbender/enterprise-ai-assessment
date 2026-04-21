@@ -4,6 +4,7 @@ import { parseImportedFiles, ROLE_GROUP_META, assignRoleGroup } from '../data/en
 export default function ImportScreen({ engagement, onImport, onBack }) {
   const [sessions, setSessions]   = useState([])
   const [errors, setErrors]       = useState([])
+  const [notices, setNotices]     = useState([])  // non-error info messages (dupes, warnings)
   const [dragging, setDragging]   = useState(false)
   const [loading, setLoading]     = useState(false)
   const inputRef                  = useRef(null)
@@ -14,19 +15,29 @@ export default function ImportScreen({ engagement, onImport, onBack }) {
     const results = await parseImportedFiles(files)
     const valid   = results.filter(r => r.ok).flatMap(r => r.sessions)
     const errs    = results.filter(r => !r.ok).map(r => r.error)
+    // Partial warnings from engagement files that had some invalid sessions
+    const warns   = results.filter(r => r.ok && r.warnings?.length).flatMap(r => r.warnings)
 
-    // De-duplicate against existing sessions
+    // De-duplicate against existing engagement sessions AND already-staged sessions
     const existingIds = new Set(engagement.sessions.map(s => s.sessionId))
-    const fresh = valid.filter(s => !existingIds.has(s.sessionId))
-    const dupes = valid.length - fresh.length
+    let dupesVsEngagement = 0
 
     setSessions(prev => {
       const prevIds = new Set(prev.map(s => s.sessionId))
-      return [...prev, ...fresh.filter(s => !prevIds.has(s.sessionId))]
+      const fresh = valid.filter(s => !existingIds.has(s.sessionId) && !prevIds.has(s.sessionId))
+      dupesVsEngagement = valid.filter(s => existingIds.has(s.sessionId)).length
+      const dupesVsStaged = valid.length - fresh.length - dupesVsEngagement
+      const newNotices = []
+      if (dupesVsEngagement > 0)
+        newNotices.push(`${dupesVsEngagement} session${dupesVsEngagement !== 1 ? 's' : ''} already in this engagement — skipped`)
+      if (dupesVsStaged > 0)
+        newNotices.push(`${dupesVsStaged} session${dupesVsStaged !== 1 ? 's' : ''} already staged for import — skipped`)
+      if (newNotices.length) setNotices(p => [...p, ...newNotices])
+      return [...prev, ...fresh]
     })
 
-    const dupMsg = dupes > 0 ? [`${dupes} session(s) already in engagement — skipped`] : []
-    setErrors(prev => [...prev, ...errs, ...dupMsg])
+    setErrors(prev => [...prev, ...errs])
+    if (warns.length) setNotices(p => [...p, ...warns])
     setLoading(false)
   }
 
@@ -109,12 +120,27 @@ export default function ImportScreen({ engagement, onImport, onBack }) {
             </div>
           </div>
 
-          {/* Error messages */}
+          {/* Validation errors — files that could not be imported */}
           {errors.length > 0 && (
             <div className="import-errors">
               {errors.map((err, i) => (
                 <div key={i} className="import-error-item">
                   <span style={{ color: '#E74C3C' }}>⚠</span> {err}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Informational notices — duplicates skipped, partial warnings */}
+          {notices.length > 0 && (
+            <div style={{
+              marginTop: 8, padding: '8px 12px', borderRadius: 6,
+              background: '#EFF6FF', border: '1px solid #BFDBFE',
+              display: 'flex', flexDirection: 'column', gap: 4,
+            }}>
+              {notices.map((msg, i) => (
+                <div key={i} style={{ fontSize: 12, color: '#1D4ED8', display: 'flex', gap: 6 }}>
+                  <span>ℹ</span> {msg}
                 </div>
               ))}
             </div>
@@ -187,6 +213,7 @@ export default function ImportScreen({ engagement, onImport, onBack }) {
                   className="btn btn-primary"
                   style={{ flex: 1 }}
                   onClick={handleImport}
+                  disabled={loading}
                 >
                   Add {sessions.length} Session{sessions.length !== 1 ? 's' : ''} to Engagement →
                 </button>

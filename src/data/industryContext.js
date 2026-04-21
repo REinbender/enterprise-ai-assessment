@@ -481,6 +481,8 @@ const IC = {
  * Falls back to the 'Other' sentence if the specific industry is not found.
  */
 export function getIndustryContext(dimId, tier, industry) {
+  // Guard against invalid inputs — always returns null, never undefined
+  if (dimId == null || !tier) return null
   return IC[dimId]?.[tier]?.[industry] || IC[dimId]?.[tier]?.['Other'] || null
 }
 
@@ -489,13 +491,21 @@ export function getIndustryContext(dimId, tier, industry) {
  * Returns null for large organizations where the full recommendations apply as-is.
  */
 export function getSizeNote(size) {
-  const small = ['1–50 employees', '51–200 employees']
-  const mid   = ['201–500 employees', '501–1,000 employees']
-  if (small.includes(size)) {
-    return 'For organizations at your scale, right-size these investments with lightweight, open-source tooling and phased rollouts — avoid enterprise platform overhead until use cases are proven and ROI is demonstrated.'
+  const notes = {
+    '1–50 employees':
+      'At this scale, focus on 1–2 high-impact use cases rather than broad programs — resource constraint is your primary risk. Use lightweight, pay-as-you-go cloud tooling and prove ROI before expanding infrastructure, governance, or team investment.',
+    '51–200 employees':
+      'Organizations at your scale can build meaningful AI capability without enterprise platform investment. Designate an AI lead, adopt proven cloud-native tools, and prioritize use cases with clear payback windows before scaling governance overhead or standing up a dedicated team.',
+    '201–500 employees':
+      'At this scale, a small Center of Excellence (2–3 dedicated AI practitioners supporting business units) delivers strong ROI. Invest in standardized tooling and lightweight governance now — before team proliferation creates fragmentation that is costly to reverse.',
+    '501–1,000 employees':
+      'Your organization is at the inflection point between ad hoc and systematic AI. This is the right time to formalize an AI team, adopt enterprise-grade tooling, and establish governance processes that scale without creating bottlenecks — waiting until larger scale makes these changes significantly harder.',
+    '1,001–5,000 employees':
+      'At this scale, a CoE with embedded dimension leads in major business units is the proven model. Platform investment is now justified; prioritize standardization, feature and model reuse, and governance that operates across multiple business units simultaneously to prevent portfolio fragmentation.',
+    '5,001–10,000 employees':
+      'Large enterprise AI programs require dedicated AI leadership (CAIO or VP-level), multiple domain-aligned Centers of Excellence, and enterprise platform investment. The primary risk at this scale is portfolio fragmentation — governance and portfolio management rigor are as valuable as technical capability.',
+    '10,000+ employees':
+      'At this scale, AI is a strategic enterprise function, not a project portfolio. Invest in enterprise AI platforms, dedicated AI engineering teams per domain, and a governance operating model built for scale. Speed of deployment and capability reuse are the primary competitive differentiators — not individual model quality.',
   }
-  if (mid.includes(size)) {
-    return 'Organizations at your scale benefit from a Center of Excellence model — standardize tooling without full enterprise platform investment, using proven vendor solutions with modular, phased adoption.'
-  }
-  return null
+  return notes[size] || null
 }

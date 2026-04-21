@@ -1,7 +1,9 @@
-// Recommendations keyed by dimension id, then score tier: 'low' (<40), 'medium' (40-70), 'high' (70-75), 'sustain' (>=75)
+// Recommendations keyed by dimension id, then score tier: 'low' (0–39), 'medium' (40–59), 'high' (60–79), 'sustain' (80–100)
+// Tier boundaries are sourced from RECOMMENDATION_TIERS in constants/thresholds.js — do not hard-code here.
 // Each entry includes: title, priority, description, actions[], effort (1-5), impact (1-5), phases[]
 // phases: [{ label, theme, actions[] }] — 30/60/90-day implementation roadmap
 import { getIndustryContext, getSizeNote } from './industryContext'
+import { scoreTier } from '../constants/thresholds'
 
 export const recommendationData = {
   1: {
@@ -755,10 +757,7 @@ export function getRecommendations(dimensionScores, company) {
   const sizeNote = company?.size ? getSizeNote(company.size) : null
 
   return sorted.map(dim => {
-    // Tiers aligned exactly to maturity bands:
-    // low = Beginning/Developing (0–39), medium = Maturing (40–59),
-    // high = Advanced (60–79), sustain = Leading (80–100)
-    const tier = dim.score <= 39 ? 'low' : dim.score <= 59 ? 'medium' : dim.score <= 79 ? 'high' : 'sustain'
+    const tier = scoreTier(dim.score)
     const rec = recommendationData[dim.id][tier]
     const industryContext = industry ? getIndustryContext(dim.id, tier, industry) : null
     return {

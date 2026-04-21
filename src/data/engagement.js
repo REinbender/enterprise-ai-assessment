@@ -3,10 +3,24 @@
 //          JSON export/import, role group assignment
 
 import { computeDimensionScores, computeOverallScore, computeDimensionMeta, dimensions, DK } from './questions'
+import {
+  PERCEPTION_GAP_THRESHOLD,
+  LOW_VISIBILITY_THRESHOLD,
+  STORAGE_QUOTA_BYTES,
+  STORAGE_WARN_RATIO,
+  STORAGE_CRITICAL_RATIO,
+} from '../constants/thresholds'
 
 const ENGAGEMENT_KEY    = 'ai_readiness_engagement_v1'
 const SESSION_DRAFT_KEY = 'ai_readiness_session_draft_v1'
-const PERCEPTION_GAP_THRESHOLD = 20
+
+// Gap severity tiers — exposed as gapSeverity on each composite dimension
+export function getGapSeverity(magnitude) {
+  if (magnitude >= 40) return { level: 'critical',    label: 'Critical Misalignment',  color: '#DC2626', bg: '#FEE2E2' }
+  if (magnitude >= 25) return { level: 'severe',      label: 'Severe Misalignment',    color: '#EA580C', bg: '#FFEDD5' }
+  if (magnitude >= 15) return { level: 'concerning',  label: 'Concerning Variance',    color: '#D97706', bg: '#FEF3C7' }
+  return null
+}
 
 // ── Role group assignment ──────────────────────────────────────────────────
 const EXEC_KW = [
@@ -38,7 +52,8 @@ export const ROLE_GROUP_META = {
 function uid() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2) + Date.now().toString(36)
+    // Two independent Math.random() calls make millisecond collisions astronomically unlikely
+    : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`
 }
 
 // ── Engagement CRUD ────────────────────────────────────────────────────────
@@ -67,8 +82,7 @@ function storageUsageRatio() {
       const key = localStorage.key(i)
       total += (localStorage.getItem(key)?.length || 0) * 2 // UTF-16 = 2 bytes/char
     }
-    // Browsers typically allow 5MB = 5_242_880 bytes
-    return total / 5_242_880
+    return total / STORAGE_QUOTA_BYTES
   } catch { return 0 }
 }
 
@@ -79,12 +93,12 @@ export function saveEngagement(eng) {
 
     // Warn when storage is >70% full — after successful save so data isn't lost
     const ratio = storageUsageRatio()
-    if (ratio > 0.7) {
+    if (ratio > STORAGE_WARN_RATIO) {
       const pct = Math.round(ratio * 100)
       // Use setTimeout so the warning appears after the current render cycle
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('ai_storage_warning', {
-          detail: { pct, critical: ratio > 0.9 }
+          detail: { pct, critical: ratio > STORAGE_CRITICAL_RATIO }
         }))
       }, 0)
     }
@@ -120,7 +134,20 @@ export function clearSessionDraft() {
 }
 
 // ── Build a completed session from interview data ──────────────────────────
-export function buildSession({ respondentName, respondentRole, answers, notes, confidence = {} }) {
+export function buildSession({ respondentName, respondentRole, roleGroupOverride, answers, notes, confidence = {} }) {
+  // Guard: answers must be a non-null object. An absent or empty answers object
+  // would produce all-null dimScores silently — surface it as an error instead.
+  if (!answers || typeof answers !== 'object') {
+    throw new Error('buildSession: answers must be a non-null object')
+  }
+  // Warn (not throw) if a dimension is entirely missing — could indicate a
+  // mid-interview interruption. computeDimensionScores will treat it as all-DK.
+  dimensions.forEach(d => {
+    if (!answers[d.id] || typeof answers[d.id] !== 'object') {
+      console.warn(`buildSession: answers for dimension ${d.id} (${d.shortName}) is missing or not an object — treated as all Don't Know`)
+    }
+  })
+
   const dimScoresArr = computeDimensionScores(answers)
   const overallScore = computeOverallScore(dimScoresArr)
   const dimScores    = dimScoresArr.reduce((acc, d) => ({ ...acc, [d.id]: d.score }), {})
@@ -135,7 +162,7 @@ export function buildSession({ respondentName, respondentRole, answers, notes, c
     sessionId: uid(),
     respondentName,
     respondentRole,
-    roleGroup: assignRoleGroup(respondentRole),
+    roleGroup: roleGroupOverride ?? assignRoleGroup(respondentRole),
     answers,
     notes,
     confidence,   // { [dimId]: 'high' | 'medium' | 'low' | null }
@@ -148,6 +175,11 @@ export function buildSession({ respondentName, respondentRole, answers, notes, c
 
 export const addSession    = (eng, s)   => ({ ...eng, sessions: [...eng.sessions, s] })
 export const removeSession = (eng, id)  => ({ ...eng, sessions: eng.sessions.filter(s => s.sessionId !== id) })
+
+// ── Schema version ─────────────────────────────────────────────────────────
+// Bump SCHEMA_VERSION whenever session/engagement shape changes.
+// Migration functions below handle reading older versions.
+export const SCHEMA_VERSION = 2
 
 // ── JSON Export ────────────────────────────────────────────────────────────
 function slug(s) {
@@ -164,7 +196,8 @@ function triggerDownload(blob, filename) {
 export function exportSession(eng, session) {
   const payload = {
     type: 'ai_readiness_session',
-    version: '1',
+    version: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
     engagementId: eng.engagementId,
     company: eng.company,
     ...session,
@@ -177,12 +210,84 @@ export function exportSession(eng, session) {
 }
 
 export function exportEngagement(eng) {
-  const payload = { type: 'ai_readiness_engagement', version: '1', ...eng }
+  const payload = {
+    type: 'ai_readiness_engagement',
+    version: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    ...eng,
+  }
   const date = new Date().toISOString().slice(0, 10)
   triggerDownload(
     new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
     `${slug(eng.company.name)}_full-engagement_${date}.json`
   )
+}
+
+// ── Schema migration ────────────────────────────────────────────────────────
+// Each function takes a session object and returns it migrated to the next version.
+const SESSION_MIGRATIONS = {
+  // v1 → v2: added roleGroupOverride support; dimScores may have null values
+  1: (s) => ({
+    ...s,
+    dimScores: s.dimScores
+      ? Object.fromEntries(
+          Object.entries(s.dimScores).map(([k, v]) => [k, typeof v === 'number' ? v : null])
+        )
+      : {},
+    confidence: s.confidence || {},
+    notes: s.notes || {},
+    version: 2,
+  }),
+}
+
+function migrateSession(s) {
+  let session = { ...s }
+  const fileVersion = typeof session.version === 'number' ? session.version : 1
+  let v = fileVersion
+  while (v < SCHEMA_VERSION) {
+    if (SESSION_MIGRATIONS[v]) session = SESSION_MIGRATIONS[v](session)
+    v++
+  }
+  return session
+}
+
+// ── Import validation ───────────────────────────────────────────────────────
+const VALID_ROLE_GROUPS = new Set(['executive', 'management', 'practitioner'])
+const VALID_DIM_IDS     = new Set([1, 2, 3, 4, 5])
+const VALID_CONF_VALS   = new Set(['high', 'medium', 'low', null, undefined])
+
+function validateSession(data, filename) {
+  const errors = []
+
+  if (!data.sessionId)      errors.push('missing sessionId')
+  if (!data.respondentName?.trim()) errors.push('missing respondentName')
+  if (!data.respondentRole?.trim()) errors.push('missing respondentRole')
+  if (!VALID_ROLE_GROUPS.has(data.roleGroup)) errors.push(`invalid roleGroup "${data.roleGroup}" (must be executive/management/practitioner)`)
+  if (!data.answers || typeof data.answers !== 'object') errors.push('missing or invalid answers')
+  if (!data.dimScores || typeof data.dimScores !== 'object') errors.push('missing dimScores')
+  if (!data.completedAt) errors.push('missing completedAt')
+  else if (isNaN(Date.parse(data.completedAt))) errors.push('completedAt is not a valid date')
+
+  // Validate dimScores range
+  if (data.dimScores) {
+    Object.entries(data.dimScores).forEach(([k, v]) => {
+      if (!VALID_DIM_IDS.has(Number(k))) errors.push(`unknown dimension id ${k} in dimScores`)
+      if (v !== null && (typeof v !== 'number' || !isFinite(v) || v < 0 || v > 100))
+        errors.push(`dimScores[${k}] = ${v} is invalid (must be a finite number 0–100 or null)`)
+    })
+  }
+
+  // Validate confidence values
+  if (data.confidence) {
+    Object.entries(data.confidence).forEach(([k, v]) => {
+      if (!VALID_CONF_VALS.has(v)) errors.push(`confidence[${k}] = "${v}" is invalid`)
+    })
+  }
+
+  if (errors.length) {
+    return { ok: false, error: `${filename}: ${errors.join('; ')}` }
+  }
+  return { ok: true }
 }
 
 // ── JSON Import ────────────────────────────────────────────────────────────
@@ -194,16 +299,35 @@ export function parseImportedFiles(files) {
         reader.onload = e => {
           try {
             const data = JSON.parse(e.target.result)
-            if (data.type === 'ai_readiness_session' && data.answers && data.dimScores) {
-              resolve({ ok: true, sessions: [data], filename: file.name })
+
+            if (data.type === 'ai_readiness_session') {
+              const migrated = migrateSession(data)
+              const check    = validateSession(migrated, file.name)
+              if (!check.ok) return resolve({ ok: false, error: check.error })
+              resolve({ ok: true, sessions: [migrated], filename: file.name })
+
             } else if (data.type === 'ai_readiness_engagement' && Array.isArray(data.sessions)) {
-              // Full engagement export — extract all sessions
-              resolve({ ok: true, sessions: data.sessions, filename: file.name })
+              const results  = []
+              const errors   = []
+              data.sessions.forEach((s, i) => {
+                const migrated = migrateSession(s)
+                const check    = validateSession(migrated, `${file.name} session[${i}]`)
+                if (check.ok) results.push(migrated)
+                else errors.push(check.error)
+              })
+              if (!results.length) {
+                return resolve({ ok: false, error: `${file.name}: No valid sessions found. ${errors[0] || ''}` })
+              }
+              resolve({ ok: true, sessions: results, filename: file.name, warnings: errors })
+
             } else {
-              resolve({ ok: false, error: `${file.name}: Not a valid session or engagement file` })
+              resolve({
+                ok: false,
+                error: `${file.name}: Unrecognized file type "${data.type || '(none)'}". Expected ai_readiness_session or ai_readiness_engagement.`,
+              })
             }
           } catch {
-            resolve({ ok: false, error: `${file.name}: Could not parse JSON` })
+            resolve({ ok: false, error: `${file.name}: Could not parse JSON — file may be corrupted or not a JSON file` })
           }
         }
         reader.readAsText(file)
@@ -219,22 +343,30 @@ export function computeComposite(sessions) {
   const roleCounts = { executive: 0, management: 0, practitioner: 0 }
   sessions.forEach(s => { roleCounts[s.roleGroup] = (roleCounts[s.roleGroup] || 0) + 1 })
 
+  // Cache role-group session lists once — avoids re-filtering for every dimension (Fix H)
+  const sessionsByGroup = {
+    executive:    sessions.filter(s => s.roleGroup === 'executive'),
+    management:   sessions.filter(s => s.roleGroup === 'management'),
+    practitioner: sessions.filter(s => s.roleGroup === 'practitioner'),
+  }
+
   const dimComposites = dimensions.map(dim => {
     // Filter out null scores (all-DK sessions contribute no data to this dimension)
     const allScores = sessions.map(s => s.dimScores[dim.id]).filter(n => n != null && typeof n === 'number')
-    if (!allScores.length) return null
-
-    const avg = Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
-    const variance = allScores.reduce((acc, s) => acc + (s - avg) ** 2, 0) / allScores.length
-    const stdDev = Math.round(Math.sqrt(variance))
+    // Always include the dimension even if no numeric scores — avg will be null
+    const hasScores = allScores.length > 0
+    const avg    = hasScores ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : null
+    // stdDev is only meaningful with 2+ scores — null with a single respondent
+    const variance = allScores.length >= 2 ? allScores.reduce((acc, s) => acc + (s - avg) ** 2, 0) / allScores.length : null
+    const stdDev   = variance !== null ? Math.round(Math.sqrt(variance)) : null
 
     const byGroup = {}
     ;['executive', 'management', 'practitioner'].forEach(g => {
-      const gs = sessions.filter(s => s.roleGroup === g)
+      const gs = sessionsByGroup[g]  // use cached list (Fix H)
       if (gs.length) {
-        const sc = gs.map(s => s.dimScores[dim.id])
+        const sc = gs.map(s => s.dimScores[dim.id]).filter(n => n != null && typeof n === 'number')
         byGroup[g] = {
-          avg: Math.round(sc.reduce((a, b) => a + b, 0) / sc.length),
+          avg: sc.length ? Math.round(sc.reduce((a, b) => a + b, 0) / sc.length) : null,
           count: gs.length,
         }
       }
@@ -261,6 +393,7 @@ export function computeComposite(sessions) {
       }
     })
     const perceptionGap = gapMagnitude >= PERCEPTION_GAP_THRESHOLD
+    const gapSeverity   = perceptionGap ? getGapSeverity(gapMagnitude) : null
     if (!perceptionGap) { gapDirection = null; gapPair = null }
 
     // Per-question averages + DK rates across all sessions
@@ -285,7 +418,7 @@ export function computeComposite(sessions) {
     const dkRate = totalPossibleAnswers
       ? Math.round((totalDkAcrossSessions / totalPossibleAnswers) * 100)
       : 0
-    const lowVisibility = dkRate >= 30 // flag if 30%+ of answers are DK across respondents
+    const lowVisibility = dkRate >= LOW_VISIBILITY_THRESHOLD
 
     // Confidence distribution across sessions
     const confidenceCounts = { high: 0, medium: 0, low: 0, null: 0 }
@@ -294,6 +427,14 @@ export function computeComposite(sessions) {
       confidenceCounts[c ?? 'null'] = (confidenceCounts[c ?? 'null'] || 0) + 1
     })
 
+    // Fix B — distinguish "all DK / no visibility" from "all low scores":
+    //   allDK:       every respondent said Don't Know — no numeric data at all
+    //   lowVisibility: high DK rate (≥30%) but may still have some numeric scores
+    //   allAnsweredLow: all numeric scores are ≤25 (effectively all 1s on 1–5 scale)
+    //                   → a capability problem, not a visibility problem
+    const allDK = !hasScores && sessions.length > 0
+    const allAnsweredLow = hasScores && allScores.every(s => s <= 25)
+
     return {
       dimId: dim.id,
       name: dim.name,
@@ -301,35 +442,55 @@ export function computeComposite(sessions) {
       color: dim.color,
       bgColor: dim.bgColor,
       avg,
+      // stdDev is null when fewer than 2 respondents scored this dimension —
+      // render as "n=1" rather than "±0" to avoid implying false precision
       stdDev,
-      min: Math.min(...allScores),
-      max: Math.max(...allScores),
+      min: hasScores ? Math.min(...allScores) : null,
+      max: hasScores ? Math.max(...allScores) : null,
       byGroup,
+      // roleGroupsCovered: number of distinct role groups that have at least one
+      // numeric score in this dimension. Gap analysis requires >= 2.
+      roleGroupsCovered: Object.keys(byGroup).filter(g => byGroup[g]?.avg != null).length,
       perceptionGap,
       gapDirection,
       gapMagnitude,
+      gapSeverity,      // { level, label, color, bg } — null if no gap
       gapPair,          // which pair has the largest gap e.g. 'exec_vs_pract'
       qAvgs,
-      respondentCount: allScores.length,
+      // Fix C — scoredByCount: how many respondents contributed a numeric score.
+      // Distinct from respondentCount (total sessions). Use to distinguish avg=0
+      // (one person scored 1 on everything) from avg=null (no data at all).
+      scoredByCount: allScores.length,
+      respondentCount: allScores.length,  // kept for backward compat
       dkRate,
-      lowVisibility,
+      lowVisibility,    // high DK rate (may still have some scores)
+      allDK,            // zero numeric scores — no data at all for this dimension
+      allAnsweredLow,   // all scores ≤25 — everyone who answered rated it very low
       confidenceCounts,
     }
-  }).filter(Boolean)
+  })
 
-  const overallAvg = Math.round(
-    dimComposites.reduce((acc, d) => acc + d.avg, 0) / dimComposites.length
-  )
+  // Only include dims with scores in the overall average calculation
+  const scoredDims = dimComposites.filter(d => d.avg !== null)
+  const overallAvg = scoredDims.length
+    ? Math.round(scoredDims.reduce((acc, d) => acc + d.avg, 0) / scoredDims.length)
+    : 0
+
+  // How many distinct role groups participated across the whole engagement
+  const engagementRoleGroupCount = Object.values(roleCounts).filter(n => n > 0).length
 
   return {
     dimensions: dimComposites,
     overallAvg,
     sessionCount: sessions.length,
     roleCounts,
+    // True when only one role group participated — perception gap analysis is
+    // not meaningful and a UI callout should explain this to the consultant.
+    singleRoleGroup: engagementRoleGroupCount < 2,
     perceptionGapDimensions: dimComposites.filter(d => d.perceptionGap),
     lowVisibilityDimensions: dimComposites.filter(d => d.lowVisibility),
-    // Shape for existing generateRecommendations()
-    asDimScores: dimComposites.map(d => ({
+    // Shape for existing generateRecommendations() — only scored dims
+    asDimScores: dimComposites.filter(d => d.avg !== null).map(d => ({
       id: d.dimId, name: d.name, shortName: d.shortName, color: d.color, score: d.avg,
     })),
   }

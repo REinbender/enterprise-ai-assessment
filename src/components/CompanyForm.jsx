@@ -41,6 +41,8 @@ const roles = [
   'Other',
 ]
 
+import { useRef, useEffect } from 'react'
+
 function TopBar({ progress }) {
   return (
     <div className="topbar">
@@ -64,6 +66,13 @@ function TopBar({ progress }) {
 export default function CompanyForm({ company, onChange, onNext, onBack }) {
   const isValid = company.name.trim() && company.industry && company.size
   const progress = (1 / 7) * 100
+  const ctaRef = useRef(null)
+
+  useEffect(() => {
+    if (isValid && ctaRef.current) {
+      ctaRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [isValid])
 
   const set = (field) => (e) => onChange({ ...company, [field]: e.target.value })
 
@@ -174,6 +183,7 @@ export default function CompanyForm({ company, onChange, onNext, onBack }) {
 
             {isValid && (
               <div
+                ref={ctaRef}
                 style={{
                   marginTop: 24,
                   padding: '12px 16px',

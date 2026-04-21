@@ -2,6 +2,9 @@ import { useState } from 'react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { computeComposite, ROLE_GROUP_META } from '../data/engagement'
+import { generateRecommendations } from '../data/recommendations'
+import { DIM_COLORS_RGB, matColorRGB } from '../constants/colors'
+import { HTML2CANVAS_SCALE } from '../constants/thresholds'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -17,6 +20,8 @@ const C = {
   primary:  [46,  163, 242],
   primaryDk:[26,  140, 216],
   navy:     [12,  32,  70],
+  navyMid:  [18,  48,  100],   // slightly lighter navy for alternating rows
+  orange:   [243, 112,  33],   // Logic2020 brand orange
   slate700: [71,  85,  105],
   slate500: [100, 116, 139],
   slate300: [203, 213, 225],
@@ -27,13 +32,8 @@ const C = {
   red:      [220,  38,  38],
 }
 
-const DIM_COLORS = {
-  1: [46,  163, 242],
-  2: [14,  165, 233],
-  3: [124,  58, 237],
-  4: [217, 119,   6],
-  5: [22,  163,  74],
-}
+// DIM_COLORS_RGB imported from constants/colors — canonical source for all PDF files
+const DIM_COLORS = DIM_COLORS_RGB
 
 const DIM_NAMES = {
   1: 'AI Strategy',
@@ -43,14 +43,8 @@ const DIM_NAMES = {
   5: 'AI Operations',
 }
 
-function matColor(score) {
-  if (score === undefined || score === null) return C.slate500
-  if (score < 20) return C.red
-  if (score < 40) return [234, 88, 12]
-  if (score < 60) return C.amber
-  if (score < 80) return C.blue || [37, 99, 235]
-  return C.green
-}
+// matColorRGB imported from constants/colors — null-safe, canonical for all PDF files
+const matColor = matColorRGB
 function matLabel(score) {
   if (score < 20) return 'Beginning'
   if (score < 40) return 'Developing'
@@ -78,11 +72,14 @@ function pbar(doc, x, y, w, h, pct, fill) {
 // SHARED HEADER / FOOTER
 // ─────────────────────────────────────────────────────────────────────────────
 function pageHeader(doc, title, pageNum) {
-  rbox(doc, 0, 0, PW, HEADER_H, C.primary, 0)
-  rbox(doc, ML, 4, 10, 10, C.primaryDk, 2)
+  rbox(doc, 0, 0, PW, HEADER_H, C.navy, 0)
+  // Logic2020 orange accent stripe along the bottom of the header
+  rbox(doc, 0, HEADER_H - 1.5, PW, 1.5, C.orange, 0)
+  // Primary-blue logo mark
+  rbox(doc, ML, 4, 10, 10, C.primary, 2)
   txt(doc, 'AI', ML + 2, 11, 6, C.white, 'bold')
   txt(doc, title, ML + 14, 12, 9.5, C.white, 'bold')
-  txt(doc, `Page ${pageNum}`, PW - MR, 12, 7.5, [199, 220, 254], 'normal', { align: 'right' })
+  txt(doc, `Page ${pageNum}`, PW - MR, 12, 7.5, [160, 205, 240], 'normal', { align: 'right' })
 }
 
 function pageFooter(doc, companyName, date) {
@@ -105,165 +102,286 @@ function drawCover(doc, engagement, composite) {
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   const rc   = composite.roleCounts
 
-  // Blue header band
-  rbox(doc, 0, 0, PW, 130, C.primary, 0)
-  doc.setGState(doc.GState({ opacity: 0.07 }))
+  const SAFE_BOTTOM = PH - FOOTER_H - 8
+
+  // ── Full-page navy background ─────────────────────────────
+  rbox(doc, 0, 0, PW, PH, C.navy, 0)
+
+  // Decorative circles — clip to page bounds first so nothing bleeds past edges
+  doc.saveGraphicsState()
+  // Write a PDF clipping rectangle in points (jsPDF scaleFactor converts mm→pt)
+  const _sf = doc.internal.scaleFactor
+  doc.internal.write(
+    `0 0 ${(PW * _sf).toFixed(3)} ${(PH * _sf).toFixed(3)} re W n`
+  )
+  doc.setGState(doc.GState({ opacity: 0.06 }))
   sf(doc, C.white)
-  doc.circle(PW + 15, -10, 95, 'F')
-  doc.circle(PW - 8, 120, 55, 'F')
+  doc.circle(PW - 45, 15,      55, 'F')   // top-right glow
+  doc.circle(PW - 35, 145,     45, 'F')   // mid-right glow
+  doc.circle(45,      PH - 45, 55, 'F')   // bottom-left glow
   doc.setGState(doc.GState({ opacity: 1 }))
+  doc.restoreGraphicsState()
 
-  // Logo
-  txt(doc, 'LOGIC2020', ML, 22, 9, C.white, 'bold')
-  txt(doc, 'Enterprise Transformation Consulting', ML + 38, 22, 6.5, [199, 225, 254])
+  // Logic2020 orange accent bar at very top (matches page headers)
+  rbox(doc, 0, 0, PW, 2, C.orange, 0)
 
-  // Eyebrow
-  txt(doc, 'CONFIDENTIAL  ·  COMPOSITE ASSESSMENT REPORT', ML, 40, 7, [199, 225, 254], 'bold')
+  // ── Branding bar ──────────────────────────────────────────
+  rbox(doc, ML, 10, 9, 9, C.primary, 2)
+  txt(doc, 'L', ML + 2.5, 17, 7, C.white, 'bold')
+  txt(doc, 'LOGIC2020', ML + 13, 17, 8.5, C.white, 'bold')
+  sd(doc, [80, 130, 180]); doc.setLineWidth(0.3)
+  doc.line(ML + 47, 11, ML + 47, 18)
+  txt(doc, 'Enterprise Transformation Consulting', ML + 51, 17, 6.5, [140, 185, 225])
 
-  // Title
-  txt(doc, 'Composite AI', ML, 65, 28, C.white, 'bold')
-  txt(doc, 'Readiness Report', ML, 88, 28, C.white, 'bold')
+  // Horizontal rule below branding
+  sd(doc, [30, 60, 110]); doc.setLineWidth(0.4)
+  doc.line(ML, 23, PW - MR, 23)
 
-  // White panel
-  rbox(doc, 0, 120, PW, PH - 120, C.white, 0)
-  sf(doc, C.primary); doc.rect(0, 120, 5, PH - 120, 'F')
+  // ── Eyebrow ───────────────────────────────────────────────
+  txt(doc, 'CONFIDENTIAL  ·  COMPOSITE ASSESSMENT REPORT', ML, 33, 6.5, [120, 170, 215], 'bold')
 
-  let py = 134
+  // ── Title ─────────────────────────────────────────────────
+  txt(doc, 'Composite AI', ML, 57, 26, C.white, 'bold')
+  txt(doc, 'Readiness Report', ML, 78, 26, C.white, 'bold')
 
-  // Prepared for
-  txt(doc, 'PREPARED FOR', ML + 8, py, 7, C.slate500, 'bold'); py += 7
-
-  doc.setFontSize(19); doc.setFont('helvetica', 'bold')
-  let nameText = company.name || 'Organization'
-  while (doc.getTextWidth(nameText) > CONTENT_W - 8 && nameText.length > 4)
-    nameText = nameText.slice(0, -1)
-  if (nameText !== (company.name || 'Organization')) nameText += '…'
-  txt(doc, nameText, ML + 8, py, 19, C.navy, 'bold'); py += 9
-
+  // Company name + context
+  txt(doc, (company.name || 'Organization').toUpperCase(), ML, 96, 9.5, C.primary, 'bold')
   if (company.industry || company.size) {
-    txt(doc, [company.industry, company.size].filter(Boolean).join('  ·  '), ML + 8, py, 9, C.slate700); py += 7
+    txt(doc, [company.industry, company.size].filter(Boolean).join('  ·  '), ML, 105, 7.5, [140, 185, 225])
   }
-  py += 3
-  sd(doc, C.slate300); doc.setLineWidth(0.4); doc.line(ML + 8, py, PW - MR, py); py += 10
 
-  // 3 stat tiles
-  const rcParts = []
-  if (rc.executive    > 0) rcParts.push(`${rc.executive} Exec`)
-  if (rc.management   > 0) rcParts.push(`${rc.management} Mgmt`)
-  if (rc.practitioner > 0) rcParts.push(`${rc.practitioner} Practitioner`)
+  // ── Respondent badges ─────────────────────────────────────
+  const ROLE_BADGE_COLORS = {
+    executive:    C.primary,
+    management:   [34, 197, 94],
+    practitioner: [168, 85, 247],
+  }
+  const ROLE_LABELS = { executive: 'Executive', management: 'Management', practitioner: 'Practitioner' }
+  const roleEntries  = Object.entries(rc).filter(([, count]) => count > 0)
 
-  const tileW = (CONTENT_W - 8 - 8) / 3, tileH = 36
-  const tiles = [
-    { label: 'COMPOSITE SCORE', value: `${composite.overallAvg}`, sub: '/ 100',              color: mc },
-    { label: 'MATURITY LEVEL',  value: ml,                         sub: 'AI readiness stage', color: mc },
-    { label: 'RESPONDENTS',     value: `${composite.sessionCount}`, sub: rcParts.join(' · ') || 'across roles', color: C.primary },
-  ]
-  tiles.forEach((t, i) => {
-    const tx = ML + 8 + i * (tileW + 4)
-    sf(doc, C.slate100); doc.roundedRect(tx, py, tileW, tileH, 3, 3, 'F')
-    sd(doc, C.slate300); doc.setLineWidth(0.3); doc.roundedRect(tx, py, tileW, tileH, 3, 3, 'S')
-    sf(doc, t.color); doc.roundedRect(tx, py, tileW, 3, 1.5, 1.5, 'F')
-    txt(doc, t.label, tx + tileW / 2, py + 12, 6, C.slate500, 'bold', { align: 'center' })
-    const vfs = i === 1 && t.value.length > 8 ? 11 : 17
-    txt(doc, t.value, tx + tileW / 2, py + 26, vfs, t.color, 'bold', { align: 'center' })
-    const sub = t.sub.length > 24 ? t.sub.slice(0, 23) + '…' : t.sub
-    txt(doc, sub, tx + tileW / 2, py + 33, 6, C.slate500, 'normal', { align: 'center' })
+  txt(doc, `${composite.sessionCount} Total Respondents`, ML, 116, 10, C.white, 'bold')
+  let bx = ML
+  roleEntries.forEach(([group, count]) => {
+    const bc    = ROLE_BADGE_COLORS[group] || C.slate500
+    const label = `${count}  ${ROLE_LABELS[group]}`
+    doc.setFontSize(7); doc.setFont('helvetica', 'bold')
+    const lw = doc.getTextWidth(label) + 8
+    sf(doc, bc); doc.roundedRect(bx, 120, lw, 8, 2, 2, 'F')
+    txt(doc, label, bx + lw / 2, 125.5, 7, C.white, 'bold', { align: 'center' })
+    bx += lw + 4
   })
-  py += tileH + 10
 
-  sd(doc, C.slate300); doc.setLineWidth(0.4); doc.line(ML + 8, py, PW - MR, py); py += 8
+  // ── Score tile (right column) ─────────────────────────────
+  const TX = 148, TY = 28, TW = 54, TH = 114, TR = 5  // TR = corner radius
+  // Tile background
+  rbox(doc, TX, TY, TW, TH, C.navyMid, TR)
+  // Blue top accent bar — rounded on top only, flush on bottom
+  rbox(doc, TX, TY, TW, 3, C.primary, TR)
+  sf(doc, C.primary); doc.rect(TX, TY + TR - 1, TW, 3 - TR + 1 + 1, 'F')  // fill square bottom half
 
-  txt(doc, `Assessment Date: ${date}`, ML + 8, py, 8.5, C.slate700); py += 7
+  // Orange left accent bar — inset by corner radius (TR) so it doesn't poke
+  // outside the rounded rect corners
+  sf(doc, C.orange); doc.rect(TX, TY + TR, 3, TH - TR * 2, 'F')
 
-  // Flag box
-  const gapCount = composite.perceptionGapDimensions?.length || 0
-  const lvCount  = composite.lowVisibilityDimensions?.length  || 0
+  // Border drawn last so it sits on top of accents
+  sd(doc, [50, 90, 140]); doc.setLineWidth(0.4); doc.roundedRect(TX, TY, TW, TH, TR, TR, 'S')
+
+  txt(doc, 'AI READINESS',     TX + TW / 2, TY + 13, 5.5, [160, 205, 240], 'bold',   { align: 'center' })
+  txt(doc, 'SCORE OUT OF 100', TX + TW / 2, TY + 20, 5,   [160, 205, 240], 'normal', { align: 'center' })
+
+  sd(doc, [50, 90, 140]); doc.setLineWidth(0.3)
+  doc.line(TX + 8, TY + 23, TX + TW - 8, TY + 23)
+
+  // Score number
+  txt(doc, `${composite.overallAvg}`, TX + TW / 2, TY + 54, 38, C.white, 'bold', { align: 'center' })
+
+  doc.line(TX + 12, TY + 58, TX + TW - 12, TY + 58)
+
+  // Maturity pill — taller to fit larger text
+  sf(doc, mc); doc.roundedRect(TX + 6, TY + 63, TW - 12, 16, 3, 3, 'F')
+  txt(doc, ml.toUpperCase(), TX + TW / 2, TY + 74, 10, C.white, 'bold', { align: 'center' })
+
+  // Role breakdown
+  const tileRcParts = roleEntries.map(([g, n]) => `${n} ${ROLE_LABELS[g]}`).join(' · ')
+  txt(doc, tileRcParts,                   TX + TW / 2, TY + 89,  5.5, [140, 185, 225], 'normal', { align: 'center' })
+  txt(doc, `${composite.sessionCount} respondents total`, TX + TW / 2, TY + 97, 5.5, [180, 215, 245], 'bold', { align: 'center' })
+
+  // Date
+  txt(doc, date, TX + TW / 2, TY + 107, 5.5, [120, 170, 215], 'normal', { align: 'center' })
+
+  // ── Divider before dimension scores ───────────────────────
+  let py = 140
+  sd(doc, [30, 60, 110]); doc.setLineWidth(0.4)
+  doc.line(ML, py, PW - MR, py); py += 8
+
+  // Key flags
+  const gapDims   = composite.perceptionGapDimensions || []
+  const gapCount  = gapDims.length
+  const lvCount   = composite.lowVisibilityDimensions?.length || 0
   if (gapCount > 0 || lvCount > 0) {
     const flags = []
-    if (gapCount > 0) flags.push(`${gapCount} perception gap${gapCount > 1 ? 's' : ''} detected`)
-    if (lvCount  > 0) flags.push(`${lvCount} low-visibility dimension${lvCount > 1 ? 's' : ''}`)
-    rbox(doc, ML + 8, py, CONTENT_W - 8, 11, [255, 247, 237], 3)
-    txt(doc, `⚠  Key Flags: ${flags.join('  ·  ')}`, ML + 13, py + 8, 8, [154, 52, 18], 'bold')
+    if (gapCount > 0) {
+      const criticalN   = gapDims.filter(d => d.gapSeverity?.level === 'critical').length
+      const severeN     = gapDims.filter(d => d.gapSeverity?.level === 'severe').length
+      const concerningN = gapDims.filter(d => d.gapSeverity?.level === 'concerning').length
+      const parts = []
+      if (criticalN   > 0) parts.push(`${criticalN} critical`)
+      if (severeN     > 0) parts.push(`${severeN} severe`)
+      if (concerningN > 0) parts.push(`${concerningN} concerning`)
+      const sev = parts.length ? ` (${parts.join(', ')})` : ''
+      flags.push(`${gapCount} perception gap${gapCount > 1 ? 's' : ''} detected${sev}`)
+    }
+    if (lvCount > 0) flags.push(`${lvCount} low-visibility dimension${lvCount > 1 ? 's' : ''}`)
+    rbox(doc, ML, py, CONTENT_W, 10, [60, 25, 10], 3)
+    sf(doc, C.orange); doc.rect(ML + 3, py + 3.5, 3, 3, 'F')
+    txt(doc, `Key Flags: ${flags.join('  ·  ')}`, ML + 10, py + 7.5, 7, [255, 180, 120], 'bold')
     py += 14
   }
 
-  // Dimension scores at a glance
-  txt(doc, 'DIMENSION SCORES AT A GLANCE', ML + 8, py, 7, C.slate500, 'bold'); py += 6
+  // Dimension scores
+  txt(doc, 'DIMENSION SCORES AT A GLANCE', ML, py, 7, [120, 170, 215], 'bold'); py += 6
 
   composite.dimensions.forEach((d, i) => {
-    const dc  = DIM_COLORS[d.dimId]
-    const dmc = matColor(d.avg)
-    if (i % 2 === 0) { sf(doc, C.slate100); doc.rect(ML + 8, py, CONTENT_W - 8, 9, 'F') }
-    sf(doc, dc); doc.circle(ML + 13, py + 4.5, 2.5, 'F')
-    txt(doc, DIM_NAMES[d.dimId], ML + 18, py + 6.5, 8, C.navy, 'bold')
-    pbar(doc, ML + 80, py + 2, CONTENT_W - 108, 5, d.avg, dc)
-    txt(doc, matLabel(d.avg), ML + 80, py + 6.5, 6.5, dmc, 'bold')
-    txt(doc, `${d.avg}`, PW - MR - 4, py + 6.5, 9, dc, 'bold', { align: 'right' })
+    if (py + 9 > SAFE_BOTTOM) return
+    const dc = DIM_COLORS[d.dimId]
+    // Alternating subtle row tint
+    if (i % 2 === 0) { sf(doc, C.navyMid); doc.rect(ML, py, CONTENT_W, 9, 'F') }
+    sf(doc, dc); doc.circle(ML + 5, py + 4.5, 2.5, 'F')
+    txt(doc, DIM_NAMES[d.dimId], ML + 10, py + 6.3, 8.5, C.white, 'bold')
+    pbar(doc, ML + 70, py + 2.5, CONTENT_W - 85, 4.5, d.avg, dc)
+    txt(doc, `${d.avg}`, PW - MR - 2, py + 6.3, 9.5, dc, 'bold', { align: 'right' })
     py += 9
   })
 
-  pageFooter(doc, company.name, date)
+  // Assessment date
+  py += 5
+  if (py < SAFE_BOTTOM) txt(doc, `Assessment Date: ${date}`, ML, py, 7, [100, 150, 200])
+
+  // Footer — override text colors for dark background
+  const fy = PH - 4
+  txt(doc, 'CONFIDENTIAL', ML, fy, 6, [100, 150, 200])
+  const center = company.name
+    ? `${company.name}  ·  Logic2020  ·  logic2020.com`
+    : 'Logic2020  ·  logic2020.com'
+  txt(doc, center, PW / 2, fy, 6, [100, 150, 200], 'normal', { align: 'center' })
+  txt(doc, date, PW - MR, fy, 6, [100, 150, 200], 'normal', { align: 'right' })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SMART SLICE — find the nearest whitespace row to avoid cutting mid-element
 // ─────────────────────────────────────────────────────────────────────────────
-function findSafeSliceY(canvas, targetYpx, searchPx = 60) {
-  const ctx    = canvas.getContext('2d')
-  const scanW  = Math.min(canvas.width, 400) // sample centre strip for speed
-  const scanX  = Math.floor((canvas.width - scanW) / 2)
+// ─────────────────────────────────────────────────────────────────────────────
+// DOM-BASED NO-CUT ZONE BUILDER
+// Call this BEFORE html2canvas so we have real pixel positions.
+// Returns array of {top, bottom} in canvas-pixel coordinates (scale=1.5).
+// ─────────────────────────────────────────────────────────────────────────────
+const NO_CUT_SELECTORS = [
+  '.dim-scores-grid',
+  '.card',
+  '.rec-card',
+  '.perception-gap-section',
+  '.low-visibility-section',
+  '.sandbox-section',
+  '.sandbox-test-card',
+  '.heatmap-dim-block',
+  '.roadmap-phase',
+  '.composite-notes-respondent',
+  '.phases-timeline',
+]
 
-  let bestY     = targetYpx
-  let bestScore = -1
+function buildNoCutZones(containerEl, scale) {
+  const cr   = containerEl.getBoundingClientRect()
+  const zones = []
+  NO_CUT_SELECTORS.forEach(sel => {
+    containerEl.querySelectorAll(sel).forEach(node => {
+      const r      = node.getBoundingClientRect()
+      const topPx  = (r.top    - cr.top) * scale
+      const botPx  = (r.bottom - cr.top) * scale
+      if (botPx > 0) zones.push({ top: topPx, bottom: botPx })
+    })
+  })
+  return zones
+}
 
-  const lo = Math.max(0, targetYpx - searchPx)
-  const hi = Math.min(canvas.height - 1, targetYpx + searchPx)
+// Given a proposed cut y (canvas px), slide it to avoid slicing a protected block.
+function safeCutY(proposedY, noCutZones, sliceStartPx, pageHpx, canvasHeight) {
+  if (proposedY >= canvasHeight) return canvasHeight
+  const MARGIN = 6  // px padding around zone edges
 
-  for (let y = lo; y <= hi; y++) {
-    const data = ctx.getImageData(scanX, y, scanW, 1).data
-    let lightPx = 0
-    for (let x = 0; x < data.length; x += 4) {
-      // Count pixels that look like background (light grey / white)
-      if (data[x] > 230 && data[x+1] > 230 && data[x+2] > 230) lightPx++
-    }
-    const score = lightPx / (scanW)
-    // Prefer rows closer to target when scores tie
-    const proximity = 1 - Math.abs(y - targetYpx) / (searchPx + 1)
-    const weighted  = score * 0.7 + proximity * 0.3
-    if (weighted > bestScore) { bestScore = weighted; bestY = y }
-  }
+  const zone = noCutZones.find(
+    z => proposedY > z.top + MARGIN && proposedY < z.bottom - MARGIN
+  )
+  if (!zone) return proposedY
 
-  return bestY
+  // Prefer cutting just before the zone starts
+  const cutBefore = zone.top - MARGIN
+  if (cutBefore > sliceStartPx + pageHpx * 0.25) return cutBefore
+
+  // If cutting before would leave too little content, cut after instead
+  return Math.min(zone.bottom + MARGIN, canvasHeight)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONTENT PAGES — html2canvas screenshot of the live web page content
 // ─────────────────────────────────────────────────────────────────────────────
 async function drawContentPages(doc, contentRef, companyName, date, startPage) {
-  if (!contentRef?.current) return startPage
+  if (!contentRef?.current) return { pageNum: startPage, captureError: null }
 
-  // Hide footer actions bar before capture so it doesn't appear in PDF
-  const actionsEl = contentRef.current.querySelector('.results-actions')
-  if (actionsEl) actionsEl.style.display = 'none'
+  const el    = contentRef.current
+  const SCALE = HTML2CANVAS_SCALE
+
+  // Measure the full rendered height of the content element before capture
+  const fullH = el.scrollHeight
+  const fullW = el.scrollWidth
+
+  // Collect no-cut zones from DOM BEFORE hiding anything (positions are stable here)
+  const noCutZones = buildNoCutZones(el, SCALE)
+
+  // Hide elements that should not appear in the PDF
+  const actionsEl   = el.querySelector('.results-actions')
+  const topbarEl    = document.querySelector('.topbar')
+  if (actionsEl)  actionsEl.style.display  = 'none'
+  if (topbarEl)   topbarEl.style.visibility = 'hidden'
 
   let canvas
+  let captureError = null
   try {
-    canvas = await html2canvas(contentRef.current, {
-      scale: 2,
+    canvas = await html2canvas(el, {
+      scale: SCALE,
       backgroundColor: '#f8fafc',
       logging: false,
       useCORS: true,
       allowTaint: true,
       scrollX: 0,
-      scrollY: -window.scrollY,
+      scrollY: 0,
+      x: 0,
+      y: 0,
+      width:  fullW,
+      height: fullH,
+      windowWidth:  fullW,
+      windowHeight: fullH,
     })
+  } catch (e) {
+    console.error('html2canvas capture failed:', e)
+    captureError = e?.message || String(e)
   } finally {
-    if (actionsEl) actionsEl.style.display = ''
+    if (actionsEl)  actionsEl.style.display    = ''
+    if (topbarEl)   topbarEl.style.visibility  = ''
   }
 
-  const mmPerPx      = CONTENT_W / canvas.width
-  const pageHpx      = PAGE_CONTENT_H / mmPerPx   // how many px fit per page
-  const searchPx     = Math.round(60 / mmPerPx)    // ~60mm search window in px
+  // If capture failed, add a placeholder page and return early
+  if (!canvas) {
+    doc.addPage()
+    pageHeader(doc, 'Composite AI Readiness Report', startPage)
+    pageFooter(doc, companyName, date)
+    const midY = PH / 2
+    txt(doc, 'Content pages could not be rendered', PW / 2, midY - 6, 11, C.slate500, 'bold', { align: 'center' })
+    txt(doc, 'Try exporting in Chrome at 100% browser zoom, or on a device with more available memory.', PW / 2, midY + 2, 7.5, C.slate500, 'normal', { align: 'center' })
+    return { pageNum: startPage + 1, captureError }
+  }
+
+  const mmPerPx = CONTENT_W / canvas.width
+  const pageHpx = PAGE_CONTENT_H / mmPerPx  // canvas px that fit on one content page
 
   let sliceStartPx = 0
   let pageNum      = startPage
@@ -272,17 +390,18 @@ async function drawContentPages(doc, contentRef, companyName, date, startPage) {
     doc.addPage()
     pageHeader(doc, 'Composite AI Readiness Report', pageNum)
 
-    // Ideal end of this slice
     const idealEndPx = sliceStartPx + pageHpx
 
-    // Find the safest cut point near idealEnd (not past end of canvas)
     let sliceEndPx
     if (idealEndPx >= canvas.height) {
       sliceEndPx = canvas.height
     } else {
-      sliceEndPx = findSafeSliceY(canvas, Math.round(idealEndPx), searchPx)
-      // Never go backward from start or exceed canvas
-      sliceEndPx = Math.max(sliceStartPx + 10, Math.min(sliceEndPx, canvas.height))
+      // Use DOM positions to avoid cutting through protected blocks
+      sliceEndPx = safeCutY(Math.round(idealEndPx), noCutZones, sliceStartPx, pageHpx, canvas.height)
+      // Guarantee minimum advance of 30% of a page to prevent infinite loops
+      const minEnd = sliceStartPx + Math.round(pageHpx * 0.3)
+      sliceEndPx = Math.max(sliceEndPx, Math.min(minEnd, canvas.height))
+      sliceEndPx = Math.min(sliceEndPx, canvas.height)
     }
 
     const sliceHpx = sliceEndPx - sliceStartPx
@@ -304,7 +423,105 @@ async function drawContentPages(doc, contentRef, companyName, date, startPage) {
     pageNum++
   }
 
-  return pageNum
+  return { pageNum, captureError }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTION PLAN PAGE — pure jsPDF, appended after content pages
+// ─────────────────────────────────────────────────────────────────────────────
+function drawActionPlanPage(doc, engagement, recommendations, pageNum) {
+  const { company, actionPlan } = engagement
+  if (!actionPlan) return
+  const committed = recommendations.filter(r => actionPlan[r.dimensionId]?.committed)
+  if (committed.length === 0) return
+
+  doc.addPage()
+  const companyName = company?.name || ''
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  pageHeader(doc, 'Committed Action Plan', pageNum)
+  pageFooter(doc, companyName, date)
+
+  let y = HEADER_H + 8
+
+  // Section intro
+  txt(doc, `${companyName ? companyName + ' — ' : ''}AI Readiness Commitments`, ML, y, 11, C.navy, 'bold')
+  y += 6
+  txt(doc, `${committed.length} dimension${committed.length !== 1 ? 's' : ''} committed · Generated ${date}`, ML, y, 7.5, C.slate500)
+  y += 10
+
+  // Table header
+  const colW = [52, 36, 32, CONTENT_W - 52 - 36 - 32]
+  const rowH = 7
+  rbox(doc, ML, y, CONTENT_W, rowH, C.slate100, 2)
+  doc.setFontSize(6); doc.setFont('helvetica', 'bold'); st(doc, C.slate500)
+  const headers = ['Dimension / Recommendation', 'Owner', 'Target Date', 'Notes']
+  let cx = ML + 3
+  headers.forEach((h, i) => { doc.text(h, cx, y + 5); cx += colW[i] })
+  y += rowH
+
+  committed.forEach((rec, i) => {
+    const plan = actionPlan[rec.dimensionId] || {}
+    const dc = DIM_COLORS[rec.dimensionId] || C.slate500
+
+    // Calculate row height based on wrapped text
+    const noteText = plan.customNote || '—'
+    const noteLines = doc.splitTextToSize(noteText, colW[3] - 4)
+    const titleLines = doc.splitTextToSize(rec.title, colW[0] - 4)
+    const lineCount = Math.max(titleLines.length + 1, noteLines.length, 2)
+    const rh = lineCount * 4.5 + 5
+
+    // Alternating row background
+    if (i % 2 === 0) {
+      sf(doc, C.white); doc.rect(ML, y, CONTENT_W, rh, 'F')
+    } else {
+      rbox(doc, ML, y, CONTENT_W, rh, [248, 250, 252], 0)
+    }
+
+    // Left accent bar in dimension color
+    sf(doc, dc); doc.rect(ML, y, 3, rh, 'F')
+
+    // Dim name + title
+    cx = ML + 6
+    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); st(doc, dc)
+    doc.text(DIM_NAMES[rec.dimensionId] || rec.dimensionName, cx, y + 4.5)
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); st(doc, C.navy)
+    doc.text(titleLines, cx, y + 9)
+    cx += colW[0]
+
+    // Owner
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal')
+    st(doc, plan.owner ? C.navy : C.slate500)
+    doc.text(doc.splitTextToSize(plan.owner || 'Not assigned', colW[1] - 4)[0], cx, y + 7)
+    cx += colW[1]
+
+    // Target date
+    st(doc, plan.targetDate ? C.navy : C.slate500)
+    doc.text(doc.splitTextToSize(plan.targetDate || 'Not set', colW[2] - 4)[0], cx, y + 7)
+    cx += colW[2]
+
+    // Notes
+    st(doc, plan.customNote ? C.slate700 : C.slate500)
+    doc.text(noteLines, cx, y + 7)
+
+    // Bottom border
+    sd(doc, C.slate300); doc.setLineWidth(0.2)
+    doc.line(ML, y + rh, ML + CONTENT_W, y + rh)
+
+    y += rh
+  })
+
+  // Uncommitted dims note
+  if (committed.length < 5) {
+    y += 6
+    const uncommitted = recommendations
+      .filter(r => !actionPlan[r.dimensionId]?.committed)
+      .map(r => DIM_NAMES[r.dimensionId] || r.dimensionName)
+    rbox(doc, ML, y, CONTENT_W, 14, [255, 251, 235], 3)
+    doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); st(doc, [146, 64, 14])
+    doc.text('Dimensions not yet committed:', ML + 4, y + 5.5)
+    doc.setFont('helvetica', 'normal')
+    doc.text(uncommitted.join('  ·  '), ML + 4, y + 10.5)
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -319,60 +536,90 @@ async function generateCompositePDF(engagement, contentRef) {
 
   const companyName = engagement.company?.name || ''
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  const recommendations = generateRecommendations(composite.asDimScores, engagement.company)
 
   // Page 1: Designed cover
   drawCover(doc, engagement, composite)
 
   // Pages 2+: Screenshot of the live web content
-  await drawContentPages(doc, contentRef, companyName, date, 2)
+  const { pageNum: lastPage, captureError } = await drawContentPages(doc, contentRef, companyName, date, 2)
+
+  // Final page: Action Plan (only if any commitments exist)
+  if (engagement.actionPlan && Object.values(engagement.actionPlan).some(p => p?.committed)) {
+    drawActionPlanPage(doc, engagement, recommendations, lastPage + 1)
+  }
 
   const slug = companyName.replace(/\s+/g, '-') || 'Assessment'
   const dateSlug = new Date().toISOString().slice(0, 10)
   doc.save(`${slug}-AI-Readiness-Composite-${dateSlug}.pdf`)
+
+  // Return capture error (if any) so the button component can surface a warning
+  return captureError ? { warning: `Content pages rendered with errors — the PDF may be incomplete. Try exporting in Chrome at 100% zoom. Detail: ${captureError}` } : null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BUTTON COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CompositePDFExportButton({ engagement, radarRef, contentRef }) {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const [warning, setWarning]   = useState(null)
 
   async function handleExport() {
     setLoading(true)
+    setWarning(null)
     try {
-      await generateCompositePDF(engagement, contentRef)
+      const result = await generateCompositePDF(engagement, contentRef)
+      if (result?.warning) setWarning(result.warning)
     } catch (e) {
       console.error('Composite PDF export failed:', e)
-      alert(`PDF export failed: ${e?.message || String(e)}`)
+      const msg = e?.message?.toLowerCase()
+      if (msg?.includes('canvas') || msg?.includes('memory')) {
+        alert('PDF export failed: the content area was too large to render. Try exporting in Chrome at 100% browser zoom, or close other tabs to free memory.')
+      } else if (msg?.includes('no sessions')) {
+        alert('PDF export failed: no sessions to aggregate. Add at least one session before exporting.')
+      } else {
+        alert(`PDF export failed: ${e?.message || 'Unknown error'}. Check the browser console for details.`)
+      }
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <button
-      className="btn btn-primary btn-lg"
-      onClick={handleExport}
-      disabled={loading}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
-    >
-      {loading ? (
-        <>
-          <span style={{
-            display: 'inline-block', width: 14, height: 14,
-            border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white',
-            borderRadius: '50%', animation: 'spin 0.7s linear infinite',
-          }} />
-          Generating PDF…
-        </>
-      ) : (
-        <>
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-          </svg>
-          Export Composite PDF
-        </>
+    <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+      <button
+        className="btn btn-primary btn-lg"
+        onClick={handleExport}
+        disabled={loading}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+      >
+        {loading ? (
+          <>
+            <span style={{
+              display: 'inline-block', width: 14, height: 14,
+              border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white',
+              borderRadius: '50%', animation: 'spin 0.7s linear infinite',
+            }} />
+            Generating PDF…
+          </>
+        ) : (
+          <>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            Export Composite PDF
+          </>
+        )}
+      </button>
+      {warning && (
+        <div style={{
+          fontSize: 11, color: '#92400E', background: '#FEF3C7',
+          border: '1px solid #FDE68A', borderRadius: 6,
+          padding: '6px 10px', maxWidth: 340, lineHeight: 1.5,
+        }}>
+          ⚠ {warning}
+        </div>
       )}
-    </button>
+    </div>
   )
 }

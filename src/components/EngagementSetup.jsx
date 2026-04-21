@@ -31,11 +31,14 @@ export default function EngagementSetup({ onSubmit }) {
   const [name, setName]         = useState('')
   const [industry, setIndustry] = useState('')
   const [size, setSize]         = useState('')
+  const [nameTouched, setNameTouched] = useState(false)
 
-  const isValid = name.trim() && industry && size
+  const nameError = nameTouched && !name.trim() ? 'Organization name is required' : null
+  const isValid   = name.trim() && industry && size
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    setNameTouched(true)
     if (!isValid) return
     onSubmit({ name: name.trim(), industry, size })
   }
@@ -86,13 +89,18 @@ export default function EngagementSetup({ onSubmit }) {
           <div className="form-field form-field--full">
             <label className="form-label">Organization name <span>*</span></label>
             <input
-              className="form-input"
+              className={`form-input${nameError ? ' form-input--error' : ''}`}
               type="text"
               placeholder="e.g. Acme Corporation"
               value={name}
               onChange={e => setName(e.target.value)}
+              onBlur={() => setNameTouched(true)}
               autoFocus
+              aria-required="true"
+              aria-invalid={!!nameError}
+              aria-describedby={nameError ? 'org-name-error' : undefined}
             />
+            {nameError && <div id="org-name-error" className="form-field-error" role="alert">{nameError}</div>}
           </div>
 
           <div className="form-grid" style={{ marginTop: 16 }}>

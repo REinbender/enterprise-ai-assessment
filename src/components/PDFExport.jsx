@@ -5,8 +5,12 @@ import {
   computeDimensionScores,
   computeOverallScore,
   generateNarrative,
+  getRiskProfile,
+  maturityLevels,
+  dimensions as allDimensions,
 } from '../data/questions'
 import { generateRecommendations } from '../data/recommendations'
+import { DIM_COLORS_RGB, matColorRGB } from '../constants/colors'
 
 // ── Colour palette ────────────────────────────────────────────────────────
 const C = {
@@ -25,28 +29,21 @@ const C = {
   sky:        [14,  165, 233],
 }
 
-const DIM_COLORS = {
-  1: [46,  163, 242],  // blue    – Strategy
-  2: [14,  165, 233],  // sky     – Data
-  3: [139,  92, 246],  // purple  – Governance
-  4: [245, 158,  11],  // amber   – Talent
-  5: [16,  185, 129],  // green   – Operations
-}
+// DIM_COLORS_RGB imported from constants/colors — single source of truth
+const DIM_COLORS = DIM_COLORS_RGB
 
-// Maturity color lookup (matches questions.js maturityLevels)
-function maturityColor(score) {
-  if (score < 20) return [231, 76,  60]
-  if (score < 40) return [230, 126, 34]
-  if (score < 60) return [241, 196, 15]
-  if (score < 80) return [46,  163, 242]
-  return              [39,  174, 96]
-}
+// matColorRGB imported from constants/colors — null-safe, canonical source
+const maturityColor = matColorRGB
 function maturityLabel(score) {
   if (score < 20) return 'Beginning'
   if (score < 40) return 'Developing'
   if (score < 60) return 'Maturing'
   if (score < 80) return 'Advanced'
   return              'Leading'
+}
+function maturityContext(score) {
+  const lvl = maturityLevels.find(l => score >= l.min && score <= l.max)
+  return lvl?.context || null
 }
 
 // ── Per-dimension tier narratives ─────────────────────────────────────────
@@ -461,7 +458,7 @@ function drawTOCPage(doc, company, hasRadar) {
 }
 
 // ── PAGE 3: Executive Summary ─────────────────────────────────────────────
-function drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs) {
+function drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs, worstQuestions = []) {
   doc.addPage()
   pageHeader(doc, 'Executive Summary', 3)
   pageFooter(doc, company)
@@ -471,6 +468,7 @@ function drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs) {
   const strongest = sorted[0]
   const weakest   = sorted[sorted.length - 1]
   const topRec    = recs[0]
+  const mc        = maturityColor(overallScore)
 
   let y = 42
 
@@ -489,7 +487,47 @@ function drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs) {
     doc.text(lines, ML, y)
     y += lines.length * 5 + 2
   })
-  y += 4
+  y += 2
+
+  // ── Maturity context note ───────────────────────────────────
+  const mctx = maturityContext(overallScore)
+  if (mctx) {
+    const ctxLines = doc.splitTextToSize(mctx, CW)
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'italic')
+    setTextC(doc, C.slate500)
+    doc.text(ctxLines, ML, y)
+    y += ctxLines.length * 4.5 + 4
+  }
+
+  // ── Risk Profile callout (conditional) ─────────────────────
+  const risk = getRiskProfile(dimScores)
+  if (risk) {
+    // Convert hex color string to RGB array
+    const hexToRgb = h => {
+      const r = parseInt(h.slice(1, 3), 16)
+      const g = parseInt(h.slice(3, 5), 16)
+      const b = parseInt(h.slice(5, 7), 16)
+      return [r, g, b]
+    }
+    const riskRgb = typeof risk.color === 'string' ? hexToRgb(risk.color) : risk.color
+    const riskBgRgb = typeof risk.bg === 'string' ? hexToRgb(risk.bg) : risk.bg
+    const descLines = doc.splitTextToSize(risk.description, CW - 20)
+    const riskBoxH = 10 + descLines.length * 4.2 + 6
+    setFill(doc, riskBgRgb)
+    doc.roundedRect(ML, y, CW, riskBoxH, 3, 3, 'F')
+    setFill(doc, riskRgb)
+    doc.roundedRect(ML, y, 4, riskBoxH, 2, 2, 'F')
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, riskRgb)
+    doc.text(`RISK PROFILE: ${risk.label.toUpperCase()}`, ML + 8, y + 7)
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
+    setTextC(doc, riskRgb)
+    doc.text(descLines, ML + 8, y + 13)
+    y += riskBoxH + 6
+  }
 
   // ── Executive Scorecard table ──────────────────────────────
   doc.setFontSize(7)
@@ -654,6 +692,43 @@ function drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs) {
 
   y += recBoxH + 8
 
+  // ── Lowest-scoring questions ────────────────────────────────
+  if (worstQuestions.length > 0) {
+    const wqNeeded = 10 + worstQuestions.length * 12 + 4
+    if (y + wqNeeded > PH - 20) {
+      doc.addPage()
+      pageHeader(doc, 'Executive Summary (cont.)', 3)
+      pageFooter(doc, company)
+      y = 42
+    }
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, C.slate500)
+    doc.text('LOWEST-SCORING RESPONSES', ML, y)
+    y += 5
+    setFill(doc, C.slate50)
+    doc.roundedRect(ML, y, CW, worstQuestions.length * 12 + 4, 3, 3, 'F')
+    y += 4
+    worstQuestions.forEach((q, i) => {
+      const dc = DIM_COLORS[q.dimId] || C.slate500
+      setFill(doc, dc)
+      doc.circle(ML + 4, y + 3, 2, 'F')
+      doc.setFontSize(6)
+      doc.setFont('helvetica', 'bold')
+      setTextC(doc, dc)
+      doc.text(q.dimName, ML + 9, y + 4.5)
+      doc.setFont('helvetica', 'normal')
+      setTextC(doc, C.slate500)
+      doc.text(`  ·  Score: ${q.score}/5`, ML + 9 + doc.getTextWidth(q.dimName), y + 4.5)
+      const qLines = doc.splitTextToSize(q.text, CW - 12)
+      doc.setFontSize(7)
+      setTextC(doc, C.slate700)
+      doc.text(qLines[0] + (qLines.length > 1 ? '…' : ''), ML + 9, y + 9.5)
+      y += 12
+    })
+    y += 6
+  }
+
   // ── Single-respondent advisory notice ─────────────────────
   doc.setFontSize(7)
   doc.setFont('helvetica', 'italic')
@@ -664,7 +739,7 @@ function drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs) {
   y += noticeLines.length * 4.5 + 8
 
   // ── Framework Alignment ────────────────────────────────────
-  if (y < PH - 60) {
+  if (y < PH - 50) {
     doc.setFontSize(7)
     doc.setFont('helvetica', 'bold')
     setTextC(doc, C.slate500)
@@ -1060,6 +1135,18 @@ export async function exportToPDF(company, answers, radarChartRef, notes = {}) {
   const overallScore = computeOverallScore(dimScores)
   const recs         = generateRecommendations(dimScores, company)
 
+  // Compute worst-3 questions from raw answers
+  const allQ = []
+  allDimensions.forEach(dim => {
+    const dimAnswers = answers[dim.id] || {}
+    dim.questions.forEach((q, qi) => {
+      const val = dimAnswers[qi]
+      if (typeof val !== 'number') return
+      allQ.push({ dimId: dim.id, dimName: dim.shortName, text: q.text, score: val })
+    })
+  })
+  const worstQuestions = allQ.sort((a, b) => a.score - b.score).slice(0, 3)
+
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
   doc.setFont('helvetica')
 
@@ -1071,7 +1158,7 @@ export async function exportToPDF(company, answers, radarChartRef, notes = {}) {
   drawTOCPage(doc, company, hasRadar)
 
   // Page 3: Executive Summary
-  drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs)
+  drawExecutiveSummaryPage(doc, company, dimScores, overallScore, recs, worstQuestions)
 
   // Page 4: Dimension Analysis
   drawDimensionsPage(doc, company, dimScores)
@@ -1116,7 +1203,12 @@ export default function PDFExportButton({ company, answers, notes = {}, radarCha
       await exportToPDF(company, answers, radarChartRef, notes)
     } catch (e) {
       console.error('PDF export failed:', e)
-      alert('PDF export encountered an issue. Please try again.')
+      const msg = e?.message?.toLowerCase() || ''
+      if (msg.includes('canvas') || msg.includes('memory')) {
+        alert('PDF export failed: the radar chart could not be rendered. Try exporting in Chrome at 100% browser zoom, or close other tabs to free memory.')
+      } else {
+        alert(`PDF export failed: ${e?.message || 'Unknown error'}. Check the browser console (F12) for details.`)
+      }
     } finally {
       setLoading(false)
     }
@@ -1124,7 +1216,7 @@ export default function PDFExportButton({ company, answers, notes = {}, radarCha
 
   return (
     <button
-      className="btn-export-pdf"
+      className="btn-export-pdf btn btn-secondary btn-lg"
       onClick={handleExport}
       disabled={loading}
     >

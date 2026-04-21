@@ -8,8 +8,13 @@ import {
   computeOverallScore,
   getMaturityLevel,
   generateNarrative,
+  getRiskProfile,
+  dimensions as allDimensions,
+  scaleLabels,
 } from '../data/questions'
 import { generateRecommendations } from '../data/recommendations'
+import { getComplianceRisk } from '../data/industryProfiles'
+import IndustryIntelligenceCard from './IndustryIntelligenceCard'
 import PDFExportButton from './PDFExport'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
@@ -314,7 +319,7 @@ export default function ResultsPage({
   const overallScore  = computeOverallScore(dimScores)
   const maturity      = getMaturityLevel(overallScore)
   const recommendations = generateRecommendations(dimScores, company)
-  const narrative     = generateNarrative(company, dimScores, overallScore)
+  const narrative     = generateNarrative(company, dimScores, overallScore, dimMeta)
 
   const radarData = dimScores.map(d => ({
     dimension: d.shortName,
@@ -403,11 +408,18 @@ export default function ResultsPage({
         <div className="exec-summary card" style={{ marginBottom: 24 }}>
           <div className="exec-summary-header">
             <div className="exec-summary-eyebrow">Executive Summary</div>
-            <div
-              className="maturity-badge"
-              style={{ background: maturity.bg, color: maturity.color, marginLeft: 'auto' }}
-            >
-              <span>●</span> {maturity.label} Maturity
+            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+              <div
+                className="maturity-badge"
+                style={{ background: maturity.bg, color: maturity.color }}
+              >
+                <span>●</span> {maturity.label} Maturity
+              </div>
+              {maturity.context && (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, maxWidth: 280, lineHeight: 1.5, textAlign: 'right' }}>
+                  {maturity.context}
+                </div>
+              )}
             </div>
           </div>
           <div className="exec-summary-body">
@@ -416,6 +428,29 @@ export default function ResultsPage({
             ))}
           </div>
         </div>
+
+        {/* ── Risk profile callout ────────────────────────────────────── */}
+        {(() => {
+          const risk = getRiskProfile(dimScores)
+          if (!risk) return null
+          return (
+            <div style={{
+              background: risk.bg, border: `1.5px solid ${risk.color}`,
+              borderRadius: 10, padding: '16px 20px', marginBottom: 24,
+              display: 'flex', gap: 14, alignItems: 'flex-start',
+            }}>
+              <div style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>⚠</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: risk.color, marginBottom: 5 }}>
+                  Risk Profile: {risk.label}
+                </div>
+                <div style={{ fontSize: 13, color: risk.color, lineHeight: 1.65, opacity: 0.9 }}>
+                  {risk.description}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── Executive Scorecard ────────────────────────────────────── */}
         <ScorecardTable dimScores={dimScores} recommendations={recommendations} />
@@ -512,6 +547,88 @@ export default function ResultsPage({
         {/* ── Effort × Impact Matrix ─────────────────────────────────── */}
         <EIMatrix recommendations={recommendations.filter(r => r.tier !== 'sustain')} />
 
+        {/* ── Lowest-scoring questions ────────────────────────────────── */}
+        {(() => {
+          const allQ = []
+          allDimensions.forEach(dim => {
+            const dimAnswers = answers[dim.id] || {}
+            dim.questions.forEach((q, qi) => {
+              const val = dimAnswers[qi]
+              if (typeof val !== 'number') return
+              allQ.push({ dimName: dim.shortName, dimColor: dim.color, text: q.text, score: val })
+            })
+          })
+          const worst = allQ.sort((a, b) => a.score - b.score).slice(0, 3)
+          if (worst.length === 0) return null
+          return (
+            <div className="card" style={{ marginBottom: 24, padding: '20px 24px' }}>
+              <div className="section-eyebrow" style={{ marginBottom: 6 }}>Targeted Findings</div>
+              <div className="chart-title" style={{ marginBottom: 4 }}>Lowest-Scoring Questions</div>
+              <div className="chart-subtitle" style={{ marginBottom: 16 }}>
+                The most specific capability gaps surfaced by this assessment — highest-value areas for follow-up discovery.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {worst.map((q, i) => (
+                  <div key={i} style={{
+                    display: 'flex', gap: 14, alignItems: 'flex-start',
+                    padding: '12px 16px', borderRadius: 8,
+                    background: '#FEF2F2', border: '1.5px solid #FECACA',
+                  }}>
+                    <div style={{
+                      minWidth: 32, height: 32, borderRadius: '50%',
+                      background: '#DC2626', color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 13, fontWeight: 700, flexShrink: 0,
+                    }}>{q.score}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: q.dimColor, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        {q.dimName}
+                      </div>
+                      <div style={{ fontSize: 13, color: '#1E293B', lineHeight: 1.55 }}>{q.text}</div>
+                      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+                        Score {q.score}/5 — {scaleLabels[q.score]}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* ── Industry Intelligence ─────────────────────────────────── */}
+        <IndustryIntelligenceCard industry={company.industry} overallScore={overallScore} />
+
+        {/* ── Compliance urgency flag ───────────────────────────────── */}
+        {(() => {
+          const cr = getComplianceRisk(company.industry, dimScores)
+          if (!cr) return null
+          return (
+            <div style={{
+              background: '#FFF1F2', border: '2px solid #FDA4AF', borderRadius: 10,
+              padding: '16px 20px', marginBottom: 24,
+              display: 'flex', gap: 14, alignItems: 'flex-start',
+            }}>
+              <div style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>⚠</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: '#BE123C', marginBottom: 5 }}>
+                  {cr.label}
+                </div>
+                <div style={{
+                  display: 'inline-block', fontSize: 10, fontWeight: 700,
+                  color: '#9F1239', background: '#FFE4E6', padding: '2px 8px',
+                  borderRadius: 99, marginBottom: 8,
+                }}>
+                  {cr.regulations}
+                </div>
+                <div style={{ fontSize: 13, color: '#9F1239', lineHeight: 1.7 }}>
+                  {cr.description}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
         {/* ── Recommendations ────────────────────────────────────────── */}
         <div className="recs-section">
           <div className="recs-header">
@@ -521,6 +638,33 @@ export default function ResultsPage({
               Ordered by readiness gap — address critical items first for the highest impact.
             </p>
           </div>
+
+          {/* Start-here banner: when 4+ dimensions are in the critical/low tier */}
+          {recommendations.filter(r => r.tier === 'low').length >= 4 && (
+            <div style={{
+              background: '#FFF7ED', border: '1.5px solid #F59E0B',
+              borderRadius: 10, padding: '18px 22px', marginBottom: 24,
+              display: 'flex', gap: 14,
+            }}>
+              <div style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>⚑</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#92400E', marginBottom: 6 }}>
+                  Start Here — Sequence Investment Deliberately
+                </div>
+                <div style={{ fontSize: 13, color: '#78350F', lineHeight: 1.65 }}>
+                  {recommendations.filter(r => r.tier === 'low').length === 5
+                    ? 'All five dimensions require foundational investment. '
+                    : `${recommendations.filter(r => r.tier === 'low').length} of 5 dimensions require foundational investment. `
+                  }
+                  Executing all of these in parallel is not realistic and typically results in stalled programs and frustrated teams.
+                  The most effective approach is to sequence: establish <strong>Strategy and executive sponsorship first</strong> (Phase 1),
+                  then invest in <strong>Data and Governance in parallel</strong> (Phase 2), then <strong>Operations</strong> (Phase 3),
+                  then <strong>organization-wide enablement</strong> (Phase 4).
+                  Each phase creates the conditions the next one depends on.
+                </div>
+              </div>
+            </div>
+          )}
 
           {recommendations.map((rec, idx) => {
             const isSustain     = rec.tier === 'sustain'
@@ -726,6 +870,60 @@ export default function ResultsPage({
           )
         })()}
 
+        {/* ── DK-heavy warning (engagement mode only) ───────────────── */}
+        {engagementMode && (() => {
+          const dkHeavyDims = dimScores.filter(d => {
+            const meta = dimMeta[d.id]
+            return meta && meta.total > 0 && (meta.dkCount / meta.total) >= 0.5
+          })
+          if (!dkHeavyDims.length) return null
+          const dimNames = { 1: 'Strategy', 2: 'Data', 3: 'Governance', 4: 'Talent', 5: 'Operations' }
+          return (
+            <div style={{
+              marginBottom: 24,
+              padding: '16px 20px',
+              background: '#FFFBEB',
+              border: '1.5px solid #F59E0B',
+              borderRadius: 10,
+              display: 'flex',
+              gap: 14,
+              alignItems: 'flex-start',
+            }}>
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#D97706" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#92400E', marginBottom: 6 }}>
+                  Low Visibility Warning — Consider Re-interviewing
+                </div>
+                <div style={{ fontSize: 13, color: '#78350F', lineHeight: 1.6 }}>
+                  The following dimension{dkHeavyDims.length > 1 ? 's have' : ' has'} 50%+ "Don't Know" responses,
+                  which may produce unreliable scores. Before saving, consider revisiting these dimensions
+                  with a more informed stakeholder:
+                </div>
+                <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {dkHeavyDims.map(d => {
+                    const meta = dimMeta[d.id]
+                    return (
+                      <span key={d.id} style={{
+                        padding: '3px 10px',
+                        borderRadius: 99,
+                        background: '#FEF3C7',
+                        border: '1px solid #F59E0B',
+                        color: '#92400E',
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}>
+                        {dimNames[d.id]} — {meta.dkCount}/{meta.total} DK
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
         {/* ── Scoring methodology ────────────────────────────────────── */}
         <div className="card" style={{ marginBottom: 24, padding: '20px 24px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: 8 }}>METHODOLOGY NOTE</div>
@@ -774,9 +972,9 @@ export default function ResultsPage({
 
     {/* ── Discard confirmation modal ──────────────────────────────────── */}
     {showDiscard && (
-      <div className="modal-overlay" onClick={() => setShowDiscard(false)}>
+      <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="discard-modal-title" onClick={() => setShowDiscard(false)}>
         <div className="modal-box" onClick={e => e.stopPropagation()}>
-          <div className="modal-title">Discard this interview?</div>
+          <div className="modal-title" id="discard-modal-title">Discard this interview?</div>
           <p className="modal-body">
             The scores, notes, and confidence selections for{' '}
             <strong>{respondentName || 'this respondent'}</strong> will not be

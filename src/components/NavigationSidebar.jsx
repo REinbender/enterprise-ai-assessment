@@ -1,4 +1,4 @@
-import { dimensions } from '../data/questions'
+import { dimensions, DK } from '../data/questions'
 
 const STEP_COMPANY = 1
 const STEP_RESULTS = 7
@@ -18,17 +18,23 @@ export default function NavigationSidebar({
       isComplete: !!(company.name && company.industry && company.size),
       isAccessible: true,
     },
-    ...dimensions.map((dim, i) => ({
-      step: i + 2,
-      label: dim.name,
-      shortLabel: dim.shortName,
-      icon: ['🎯', '🗄️', '⚖️', '👥', '⚙️'][i],
-      color: dim.color,
-      isComplete: isDimensionComplete(dim.id),
-      answeredCount: Object.keys(answers[dim.id] || {}).length,
-      totalCount: dim.questions.length,
-      isAccessible: true, // allow navigating back to any started step
-    })),
+    ...dimensions.map((dim, i) => {
+      const dimAnswers = answers[dim.id] || {}
+      const vals = Object.values(dimAnswers)
+      return {
+        step: i + 2,
+        label: dim.name,
+        shortLabel: dim.shortName,
+        icon: ['🎯', '🗄️', '⚖️', '👥', '⚙️'][i],
+        color: dim.color,
+        isComplete: isDimensionComplete(dim.id),
+        scoredCount: vals.filter(v => typeof v === 'number').length,
+        dkCount: vals.filter(v => v === DK).length,
+        answeredCount: vals.length,
+        totalCount: dim.questions.length,
+        isAccessible: true,
+      }
+    }),
   ]
 
   const overallProgress = steps.filter(s => s.isComplete).length
@@ -66,7 +72,7 @@ export default function NavigationSidebar({
 
       {/* Step list */}
       <nav className="sidebar-nav">
-        {steps.map(({ step, label, shortLabel, icon, color, isComplete, isAccessible, answeredCount, totalCount }) => {
+        {steps.map(({ step, label, shortLabel, icon, color, isComplete, isAccessible, scoredCount, dkCount, answeredCount, totalCount }) => {
           const isCurrent = currentStep === step
           const canClick = isAccessible && step !== currentStep
 
@@ -103,7 +109,9 @@ export default function NavigationSidebar({
                   </span>
                 )}
                 {isComplete && (
-                  <span className="sidebar-step-done">Complete</span>
+                  <span className="sidebar-step-done">
+                    {dkCount > 0 ? `${scoredCount} scored · ${dkCount} DK` : 'Complete'}
+                  </span>
                 )}
               </div>
 

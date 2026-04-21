@@ -33,6 +33,7 @@ export default function App() {
   const [mode, setMode]               = useState('loading')
   const [engagement, setEngagement]   = useState(null)
   const [storageWarning, setStorageWarning] = useState(null) // { pct, critical } | null
+  const [lastSavedAt, setLastSavedAt] = useState(null)
 
   // Current in-progress interview state
   const [interviewStep, setInterviewStep]     = useState(1) // 1–5 = dimensions
@@ -83,6 +84,7 @@ export default function App() {
   useEffect(() => {
     if (mode === 'interview') {
       saveSessionDraft({ respondentName, respondentRole, answers, notes, confidence, step: interviewStep })
+      setLastSavedAt(new Date())
     }
   }, [mode, interviewStep, answers, notes, respondentName, respondentRole])
 
@@ -98,6 +100,7 @@ export default function App() {
   const handleStartInterview = () => {
     setRespondentName('')
     setRespondentRole('')
+    setRespondentRoleGroup(null)
     setAnswers(defaultAnswers())
     setNotes(defaultNotes())
     setConfidence(defaultConfidence())
@@ -106,9 +109,12 @@ export default function App() {
     setMode('respondent')
   }
 
-  const handleRespondentSubmit = (name, role) => {
+  const [respondentRoleGroup, setRespondentRoleGroup] = useState(null)
+
+  const handleRespondentSubmit = (name, role, roleGroup) => {
     setRespondentName(name)
     setRespondentRole(role)
+    setRespondentRoleGroup(roleGroup ?? null)
     setInterviewStep(1)
     setMode('interview')
   }
@@ -137,7 +143,7 @@ export default function App() {
       setInterviewStep(s => s + 1)
     } else {
       // All 5 dimensions done — build session and show individual results
-      const session = buildSession({ respondentName, respondentRole, answers, notes, confidence })
+      const session = buildSession({ respondentName, respondentRole, roleGroupOverride: respondentRoleGroup, answers, notes, confidence })
       setCompletedSession(session)
       clearSessionDraft()
       setMode('session-done')
@@ -210,7 +216,7 @@ export default function App() {
     }}>
       <span>
         {storageWarning.full
-          ? '⛔ Storage full — your last save failed. Export your engagement immediately to avoid data loss.'
+          ? '⛔ Storage full — your last save failed. Export your engagement now, then clear browser storage to continue.'
           : `⚠ Storage ${storageWarning.pct}% full — export your engagement as a backup to prevent data loss.`}
       </span>
       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -221,6 +227,11 @@ export default function App() {
           >
             Export Backup
           </button>
+        )}
+        {storageWarning.full && (
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', maxWidth: 220 }}>
+            After exporting, open DevTools → Application → Storage → Clear site data
+          </span>
         )}
         {!storageWarning.full && (
           <button
@@ -268,6 +279,7 @@ export default function App() {
 
   if (mode === 'interview' && currentDim) return (
     <>
+      <a href="#main-content" className="skip-nav">Skip to main content</a>
       {StorageWarningBanner}
       <div className="app-shell">
         <NavigationSidebar
@@ -279,7 +291,7 @@ export default function App() {
             if (s >= 2 && s <= 6) setInterviewStep(s - 1)
           }}
         />
-        <main className="app-main with-sidebar">
+        <main id="main-content" className="app-main with-sidebar">
           <DimensionAssessment
             dimension={currentDim}
             answers={answers[currentDim.id]}
@@ -294,6 +306,7 @@ export default function App() {
             stepNumber={sidebarStep}
             totalSteps={7}
             company={engagement.company}
+            lastSavedAt={lastSavedAt}
           />
         </main>
       </div>

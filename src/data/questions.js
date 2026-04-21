@@ -5,6 +5,10 @@
 // anchored score descriptors so respondents rate against observable evidence.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Re-export RECOMMENDATION_TIERS and scoreTier so consumers can import from
+// either questions.js or constants/thresholds.js without circular deps.
+export { RECOMMENDATION_TIERS, scoreTier } from '../constants/thresholds'
+
 export const dimensions = [
   // ─── DIMENSION 1 ─────────────────────────────────────────────────────────
   {
@@ -117,13 +121,13 @@ export const dimensions = [
         },
       },
       {
-        text: 'Our AI strategy is reviewed and updated regularly based on performance and market changes.',
+        text: 'We have a deliberate strategic position on generative AI and foundation models, including investment priorities, prioritized use cases, and governance boundaries.',
         anchors: {
-          1: 'The AI strategy, if it exists, has never been formally reviewed or updated since it was written.',
-          2: 'The strategy is reviewed informally when significant market events occur, but there is no regular review cycle or documented update process.',
-          3: 'Annual reviews of the AI strategy occur, but they are surface-level and rarely result in substantive changes based on performance data.',
-          4: 'Semi-annual strategy reviews incorporate performance-to-target data, market intelligence, and stakeholder input, resulting in documented strategy updates.',
-          5: 'Quarterly strategy health checks, supported by monthly performance monitoring, enable timely and informed adjustments. A version-controlled strategy document captures all changes with documented rationale, and board-level review occurs annually.',
+          1: 'No strategic position exists. Generative AI adoption is entirely ad-hoc — employees are independently using tools like ChatGPT or Copilot without organizational direction, investment rationale, or any guidance on appropriate use cases or data handling.',
+          2: 'Leadership has acknowledged generative AI in informal discussions, but no formal position, investment thesis, or use case guidance has been documented or communicated. Adoption is driven by individual initiative rather than organizational intent.',
+          3: 'A high-level generative AI position has been published (e.g., "we are investing in GenAI for productivity") but lacks specificity on prioritized use cases, build/buy/partner guidance for foundation model selection, funding model, or governance integration.',
+          4: 'A formal generative AI strategy document defines investment priorities, prioritized use cases by business function, a foundation model selection framework (build/buy/partner/API), and governance principles aligned to the enterprise AI risk framework. The position has executive sign-off and has been communicated to all business units.',
+          5: 'Generative AI is fully integrated into the enterprise AI strategy with a dedicated investment allocation, a production portfolio of use cases mapped to business value, a foundation model selection and vendor management process, regular horizon-scanning for emerging capabilities, and governance requirements embedded in the enterprise AI risk and policy framework.',
         },
       },
       {
@@ -250,13 +254,13 @@ export const dimensions = [
         },
       },
       {
-        text: 'We have monitoring in place for data quality degradation and pipeline health.',
+        text: 'We have controls governing what internal data employees may include in prompts, fine-tuning datasets, or API calls to third-party AI services.',
         anchors: {
-          1: 'No monitoring exists. Data quality issues and pipeline failures are discovered by downstream consumers after business impact has already occurred.',
-          2: 'Basic pipeline failure alerts exist (e.g., job completion notifications) but there is no proactive data quality monitoring or anomaly detection.',
-          3: 'Pipeline monitoring covers job completion and basic SLA adherence. Some data quality checks are run post-ingestion, but coverage is limited and alert fatigue is common.',
-          4: 'Comprehensive pipeline monitoring with SLA dashboards, automated data quality checks at ingestion, and proactive anomaly detection covers all production pipelines.',
-          5: 'ML-driven data observability tools provide end-to-end monitoring of data freshness, volume, schema, distribution, and lineage across all pipelines. Anomalies auto-trigger remediation workflows and are tracked to resolution.',
+          1: 'No controls exist. Employees routinely use third-party AI tools (ChatGPT, Copilot, etc.) with internal business data — including customer records, financial data, and confidential IP — without organizational awareness, classification requirements, or technical restrictions.',
+          2: 'The risk of sharing internal data with AI tools is recognized and informal guidance has been communicated (e.g., "be careful with client data"), but no formal classification-based policy, approved tool list, or technical enforcement mechanisms are in place.',
+          3: 'A data handling policy for AI tool usage specifies which data classifications cannot be included in prompts or shared with external AI APIs. Enforcement is primarily through training and awareness, with limited technical controls and inconsistent employee application of the policy.',
+          4: 'A formal AI data handling policy tied to the enterprise data classification framework governs which data types may be used with which AI services. Employees receive role-specific training. Technical controls (e.g., DLP policies, approved tool catalog, API gateway restrictions) enforce restrictions for high-sensitivity classifications.',
+          5: 'A comprehensive AI data governance framework governs all interactions between internal data and external AI services, including prompt content classification, contractual data residency and non-training terms with all AI vendors, fine-tuning dataset approval processes, and automated enforcement through enterprise DLP and API gateway controls. Controls are audited quarterly and reviewed after any significant AI vendor policy change.',
         },
       },
       {
@@ -343,13 +347,13 @@ export const dimensions = [
         },
       },
       {
-        text: 'We have model monitoring and drift detection in place for all production AI models.',
+        text: 'We have an acceptable use policy specifically for generative AI tools that governs approved platforms, permitted data handling, required human oversight, and employee accountability.',
         anchors: {
-          1: 'No production model monitoring exists. Model degradation is detected only when business users report poor outcomes.',
-          2: 'Basic output monitoring (e.g., error rates, prediction volume) exists for some models, but there is no statistical drift detection or automated alerting.',
-          3: 'Drift detection (data drift and/or concept drift) is implemented for the highest-risk models, but coverage is incomplete and alert thresholds are not calibrated to business impact.',
-          4: 'All production models have automated monitoring covering prediction quality, data drift, concept drift, and business outcome metrics. Alerts trigger defined response procedures.',
-          5: 'Comprehensive model observability covers all production models with real-time dashboards, automated drift detection, business impact correlation, SLA-based alerting, and integration into the incident response process. Model health is reviewed weekly by the MLOps team.',
+          1: 'No acceptable use policy exists for generative AI tools. Employees use personal and commercial AI tools (ChatGPT, Claude, Copilot, Gemini, etc.) without any organizational guidance on which tools are permitted, what data can be processed, or when outputs require human review.',
+          2: 'An informal memo or email has been circulated discouraging specific behaviors (e.g., "do not input client data into ChatGPT"), but no formal policy, approved tool list, accountability mechanism, or enforcement approach exists, and compliance cannot be verified.',
+          3: 'A generative AI acceptable use policy has been drafted and published covering approved tools and prohibited data categories, but it lacks specificity on required human review gates for regulated or high-stakes outputs, technical enforcement, and accountability for violations.',
+          4: 'A formal generative AI acceptable use policy — reviewed by legal, compliance, and security — covers: an approved tool catalog, data classification requirements for prompts, mandatory human review gates for regulated or high-stakes decisions, employee attestation, and disciplinary provisions. Policy is integrated into onboarding and annual compliance training.',
+          5: 'A comprehensive generative AI governance framework integrates the acceptable use policy with technical enforcement (approved tool catalog with SSO enforcement, prompt audit logging for regulated use cases), role-specific usage guidance, quarterly policy reviews for regulatory alignment, a formal exception and waiver process, and annual policy effectiveness assessments.',
         },
       },
       {
@@ -383,13 +387,13 @@ export const dimensions = [
         },
       },
       {
-        text: 'We have version control and change management processes specifically for AI models.',
+        text: 'We have a defined process for retiring and decommissioning AI systems, including criteria for end-of-life decisions, data disposal obligations, and documentation of system closure.',
         anchors: {
-          1: 'No version control or change management for AI models exists. Models are overwritten without versioning, making rollback or audit impossible.',
-          2: 'Some models are stored in version-controlled repositories, but model metadata, training data versions, hyperparameters, and deployment history are not systematically tracked.',
-          3: 'Key models are version-controlled in an ML tracking system (e.g., MLflow) with experiment tracking, but formal change management (approval gates, rollback procedures) is not established.',
-          4: 'All production models are version-controlled with full lineage (code, data, parameters) tracked. A change management process governs model updates with approval gates, deployment logs, and tested rollback procedures.',
-          5: 'A comprehensive model lifecycle management system enforces version control, lineage tracking, and change management for all models. Every deployment is logged with a full audit trail, changes above defined thresholds require multi-stakeholder approval, and rollback can be executed within defined RTO.',
+          1: 'No decommissioning process exists. AI systems continue running indefinitely regardless of degraded performance, obsolescence, or data retention obligations. No accountable owner decides when a system should be retired, and no documentation is produced when systems are taken offline.',
+          2: 'Systems are occasionally shut down when they become obviously problematic or unused, but the decision is informal and ad-hoc. Data disposal and regulatory retention obligations are not systematically addressed, and no documentation is produced when systems are decommissioned.',
+          3: 'An informal decommissioning checklist exists for production AI systems. It covers the most obvious steps (disabling endpoints, archiving model artifacts) but is incomplete on data retention obligations, stakeholder notification, knowledge transfer requirements, and post-decommission audit documentation.',
+          4: 'A formal AI system decommissioning process defines retirement criteria (performance thresholds, business relevance, compliance triggers), requires a documented business case for shutdown decisions, addresses data retention and disposal obligations aligned to regulatory requirements, specifies stakeholder notification, and produces audit documentation for every system closure.',
+          5: 'A comprehensive AI lifecycle closure framework covers: formal retirement criteria with independent review for high-risk system decommissioning, contractual and regulatory data disposal tracked through the closure process, immutable audit documentation for every decommissioned system, mandatory knowledge transfer to capture institutional knowledge before closure, and post-mortem analysis to inform future system design. Decommissioning decisions are logged in the AI system registry.',
         },
       },
       {
@@ -476,13 +480,13 @@ export const dimensions = [
         },
       },
       {
-        text: 'We attract and retain top AI talent effectively relative to market competition.',
+        text: 'Employees in relevant roles have the generative AI literacy to use these tools productively — including effective prompt crafting, critical evaluation of AI outputs, recognition of hallucination risks, and safe data handling.',
         anchors: {
-          1: 'AI talent attraction and retention are unstructured and largely unsuccessful. The organization struggles to fill AI roles and experiences high turnover in its existing AI team.',
-          2: 'Standard recruiting processes are applied to AI roles without differentiated employer value proposition, competitive compensation benchmarking, or specific AI talent retention strategies.',
-          3: 'AI talent acquisition has some differentiated elements (e.g., technical challenges, AI research exposure), and compensation is partially competitive, but retention is below the desired level.',
-          4: 'A targeted AI talent strategy with competitive compensation benchmarking, differentiated employer branding, structured onboarding, and retention programs results in AI talent attrition below industry average.',
-          5: 'The organization is recognized as a top-tier AI employer. A comprehensive AI talent strategy covers employer brand, competitive total compensation, research publishing opportunities, learning investment, and career progression clarity.',
+          1: 'Employees have minimal generative AI literacy. Most cannot use available AI tools effectively, cannot identify AI-generated errors or hallucinations, and are either unaware of or ignoring organizational guidance on safe and responsible GenAI use.',
+          2: 'Some employees have self-taught basic generative AI skills through independent experimentation, but there is no consistent literacy baseline across the organization. Critical competencies — prompt crafting for business tasks, hallucination detection, and appropriate data handling — are absent in most roles.',
+          3: 'A basic generative AI literacy program has been deployed (e.g., a mandatory online course) and most target employees have completed it. However, role-specific prompt engineering skills, output validation techniques, and safe data handling practices have not been developed to a functional level of proficiency.',
+          4: 'Role-specific generative AI training programs develop practical competencies in prompt engineering for the role, hallucination and bias recognition, output validation workflows, and safe data handling. Proficiency is assessed through applied exercises, completion is tracked, and most target employees operate at a functional level.',
+          5: 'Generative AI proficiency is a formally defined organizational competency, assessed by role on an annual cycle. Advanced programs cover multi-turn prompting, agentic AI interaction, retrieval-augmented generation (RAG) system use, and domain-specific GenAI application. Function-level GenAI champions sustain peer-to-peer learning, and literacy metrics are reported to leadership as a workforce readiness indicator.',
         },
       },
       {
@@ -649,13 +653,13 @@ export const dimensions = [
         },
       },
       {
-        text: 'We have robust processes for detecting, responding to, and recovering from model degradation.',
+        text: 'We have operational practices for managing generative AI and LLM-based applications in production — including prompt versioning, output validation, hallucination monitoring, inference cost management, and provider substitution capability.',
         anchors: {
-          1: 'No model degradation detection exists. Degraded models continue serving poor predictions until a business user reports a significant problem.',
-          2: 'Basic performance thresholds trigger email alerts for critical models, but response procedures are undefined and recovery (retraining or rollback) is ad-hoc.',
-          3: 'Degradation detection with automated alerts exists for key models, and informal response procedures are understood by the team, but formal runbooks, recovery time objectives, and post-incident reviews are absent.',
-          4: 'Automated degradation detection triggers defined response runbooks for all production models. Recovery options (rollback, emergency retraining, fallback logic) are documented and tested. Post-incident reviews drive systematic improvements.',
-          5: 'A comprehensive model degradation management system provides early warning through leading indicators (data drift, feature distribution shifts) before output quality degrades. Automated responses are triggered by defined thresholds. RTO and RPO are defined and tested quarterly.',
+          1: 'No operational practices exist for LLM-based applications. Prompts are hardcoded in application code, outputs are not validated before use, inference costs are untracked, and there is no ability to switch AI providers or models if a service degrades or a provider changes terms.',
+          2: 'LLM-based applications are in production but managed ad-hoc. Some teams informally track inference costs and manually review outputs, but there is no standardized prompt management, output validation, or LLM-specific observability in place.',
+          3: 'Core LLMOps practices exist for the most critical applications — prompts are version-controlled, basic output quality checks are automated (e.g., safety filters), and inference costs are monitored. However, practices are not standardized across all LLM applications and hallucination detection is limited to obvious cases.',
+          4: 'A standardized LLMOps framework applies to all production LLM applications, covering: prompt versioning and change management, automated output validation (hallucination checks, content safety, accuracy sampling), inference cost dashboards with per-use-case attribution, defined SLAs for LLM API dependencies, and tested failover procedures for critical applications.',
+          5: 'A mature LLMOps platform treats LLM-based applications as first-class production systems with full prompt lifecycle management (versioning, A/B testing, rollback), multi-model routing and provider abstraction, continuous output quality monitoring (hallucination rate, latency, toxicity), RAG pipeline observability, cost-per-query optimization, and regular red-teaming for adversarial robustness and prompt injection risks.',
         },
       },
       {
@@ -672,10 +676,28 @@ export const dimensions = [
   },
 ]
 
+// ── Runtime integrity guard ───────────────────────────────────────────────
+// Catches bundler issues, circular dependency problems, or accidental truncation
+// of this file before they cascade into cryptic "Cannot read property of undefined"
+// errors throughout the app.
+if (!Array.isArray(dimensions) || dimensions.length !== 5) {
+  throw new Error(
+    `questions.js integrity check failed: expected 5 dimensions, got ${Array.isArray(dimensions) ? dimensions.length : typeof dimensions}. Check for syntax errors or circular imports.`
+  )
+}
+dimensions.forEach((d, i) => {
+  if (!d.id || !Array.isArray(d.questions) || d.questions.length !== 12) {
+    throw new Error(
+      `questions.js integrity check failed: dimension at index ${i} is malformed (id=${d?.id}, questions=${d?.questions?.length}). Check for accidental edits.`
+    )
+  }
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Scoring helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Full behaviorally-anchored scale labels — used on the assessment form buttons
 export const scaleLabels = {
   1: 'Not at all / No capability',
   2: 'Early / Ad-hoc',
@@ -684,17 +706,80 @@ export const scaleLabels = {
   5: 'Advanced / Fully optimized',
 }
 
+// Short labels — used in compact UI contexts (summary pills, progress bar legend)
+// Previously duplicated inline in DimensionAssessment.jsx as scaleSummaryLabels
+export const scaleShortLabels = ['Not at all', 'Early / Ad-hoc', 'Developing', 'Established', 'Advanced']
+
 export const maturityLevels = [
-  { label: 'Beginning',  min: 0,  max: 19,  color: '#E74C3C', bg: '#FDEDEC' },
-  { label: 'Developing', min: 20, max: 39,  color: '#E67E22', bg: '#FEF5E7' },
-  { label: 'Maturing',   min: 40, max: 59,  color: '#F1C40F', bg: '#FEFCE8' },
-  { label: 'Advanced',   min: 60, max: 79,  color: '#2EA3F2', bg: '#E8F4FD' },
-  { label: 'Leading',    min: 80, max: 100, color: '#27AE60', bg: '#EAFAF1' },
+  {
+    label: 'Beginning', min: 0, max: 19, color: '#E74C3C', bg: '#FDEDEC',
+    context: 'AI is largely absent or entirely ad-hoc. Foundational decisions about strategy, data ownership, and governance have not been made. Most organizations at this stage have not yet run a sustained AI initiative — the priority is establishing executive sponsorship and making the first deliberate, sequenced investments.',
+  },
+  {
+    label: 'Developing', min: 20, max: 39, color: '#E67E22', bg: '#FEF5E7',
+    context: 'AI initiatives exist but are fragmented, inconsistently governed, and not reliably delivering value. This is the most common starting point for organizations beginning a structured AI program — typically reflecting 0–2 years of active, but uncoordinated, investment. The priority is moving from reactive to intentional.',
+  },
+  {
+    label: 'Maturing', min: 40, max: 59, color: '#F1C40F', bg: '#FEFCE8',
+    context: 'Core AI capabilities are established and beginning to operate consistently. The organization has moved past early fragmentation but has not yet achieved reliable, governed, enterprise-scale delivery. This reflects 2–4 years of active, sponsored AI investment and is where most mid-market programs plateau without deliberate governance and scaling investment.',
+  },
+  {
+    label: 'Advanced', min: 60, max: 79, color: '#2EA3F2', bg: '#E8F4FD',
+    context: 'AI operates at enterprise scale with established governance, reliable delivery infrastructure, and demonstrable business value. Remaining gaps are actively managed rather than ignored. Characteristic of organizations with 3–5 years of sustained, executive-sponsored AI programs and a dedicated AI function.',
+  },
+  {
+    label: 'Leading', min: 80, max: 100, color: '#27AE60', bg: '#EAFAF1',
+    context: 'AI is a core organizational capability with mature governance, consistent delivery, measurable value attribution, and a culture of continuous improvement. This level typically requires 4+ years of sustained, well-funded investment and is characteristic of organizations where AI is a primary competitive differentiator — not just an efficiency tool.',
+  },
 ]
 
 export function getMaturityLevel(score) {
   const s = Math.max(0, Math.min(100, score ?? 0))
   return maturityLevels.find(l => s >= l.min && s <= l.max) ?? maturityLevels[0]
+}
+
+// ── Risk profile detector ──────────────────────────────────────────────────
+// Accepts either {id, score}[] (single-session) or {dimId, avg}[] (composite).
+// Returns a named risk profile when a dangerous imbalance is detected, or null.
+export function getRiskProfile(scores) {
+  const get = id => {
+    const item = scores.find(d => (d.id ?? d.dimId) === id)
+    return item != null ? (item.score ?? item.avg) : null
+  }
+  const strat = get(1), data = get(2), gov = get(3), tal = get(4), ops = get(5)
+
+  // Ungoverned deployment: capable delivery/data, no governance controls
+  if (gov != null && gov < 30 && ((ops != null && ops > 55) || (data != null && data > 55))) {
+    const capDim = ops != null && ops > 55 ? `Operations (${ops}/100)` : `Data (${data}/100)`
+    return {
+      label: 'Ungoverned Deployment Risk',
+      color: '#DC2626',
+      bg: '#FEE2E2',
+      description: `${capDim} significantly outpaces Governance (${gov}/100). AI systems are being deployed or data capabilities built at scale without adequate risk controls, policies, or accountability structures. This is a material compliance, ethical, and reputational liability that compounds as deployment accelerates. Governance investment should be treated as urgent — not a Phase 2 option.`,
+    }
+  }
+
+  // Vision without execution: strong strategy, operations haven't followed
+  if (strat != null && ops != null && strat > 55 && ops < 30 && strat - ops >= 25) {
+    return {
+      label: 'Vision Without Execution',
+      color: '#D97706',
+      bg: '#FEF3C7',
+      description: `Strategic intent (${strat}/100) significantly outpaces delivery capability (Operations ${ops}/100). The organization has invested in planning and direction but has not yet built the engineering and deployment infrastructure to act on it. Without closing this gap, AI strategy documents will not translate into deployed systems — and leadership confidence in AI will erode.`,
+    }
+  }
+
+  // Platform without people: infrastructure built, team to operate it isn't
+  if (data != null && ops != null && tal != null && data > 55 && ops > 55 && tal < 30) {
+    return {
+      label: 'Platform Without People',
+      color: '#7C3AED',
+      bg: '#EDE9FE',
+      description: `Technical infrastructure is well-developed (Data ${data}/100, Operations ${ops}/100) but talent and organizational enablement are critically low (Talent ${tal}/100). Platforms built without the people to operate and continuously improve them create fragility — and the AI practitioners who do exist will leave when they see no organizational investment in their development.`,
+    }
+  }
+
+  return null
 }
 
 // Sentinel value for "Don't Know / Outside my area" — excluded from scoring
@@ -739,15 +824,103 @@ export function computeOverallScore(dimensionScores) {
 }
 
 // ── Executive summary narrative generator ─────────────────────────────────
-const narrativeContext = {
-  Beginning: 'Foundational investment across strategy, data, talent, and governance is urgently needed before meaningful AI deployment can occur at scale.',
-  Developing: 'Early AI initiatives are underway but lack the consistency, infrastructure, and governance required for enterprise-scale impact.',
-  Maturing:   'The organization is building core AI capabilities with increasing consistency, but uneven progress across dimensions limits the ability to scale confidently.',
-  Advanced:   'Strong AI capabilities are established across most dimensions; the focus should shift toward optimization, scaling, and competitive differentiation.',
-  Leading:    'AI is deeply embedded in strategy and operations — the focus should be on sustaining leadership through frontier capabilities and ecosystem influence.',
-}
+//
+// generateNarrative returns an array of diagnostic sentences tailored to the
+// specific score pattern, cross-dimension relationships, and visibility gaps
+// surfaced by this assessment. Each call produces differentiated output.
+//
+// dimMeta is optional — { [dimId]: { dkCount, total, answered } }
+// When provided, dimensions with high DK rates are called out explicitly.
 
-export function generateNarrative(company, dimScores, overallScore) {
+// Cross-dimension diagnostic patterns — checked in priority order
+const DIAGNOSTIC_PATTERNS = [
+  // Vision–execution gap: strategy strong, operations weak
+  {
+    id: 'strategy_ops_gap',
+    test: (s) => {
+      const strat = s.find(d => d.id === 1)
+      const ops   = s.find(d => d.id === 5)
+      return strat && ops && strat.score >= 50 && ops.score < 40 && (strat.score - ops.score) >= 20
+    },
+    message: (s) => {
+      const strat = s.find(d => d.id === 1)
+      const ops   = s.find(d => d.id === 5)
+      return `A significant vision–execution gap exists: AI Strategy scores ${strat.score}/100 while AI Operations scores ${ops.score}/100. The organization has invested in planning and intent but has not yet built the engineering and deployment infrastructure to deliver on it. Closing this gap is typically the highest-leverage near-term investment.`
+    },
+  },
+  // Deployment risk: operations strong, governance weak
+  {
+    id: 'ops_governance_risk',
+    test: (s) => {
+      const ops  = s.find(d => d.id === 5)
+      const gov  = s.find(d => d.id === 3)
+      return ops && gov && ops.score >= 50 && gov.score < 40 && (ops.score - gov.score) >= 20
+    },
+    message: (s) => {
+      const ops = s.find(d => d.id === 5)
+      const gov = s.find(d => d.id === 3)
+      return `The organization is deploying AI faster than it is governing it — Operations scores ${ops.score}/100 while Governance scores ${gov.score}/100. This is a material risk posture: capable delivery infrastructure without the controls, policies, and accountability structures to manage it safely at scale. Governance investment should be treated as urgent, not optional.`
+    },
+  },
+  // Data bottleneck: strategy and talent exist, data is the constraint
+  {
+    id: 'data_bottleneck',
+    test: (s) => {
+      const data  = s.find(d => d.id === 2)
+      const strat = s.find(d => d.id === 1)
+      const tal   = s.find(d => d.id === 4)
+      return data && strat && tal && data.score < 40 && strat.score >= 45 && tal.score >= 45
+    },
+    message: (s) => {
+      const data = s.find(d => d.id === 2)
+      return `Data & Infrastructure Readiness (${data.score}/100) is the primary bottleneck constraining an otherwise capable organization. Strategy intent and talent capacity exist, but without reliable, accessible, and governed data, AI initiatives will stall at the pilot stage regardless of investment elsewhere. Data infrastructure investment should be the immediate focus.`
+    },
+  },
+  // Talent gap constraining delivery
+  {
+    id: 'talent_constraint',
+    test: (s) => {
+      const tal  = s.find(d => d.id === 4)
+      const ops  = s.find(d => d.id === 5)
+      const data = s.find(d => d.id === 2)
+      return tal && ops && data && tal.score < 35 && ops.score >= 45 && data.score >= 45
+    },
+    message: (s) => {
+      const tal = s.find(d => d.id === 4)
+      return `Talent, Culture & Enablement (${tal.score}/100) is a critical constraint. The organization has meaningful data and operational infrastructure but lacks the human capacity — skills, culture, and enablement — to use it effectively. AI programs at this stage often stall not from technology limitations but from the inability to attract, develop, and retain the people required to build and operate them.`
+    },
+  },
+  // Broad uniform weakness — no clear anchor strength
+  {
+    id: 'uniform_low',
+    test: (s) => s.every(d => d.score < 40),
+    message: () =>
+      `Scores are uniformly low across all five dimensions, indicating the organization is at a foundational stage of AI maturity. No single dimension provides a strong anchor to build from. The recommended approach is to sequence investment deliberately — establishing strategic direction and executive sponsorship first before accelerating data, governance, and operational investments in parallel.`,
+  },
+  // Uneven maturity: wide spread between best and worst
+  {
+    id: 'uneven_maturity',
+    test: (s) => {
+      const scores = s.map(d => d.score)
+      return (Math.max(...scores) - Math.min(...scores)) >= 35
+    },
+    message: (s) => {
+      const sorted = [...s].sort((a, b) => b.score - a.score)
+      const top = sorted[0]
+      const bot = sorted[sorted.length - 1]
+      return `There is significant unevenness across dimensions — a ${top.score - bot.score}-point spread between ${top.shortName} (${top.score}/100) and ${bot.shortName} (${bot.score}/100). Highly uneven maturity profiles often indicate siloed AI investment: isolated pockets of capability that have not yet been integrated into a coherent enterprise practice. The weakest dimensions are likely creating drag on the stronger ones.`
+    },
+  },
+]
+
+export function generateNarrative(company, dimScores, overallScore, dimMeta = {}) {
+  // Guard: no scored dimensions — can happen when all sessions are all-DK
+  if (!dimScores || dimScores.length === 0) {
+    return [
+      'Insufficient scored data to generate a narrative. All respondents may have selected "Don\'t Know" for every question, or no sessions have been completed. Complete at least one dimension with numeric scores to generate analysis.',
+    ]
+  }
+
   const maturity  = getMaturityLevel(overallScore)
   const sorted    = [...dimScores].sort((a, b) => b.score - a.score)
   const strongest = sorted[0]
@@ -755,15 +928,106 @@ export function generateNarrative(company, dimScores, overallScore) {
   const orgName   = company?.name || 'This organization'
   const industry  = company?.industry
 
-  const industryLine = industry && industry !== 'Other'
-    ? `As a ${industry} organization, sector-specific regulatory obligations, competitive pressures, and data environment constraints should inform how AI investment priorities are sequenced and sized.`
-    : null
+  const sentences = []
 
-  return [
-    `${orgName} demonstrates a ${maturity.label} AI posture with an overall readiness score of ${overallScore}/100 across five assessed dimensions.`,
-    ...(industryLine ? [industryLine] : []),
-    `${strongest.name} is the standout strength (${strongest.score}/100 — ${getMaturityLevel(strongest.score).label}), while ${weakest.name} represents the most significant gap at ${weakest.score}/100 (${getMaturityLevel(weakest.score).label}).`,
-    narrativeContext[maturity.label],
-    `Closing the gap in ${weakest.name} is the primary near-term priority, as it presents the highest-leverage opportunity for improving overall AI readiness and unlocking progress across the broader portfolio.`,
-  ]
+  // ── 1. Opening: score + maturity + session context ─────────────────────
+  sentences.push(
+    `${orgName} scores ${overallScore}/100 overall, placing it at the ${maturity.label} maturity level across the five assessed AI readiness dimensions.`
+  )
+
+  // ── 2. Diagnostic patterns: surface up to 2 cross-dimension insights ───
+  // Filter all matching patterns, exclude redundant combos (uniform_low + uneven_maturity
+  // tells the same structural story — keep only uniform_low in that case).
+  let matchedPatterns = DIAGNOSTIC_PATTERNS.filter(p => p.test(dimScores))
+  const hasUniformLow = matchedPatterns.some(p => p.id === 'uniform_low')
+  if (hasUniformLow) {
+    matchedPatterns = matchedPatterns.filter(p => p.id !== 'uneven_maturity')
+  }
+  matchedPatterns = matchedPatterns.slice(0, 2)
+
+  if (matchedPatterns.length > 0) {
+    matchedPatterns.forEach(p => sentences.push(p.message(dimScores)))
+  } else if (sorted.length === 1) {
+    // Single dimension scored — different narrative path
+    sentences.push(
+      `Only ${strongest.name} could be fully assessed in this engagement (${strongest.score}/100 — ${getMaturityLevel(strongest.score).label}). The remaining dimensions had insufficient respondent coverage to score. Further discovery interviews across those areas are recommended before investment decisions are made.`
+    )
+  } else {
+    // Fallback: standard strongest/weakest observation
+    const spreadMsg = strongest.score - weakest.score >= 20
+      ? ` The ${strongest.score - weakest.score}-point spread between these dimensions indicates uneven investment across the AI capability portfolio.`
+      : ''
+    sentences.push(
+      `${strongest.name} is the strongest dimension at ${strongest.score}/100 (${getMaturityLevel(strongest.score).label}), while ${weakest.name} represents the most significant gap at ${weakest.score}/100 (${getMaturityLevel(weakest.score).label}).${spreadMsg}`
+    )
+  }
+
+  // ── 3. DK visibility flag (Priority 6) ─────────────────────────────────
+  const lowVisDims = dimScores.filter(d => {
+    const meta = dimMeta[d.id]
+    return meta && meta.total > 0 && (meta.dkCount / meta.total) >= 0.4
+  })
+  if (lowVisDims.length) {
+    const names = lowVisDims.map(d => d.shortName).join(' and ')
+    const plural = lowVisDims.length > 1
+    sentences.push(
+      `Note: ${names} ${plural ? 'have' : 'has'} a high rate of "Don\'t Know" responses (40%+ of questions). ${plural ? 'These scores' : 'This score'} should be treated as preliminary — the organization may lack sufficient internal visibility to self-assess in ${plural ? 'these areas' : 'this area'}, which is itself a maturity finding. Deeper discovery interviews with domain specialists are recommended before acting on ${plural ? 'these results' : 'this result'}.`
+    )
+  }
+
+  // ── 4. Industry-specific sequencing guidance ────────────────────────────
+  const INDUSTRY_SEQUENCING = {
+    'Financial Services & Banking':
+      'For financial institutions, Governance is not a Phase 2 investment — it is a regulatory prerequisite. SR 11-7, DORA, and FCRA create direct liability for AI systems used in credit, fraud, and trading decisions. Governance maturity must advance in parallel with Data infrastructure, and Operations investment should not accelerate until model risk management controls are in place and defensible.',
+    'Healthcare & Life Sciences':
+      'In healthcare, FDA SaMD pathway requirements and HIPAA de-identification obligations are hard prerequisites before AI can touch clinical workflows or patient data. Data Infrastructure (specifically PHI governance) and AI Governance must reach a minimum viable threshold before AI Operations can scale — and the AI Strategy must explicitly allocate budget for the compliance overhead these requirements create.',
+    'Technology & Software':
+      'For technology companies, the primary competitive risk is speed: AI differentiation windows narrow quickly. However, the pattern to avoid is scaling Operations (deployment velocity) ahead of Governance — EU AI Act obligations and enterprise client contract requirements are creating governance gates that block sales cycles and deployment approvals when not addressed proactively.',
+    'Manufacturing & Industrial':
+      'Manufacturers face the unique challenge of OT/IT convergence: AI deployed in operational technology environments requires data infrastructure that spans both domains, governance controls that address IEC 62443 industrial cybersecurity standards, and talent with process engineering expertise. Prioritize building the data bridge between OT and IT environments before scaling AI Operations — the highest-value manufacturing use cases depend on it.',
+    'Retail & Consumer Goods':
+      'Retail AI programs should prioritize Data Infrastructure first — fragmented transactional, behavioral, and supply chain data is the primary constraint on personalization accuracy and demand forecasting quality. Governance should advance in parallel to address FTC consumer protection requirements and state-level algorithmic pricing regulations, which are creating enforcement risk for retail AI programs that scale without documented controls.',
+    'Energy & Utilities':
+      'Energy sector AI programs require Governance to lead, not follow. NERC CIP cybersecurity standards and FERC reliability obligations apply to AI systems deployed in grid-connected environments — uncontrolled AI in OT settings carries grid stability and national security consequences. The AI Strategy must explicitly define OT safety constraints as investment boundaries before technology and Operations work begins.',
+    'Government & Public Sector':
+      'Federal and state agencies must sequence AI investment around OMB M-24-10 compliance, Chief AI Officer designation, and use case inventory completion as foundational requirements. Governance and Strategy must reach minimum compliance thresholds before Data and Operations investment can scale — without ATO processes and FedRAMP-compliant infrastructure, AI systems cannot be deployed regardless of technical readiness.',
+    'Professional Services':
+      'Professional services firms must resolve the conflict between AI capability building and client data confidentiality before scaling any dimension. Data Infrastructure must treat engagement data segregation as a non-negotiable design requirement. Governance investment — specifically AI disclosure policies and client contract frameworks — must precede any client-facing AI deployment, as breach of confidentiality in this sector creates both legal liability and irreversible reputational damage.',
+    'Telecommunications':
+      'Telecom AI programs benefit from prioritizing Data Infrastructure first, given the high-volume, high-velocity network telemetry and CDR data that most AI use cases require. Operations and Governance should advance in parallel, with specific attention to FCC regulatory requirements and CPNI data protection obligations that apply to customer-facing AI decisions — these create deployment gates that are more costly to retrofit than to build in from the start.',
+    'Media & Entertainment':
+      'Media organizations must resolve content rights and licensing metadata governance before AI can reliably use content assets — unresolved rights data creates legal exposure and constrains permissible AI scope. Governance investment must address EU DSA/DMA algorithmic transparency requirements for recommendation systems operating in European markets. The AI Strategy should explicitly distinguish first-party content AI from third-party content use cases, as the risk and governance profiles are fundamentally different.',
+    'Education':
+      'Educational institutions must establish FERPA-compliant data governance and CIPA compliance for minors as legal prerequisites before any AI system can access student records — Governance is a legal gate, not a maturity milestone. Strategy must explicitly address equity obligations: AI investments that benefit some student populations while disadvantaging others create civil rights exposure under Title VI. Invest in Governance before, not after, Data and Operations capabilities are built.',
+    'Transportation & Logistics':
+      'Transportation AI programs operating in safety-critical environments must integrate AI Governance into existing safety management systems (SMS) before scaling Operations. FMCSA regulations, DOT safety requirements, and potential NTSB oversight apply to AI-assisted decisions — governance gaps in operational AI carry direct liability. The AI Strategy must explicitly define which decisions require human override regardless of model confidence, and that boundary must be established before Operations investment scales.',
+    'Real Estate & Construction':
+      'Real estate organizations must address ECOA fair lending and FHA fair housing requirements for any AI involved in underwriting, property valuation, or tenant screening before scaling Data and Operations investment — algorithmic bias in these applications is actively enforced and carries significant legal exposure. Governance investment should include bias monitoring for AI valuation and screening systems as a deployment prerequisite, not a post-deployment improvement.',
+  }
+
+  const industryNote = industry ? INDUSTRY_SEQUENCING[industry] : null
+  if (industryNote) {
+    sentences.push(industryNote)
+  }
+
+  // ── 5. Closing: forward-looking priority statement ──────────────────────
+  // Only when 2+ dims scored — single-dim path already added its own closing above
+  if (sorted.length > 1) {
+    const criticalDims = dimScores.filter(d => d.score < 40)
+    if (criticalDims.length >= 3) {
+      sentences.push(
+        `With ${criticalDims.length} dimensions in the Developing or Beginning range, the priority is not to address everything in parallel — it is to establish the prerequisite foundations (strategy, then data and governance) that unlock progress across the remaining dimensions.`
+      )
+    } else if (weakest.score < 40) {
+      sentences.push(
+        `Closing the gap in ${weakest.name} is the highest-leverage near-term priority. Progress in this dimension will directly unblock improvements across the broader AI capability portfolio.`
+      )
+    } else {
+      sentences.push(
+        `With a strong foundation established across most dimensions, the focus should shift from capability building to optimization, scaling, and competitive differentiation — ensuring AI investment translates into durable business outcomes rather than sustained best-practice maintenance.`
+      )
+    }
+  }
+
+  return sentences
 }
