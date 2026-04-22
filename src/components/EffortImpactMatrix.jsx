@@ -1,9 +1,14 @@
-const QUADRANT_LABELS = [
-  { x: 75, y: 12, text: 'Strategic Bets', sub: 'High effort · High impact', color: '#2EA3F2' },
-  { x: 25, y: 12, text: 'Quick Wins',     sub: 'Low effort · High impact',  color: '#27AE60' },
-  { x: 25, y: 62, text: 'Consider Later', sub: 'Low effort · Low impact',   color: '#999999' },
-  { x: 75, y: 62, text: 'Deprioritize',   sub: 'High effort · Low impact',  color: '#E74C3C' },
-]
+// ─────────────────────────────────────────────────────────────────────────────
+// Effort × Impact Matrix
+//
+// Implementation note: this used to be an SVG. html2canvas (used by the
+// Composite PDF export) has persistent quirks with SVG elements — when it
+// can't resolve the SVG's computed size, it falls back to the intrinsic
+// 300×150 default and crops the right side. Rewritten as pure HTML using
+// CSS grid for the four quadrants and absolutely-positioned dots for the
+// data points. html2canvas handles this layout deterministically and the
+// chart now renders full-size regardless of capture context.
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Bucket a recommendation into its quadrant based on effort/impact (1–5 scale).
 // Midpoint is 3 — strictly below is "low", 3 or above is "high" on each axis.
@@ -37,7 +42,7 @@ export function buildMatrixInsight(recommendations) {
     lead = 'No high-impact opportunities surfaced in this assessment. Focus on foundational discovery and capability building before committing to specific AI investments.'
   }
 
-  // Secondary signal — strategic bets commentary when quick wins exist too
+  // Secondary — strategic bets commentary when quick wins exist too
   let secondary = null
   if (buckets.quickWins.length && buckets.strategicBets.length) {
     const names = buckets.strategicBets.map(r => r.dimensionName).join(', ')
@@ -56,12 +61,20 @@ export function buildMatrixInsight(recommendations) {
   return { lead, secondary, tertiary, buckets }
 }
 
+// ── Quadrant definitions ─────────────────────────────────────────────────────
+// Grid layout: 2 rows × 2 cols. The `key` is used to bucket recs; bg is the
+// soft quadrant background, border is its accent colour for the label.
+const QUADRANTS = [
+  { key: 'quickWins',     row: 0, col: 0, title: 'Quick Wins',     sub: 'Low effort · High impact',  bg: '#EAFAF1', color: '#27AE60' },
+  { key: 'strategicBets', row: 0, col: 1, title: 'Strategic Bets', sub: 'High effort · High impact', bg: '#E8F4FD', color: '#2EA3F2' },
+  { key: 'considerLater', row: 1, col: 0, title: 'Consider Later', sub: 'Low effort · Low impact',   bg: '#F8F8F8', color: '#999999' },
+  { key: 'deprioritize',  row: 1, col: 1, title: 'Deprioritize',   sub: 'High effort · Low impact',  bg: '#FDEDEC', color: '#E74C3C' },
+]
+
 /**
  * Effort × Impact Matrix — shared 2×2 prioritization chart
  *
- * Used on ResultsPage (single-session) and CompositeResults (aggregate) so
- * stakeholders see prioritization visually rather than only as inline E/I
- * badges in the recommendation cards.
+ * Used on ResultsPage (single-session) and CompositeResults (aggregate).
  *
  * Props:
  *   recommendations: array of { dimensionId, dimensionName, dimensionColor, effort (1-5), impact (1-5) }
@@ -70,18 +83,12 @@ export function buildMatrixInsight(recommendations) {
 export default function EffortImpactMatrix({ recommendations, subtitle }) {
   if (!recommendations?.length) return null
 
-  const W = 480, H = 340
-  const PAD = { top: 32, right: 32, bottom: 44, left: 52 }
-  const cW = W - PAD.left - PAD.right
-  const cH = H - PAD.top - PAD.bottom
-
-  const toX = (effort) => PAD.left + ((effort - 1) / 4) * cW
-  const toY = (impact) => PAD.top + ((5 - impact) / 4) * cH
-
-  const midX = PAD.left + cW / 2
-  const midY = PAD.top + cH / 2
-
   const insight = buildMatrixInsight(recommendations)
+
+  // Plot dot coordinates as % within the plot area (effort on x, impact on y).
+  // (effort 1 → 0%, effort 5 → 100% ; impact 1 → bottom 0%, impact 5 → top 100%)
+  const dotX = (effort) => ((effort - 1) / 4) * 100
+  const dotY = (impact) => ((5 - impact) / 4) * 100
 
   return (
     <div className="card chart-section" style={{ marginBottom: 24 }}>
@@ -90,95 +97,118 @@ export default function EffortImpactMatrix({ recommendations, subtitle }) {
         {subtitle || 'Prioritize initiatives by quadrant — Quick Wins first, Strategic Bets next'}
       </div>
 
-      {/* width/height ARE ATTRIBUTES (not CSS) because html2canvas falls back to
-          the SVG's intrinsic size (~300×150 default) when sizing is CSS-only,
-          producing a shrunken/partial render in the PDF. viewBox preserves the
-          internal coordinate system; maxWidth:100% lets the chart shrink on
-          narrow screens without affecting what html2canvas captures. */}
-      <svg
-        width={W}
-        height={H}
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="xMidYMid meet"
-        style={{ display: 'block', margin: '0 auto', maxWidth: '100%', height: 'auto' }}
+      {/* Chart frame: y-axis label (left) + plot area (center) + spacer (right) */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          marginTop: 12,
+          maxWidth: 560,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+        }}
       >
-        {/* Quadrant backgrounds */}
-        <rect x={PAD.left} y={PAD.top}  width={cW / 2} height={cH / 2} fill="#EAFAF1" opacity={0.7} />
-        <rect x={midX}     y={PAD.top}  width={cW / 2} height={cH / 2} fill="#E8F4FD" opacity={0.7} />
-        <rect x={PAD.left} y={midY}     width={cW / 2} height={cH / 2} fill="#F8F8F8" opacity={0.7} />
-        <rect x={midX}     y={midY}     width={cW / 2} height={cH / 2} fill="#FDEDEC" opacity={0.7} />
-
-        {/* Grid lines */}
-        <line x1={PAD.left} y1={midY}   x2={PAD.left + cW} y2={midY}        stroke="#CBD5E1" strokeWidth={1.5} strokeDasharray="4 3" />
-        <line x1={midX}     y1={PAD.top} x2={midX}          y2={PAD.top + cH} stroke="#CBD5E1" strokeWidth={1.5} strokeDasharray="4 3" />
-
-        {/* Border */}
-        <rect x={PAD.left} y={PAD.top} width={cW} height={cH} fill="none" stroke="#E2E2E2" strokeWidth={1} />
-
-        {/* Quadrant labels — coordinates relative to SVG viewBox, not the container */}
-        {QUADRANT_LABELS.map((q, i) => {
-          const lx = PAD.left + (q.x / 100) * cW
-          const ly = PAD.top  + (q.y / 100) * cH
-          return (
-            <g key={i}>
-              <text
-                x={lx}
-                y={ly}
-                textAnchor="middle"
-                fill={q.color}
-                fontSize={11}
-                fontWeight={700}
-                fontFamily="Open Sans, sans-serif"
-                opacity={0.75}
-              >
-                {q.text}
-              </text>
-              <text
-                x={lx}
-                y={ly + 14}
-                textAnchor="middle"
-                fill="#999"
-                fontSize={9}
-                fontFamily="Open Sans, sans-serif"
-              >
-                {q.sub}
-              </text>
-            </g>
-          )
-        })}
-
-        {/* Axis labels */}
-        <text x={PAD.left + cW / 2} y={H - 6} textAnchor="middle" fill="#555" fontSize={11} fontFamily="Open Sans, sans-serif">
-          ← Lower Effort · Higher Effort →
-        </text>
-        <text
-          x={16}
-          y={PAD.top + cH / 2}
-          textAnchor="middle"
-          fill="#555"
-          fontSize={11}
-          fontFamily="Open Sans, sans-serif"
-          transform={`rotate(-90, 16, ${PAD.top + cH / 2})`}
+        {/* Y-axis label — rotated */}
+        <div
+          style={{
+            width: 22,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
         >
-          ← Lower Impact · Higher Impact →
-        </text>
+          <div
+            style={{
+              transform: 'rotate(-90deg)',
+              whiteSpace: 'nowrap',
+              fontSize: 11,
+              color: '#555',
+              fontWeight: 500,
+            }}
+          >
+            ← Lower Impact · Higher Impact →
+          </div>
+        </div>
 
-        {/* Dots */}
-        {recommendations.map((rec) => {
-          const cx = toX(rec.effort)
-          const cy = toY(rec.impact)
-          return (
-            <g key={rec.dimensionId}>
-              <circle cx={cx} cy={cy} r={14} fill={rec.dimensionColor} opacity={0.18} />
-              <circle cx={cx} cy={cy} r={7}  fill={rec.dimensionColor} />
-              <title>{rec.dimensionName}: Effort {rec.effort}/5, Impact {rec.impact}/5</title>
-            </g>
-          )
-        })}
-      </svg>
+        {/* Plot area — flex 1 so it fills remaining width */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Quadrant grid */}
+          <div
+            style={{
+              position: 'relative',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gridTemplateRows: '1fr 1fr',
+              width: '100%',
+              aspectRatio: '1.5 / 1',
+              border: '1px solid #E2E2E2',
+              borderRadius: 4,
+              overflow: 'hidden',
+            }}
+          >
+            {/* Quadrant backgrounds + labels */}
+            {QUADRANTS.map(q => (
+              <div
+                key={q.key}
+                style={{
+                  background: q.bg,
+                  opacity: 0.7,
+                  padding: 12,
+                  position: 'relative',
+                  borderRight: q.col === 0 ? '1px dashed #CBD5E1' : 'none',
+                  borderBottom: q.row === 0 ? '1px dashed #CBD5E1' : 'none',
+                }}
+              >
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ color: q.color, fontSize: 12, fontWeight: 700, opacity: 0.8 }}>{q.title}</div>
+                  <div style={{ color: '#999', fontSize: 10, marginTop: 2 }}>{q.sub}</div>
+                </div>
+              </div>
+            ))}
+
+            {/* Dots — absolutely positioned inside the plot area */}
+            {recommendations.map((rec) => {
+              const left = dotX(rec.effort)
+              const top  = dotY(rec.impact)
+              return (
+                <div
+                  key={rec.dimensionId}
+                  title={`${rec.dimensionName}: Effort ${rec.effort}/5, Impact ${rec.impact}/5`}
+                  style={{
+                    position: 'absolute',
+                    left: `${left}%`,
+                    top: `${top}%`,
+                    transform: 'translate(-50%, -50%)',
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    background: rec.dimensionColor,
+                    boxShadow: `0 0 0 8px ${rec.dimensionColor}2E`, // soft halo via rgba-like hex
+                    zIndex: 2,
+                  }}
+                />
+              )
+            })}
+          </div>
+
+          {/* X-axis label */}
+          <div
+            style={{
+              textAlign: 'center',
+              fontSize: 11,
+              color: '#555',
+              fontWeight: 500,
+              marginTop: 8,
+            }}
+          >
+            ← Lower Effort · Higher Effort →
+          </div>
+        </div>
+      </div>
 
       {/* Legend */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 8 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 12 }}>
         {recommendations.map(rec => (
           <div key={rec.dimensionId} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: rec.dimensionColor, flexShrink: 0 }} />
