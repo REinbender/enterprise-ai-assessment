@@ -15,6 +15,8 @@ import {
 import { generateRecommendations } from '../data/recommendations'
 import { getComplianceRisk } from '../data/industryProfiles'
 import IndustryIntelligenceCard from './IndustryIntelligenceCard'
+import IndustryRegulatoryContextCard from './IndustryRegulatoryContextCard'
+import FrameworkAlignmentCard from './FrameworkAlignmentCard'
 import PDFExportButton from './PDFExport'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
@@ -599,6 +601,9 @@ export default function ResultsPage({
         {/* ── Industry Intelligence ─────────────────────────────────── */}
         <IndustryIntelligenceCard industry={company.industry} overallScore={overallScore} />
 
+        {/* ── Industry Regulatory Context (always visible) ──────────── */}
+        <IndustryRegulatoryContextCard industry={company.industry} />
+
         {/* ── Compliance urgency flag ───────────────────────────────── */}
         {(() => {
           const cr = getComplianceRisk(company.industry, dimScores)
@@ -923,6 +928,9 @@ export default function ResultsPage({
             </div>
           )
         })()}
+
+        {/* ── Framework Alignment ───────────────────────────────────── */}
+        <FrameworkAlignmentCard />
 
         {/* ── Scoring methodology ────────────────────────────────────── */}
         <div className="card" style={{ marginBottom: 24, padding: '20px 24px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}>

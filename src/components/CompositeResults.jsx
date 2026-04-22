@@ -8,6 +8,8 @@ import { generateRecommendations } from '../data/recommendations'
 import { computeComposite, ROLE_GROUP_META, exportEngagement } from '../data/engagement'
 import { getIndustryProfile, isGovPhase1Industry, getComplianceRisk } from '../data/industryProfiles'
 import IndustryIntelligenceCard from './IndustryIntelligenceCard'
+import IndustryRegulatoryContextCard from './IndustryRegulatoryContextCard'
+import FrameworkAlignmentCard from './FrameworkAlignmentCard'
 import CompositePDFExportButton from './CompositePDFExport'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
@@ -1438,6 +1440,9 @@ export default function CompositeResults({ engagement, onBack, onUpdateEngagemen
         {/* ── Industry Intelligence ─────────────────────────────────────── */}
         <IndustryIntelligenceCard industry={company.industry} overallScore={composite.overallAvg} />
 
+        {/* ── Industry Regulatory Context (always visible) ──────────────── */}
+        <IndustryRegulatoryContextCard industry={company.industry} />
+
         {/* ── Compliance urgency flag ───────────────────────────────────── */}
         {(() => {
           const cr = getComplianceRisk(company.industry, composite.dimensions.map(d => ({ id: d.dimId, score: d.avg })))
@@ -1627,6 +1632,9 @@ export default function CompositeResults({ engagement, onBack, onUpdateEngagemen
             onUpdateEngagement({ ...engagement, sandboxResults: updated })
           }}
         />
+
+        {/* ── Framework Alignment ───────────────────────────────────────── */}
+        <FrameworkAlignmentCard />
 
         {/* ── Scoring methodology ───────────────────────────────────────── */}
         <div className="card" style={{ marginBottom: 24, padding: '20px 24px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}>

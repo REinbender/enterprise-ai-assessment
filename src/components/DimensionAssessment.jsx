@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { scaleLabels, scaleShortLabels, DK } from '../data/questions'
+import { getQuestionFramework } from '../constants/frameworks'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
 
@@ -109,10 +110,11 @@ function AnchorPanel({ anchors, selectedValue, color }) {
   )
 }
 
-function QuestionCard({ question, index, selectedValue, onSelect, color }) {
+function QuestionCard({ question, index, dimId, selectedValue, onSelect, color }) {
   const answered  = selectedValue !== undefined
   const isDontKnow = selectedValue === DK
   const isScored   = typeof selectedValue === 'number'
+  const framework  = getQuestionFramework(dimId, index)
 
   return (
     <div className={`question-card ${answered ? 'answered' : ''} ${isDontKnow ? 'question-card--dk' : ''}`}>
@@ -126,7 +128,51 @@ function QuestionCard({ question, index, selectedValue, onSelect, color }) {
         >
           {index + 1}
         </span>
-        <p className="question-text">{question.text}</p>
+        <div style={{ flex: 1 }}>
+          <p className="question-text" style={{ margin: 0 }}>{question.text}</p>
+          {framework && (
+            <div
+              style={{
+                marginTop: 6,
+                display: 'flex',
+                gap: 6,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                fontSize: 10,
+                color: 'var(--text-muted)',
+              }}
+              title="Framework alignment for this question"
+            >
+              <span
+                style={{
+                  padding: '1px 7px',
+                  borderRadius: 3,
+                  background: color + '15',
+                  color: color,
+                  fontWeight: 700,
+                  fontSize: 10,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {framework.primary}
+              </span>
+              {framework.secondary && (
+                <span
+                  style={{
+                    padding: '1px 7px',
+                    borderRadius: 3,
+                    background: '#F1F5F9',
+                    color: '#64748B',
+                    fontWeight: 600,
+                    fontSize: 10,
+                  }}
+                >
+                  {framework.secondary}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 1–5 scale + Don't Know */}
@@ -346,6 +392,7 @@ export default function DimensionAssessment({
               key={i}
               question={q}
               index={i}
+              dimId={dimension.id}
               selectedValue={answers[i]}
               onSelect={onAnswer}
               color={dimension.color}

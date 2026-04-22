@@ -11,6 +11,7 @@ import {
 } from '../data/questions'
 import { generateRecommendations } from '../data/recommendations'
 import { DIM_COLORS_RGB, matColorRGB } from '../constants/colors'
+import { DIM_FRAMEWORKS_FLAT } from '../constants/frameworks'
 
 // ── Colour palette ────────────────────────────────────────────────────────
 const C = {
@@ -102,13 +103,9 @@ const MR = 18
 const CW = PW - ML - MR
 
 // ── Per-dimension framework references ────────────────────────────────────
-const DIM_FRAMEWORKS_PDF = {
-  1: 'NIST AI RMF 1.0 (GOVERN) · OECD AI Principles',
-  2: 'DAMA-DMBOK v2 · NIST AI RMF (MAP)',
-  3: 'NIST AI RMF 1.0 (MAP/MEASURE/MANAGE) · ISO/IEC 42001:2023 · EU AI Act (2024)',
-  4: 'NIST AI RMF (GOVERN 6.x) · WEF AI Governance Alliance',
-  5: 'Google MLOps Maturity Model · Microsoft Azure MLOps Model · NIST AI RMF (MANAGE)',
-}
+// Sourced from ../constants/frameworks.js — single source of truth shared with
+// FrameworkAlignmentCard in the web UI.
+const DIM_FRAMEWORKS_PDF = DIM_FRAMEWORKS_FLAT
 
 const DIM_OWNERS_PDF = {
   1: 'CEO / CDAO',
