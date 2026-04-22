@@ -87,8 +87,21 @@ function storageUsageRatio() {
 }
 
 export function saveEngagement(eng) {
+  // Serialize first so we can distinguish serialization errors from storage errors.
+  // A TypeError here (e.g. circular reference from a data migration bug) should
+  // surface as a save failure, not crash the app.
+  let json
   try {
-    const json = JSON.stringify(eng)
+    json = JSON.stringify(eng)
+  } catch (e) {
+    console.error('saveEngagement: serialization failed', e)
+    window.dispatchEvent(new CustomEvent('ai_storage_save_failed', {
+      detail: { reason: 'serialize', message: e?.message || 'Unknown serialization error' }
+    }))
+    return { ok: false, reason: 'serialize', error: e }
+  }
+
+  try {
     localStorage.setItem(ENGAGEMENT_KEY, json)
 
     // Warn when storage is >70% full — after successful save so data isn't lost
@@ -102,13 +115,18 @@ export function saveEngagement(eng) {
         }))
       }, 0)
     }
+    return { ok: true }
   } catch (e) {
     if (e?.name === 'QuotaExceededError' || e?.code === 22) {
       // Storage full — notify the app so it can show a blocking error modal
       window.dispatchEvent(new CustomEvent('ai_storage_full'))
-    } else {
-      throw e
+      return { ok: false, reason: 'quota', error: e }
     }
+    console.error('saveEngagement: unexpected storage error', e)
+    window.dispatchEvent(new CustomEvent('ai_storage_save_failed', {
+      detail: { reason: 'unknown', message: e?.message || 'Unknown storage error' }
+    }))
+    return { ok: false, reason: 'unknown', error: e }
   }
 }
 
@@ -284,6 +302,34 @@ function validateSession(data, filename) {
     })
   }
 
+  // Validate answers: dimension ids, question indices in range, values (1–5 or DK)
+  if (data.answers && typeof data.answers === 'object') {
+    Object.entries(data.answers).forEach(([dimKey, qMap]) => {
+      const dimId = Number(dimKey)
+      if (!VALID_DIM_IDS.has(dimId)) {
+        errors.push(`unknown dimension id ${dimKey} in answers`)
+        return
+      }
+      if (!qMap || typeof qMap !== 'object') {
+        errors.push(`answers[${dimKey}] must be an object`)
+        return
+      }
+      const dim = dimensions.find(d => d.id === dimId)
+      const nQ  = dim?.questions.length ?? 0
+      Object.entries(qMap).forEach(([qKey, v]) => {
+        const qIdx = Number(qKey)
+        if (!Number.isInteger(qIdx) || qIdx < 0 || qIdx >= nQ) {
+          errors.push(`answers[${dimKey}][${qKey}] — question index out of range (0–${nQ - 1})`)
+        }
+        const isValidScore = typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 5
+        const isDK         = v === DK
+        if (!isValidScore && !isDK) {
+          errors.push(`answers[${dimKey}][${qKey}] = ${JSON.stringify(v)} — must be an integer 1–5 or "${DK}"`)
+        }
+      })
+    })
+  }
+
   if (errors.length) {
     return { ok: false, error: `${filename}: ${errors.join('; ')}` }
   }
@@ -329,6 +375,16 @@ export function parseImportedFiles(files) {
           } catch {
             resolve({ ok: false, error: `${file.name}: Could not parse JSON — file may be corrupted or not a JSON file` })
           }
+        }
+        reader.onerror = () => {
+          const err = reader.error
+          resolve({
+            ok: false,
+            error: `${file.name}: Could not read file${err?.name ? ` (${err.name})` : ''}. The file may be inaccessible or locked by another process.`,
+          })
+        }
+        reader.onabort = () => {
+          resolve({ ok: false, error: `${file.name}: File read was aborted.` })
         }
         reader.readAsText(file)
       })

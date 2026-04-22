@@ -1163,23 +1163,25 @@ export async function exportToPDF(company, answers, radarChartRef, notes = {}) {
   // Page 4: Dimension Analysis
   drawDimensionsPage(doc, company, dimScores)
 
-  // Page 5: Radar chart
+  // Page 5: Radar chart — capture first, then add the page so a failure doesn't leave a blank page behind.
   let recsStartPage = 5
+  let radarCaptureError = null
   if (radarChartRef?.current) {
     try {
-      doc.addPage()
-      pageHeader(doc, 'AI Readiness Radar', 5)
-      pageFooter(doc, company)
       const canvas = await html2canvas(radarChartRef.current, {
         scale: 2, backgroundColor: '#ffffff', logging: false,
       })
       const imgData = canvas.toDataURL('image/png')
       const imgW = 140
       const imgH = (canvas.height / canvas.width) * imgW
+      doc.addPage()
+      pageHeader(doc, 'AI Readiness Radar', 5)
+      pageFooter(doc, company)
       doc.addImage(imgData, 'PNG', (PW - imgW) / 2, 36, imgW, imgH)
       recsStartPage = 6
-    } catch (_) {
-      // radar capture failed — skip page, recsStartPage stays 5
+    } catch (e) {
+      console.warn('PDF export: radar chart capture failed', e)
+      radarCaptureError = e
     }
   }
 
@@ -1191,16 +1193,23 @@ export async function exportToPDF(company, answers, radarChartRef, notes = {}) {
     : `AI_Readiness_Assessment_${new Date().toISOString().slice(0, 10)}.pdf`
 
   doc.save(filename)
+
+  return { radarCaptureError }
 }
 
 // ── Button component ──────────────────────────────────────────────────────
 export default function PDFExportButton({ company, answers, notes = {}, radarChartRef }) {
   const [loading, setLoading] = useState(false)
+  const [warning, setWarning] = useState(null)
 
   const handleExport = async () => {
     setLoading(true)
+    setWarning(null)
     try {
-      await exportToPDF(company, answers, radarChartRef, notes)
+      const result = await exportToPDF(company, answers, radarChartRef, notes)
+      if (result?.radarCaptureError) {
+        setWarning('PDF saved, but the radar chart could not be captured and was omitted. Try 100% browser zoom or close other tabs, then re-export.')
+      }
     } catch (e) {
       console.error('PDF export failed:', e)
       const msg = e?.message?.toLowerCase() || ''
@@ -1215,25 +1224,44 @@ export default function PDFExportButton({ company, answers, notes = {}, radarCha
   }
 
   return (
-    <button
-      className="btn-export-pdf btn btn-secondary btn-lg"
-      onClick={handleExport}
-      disabled={loading}
-    >
-      {loading ? (
-        <>
-          <span className="btn-spinner" />
-          Generating PDF…
-        </>
-      ) : (
-        <>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M12 15V3m0 12l-4-4m4 4l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Export PDF Report
-        </>
+    <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
+      <button
+        className="btn-export-pdf btn btn-secondary btn-lg"
+        onClick={handleExport}
+        disabled={loading}
+      >
+        {loading ? (
+          <>
+            <span className="btn-spinner" />
+            Generating PDF…
+          </>
+        ) : (
+          <>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 15V3m0 12l-4-4m4 4l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Export PDF Report
+          </>
+        )}
+      </button>
+      {warning && (
+        <div
+          role="alert"
+          style={{
+            padding: '8px 12px',
+            background: '#FFFBEB',
+            border: '1px solid #F59E0B',
+            borderRadius: 6,
+            fontSize: 12,
+            color: '#78350F',
+            lineHeight: 1.4,
+            maxWidth: 360,
+          }}
+        >
+          ⚠ {warning}
+        </div>
       )}
-    </button>
+    </div>
   )
 }

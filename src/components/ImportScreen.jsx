@@ -9,36 +9,45 @@ export default function ImportScreen({ engagement, onImport, onBack }) {
   const [loading, setLoading]     = useState(false)
   const inputRef                  = useRef(null)
 
+  // Guard: prevent overlapping file reads from interleaving their state updates.
+  // A ref, not state, so the check is synchronous and not subject to stale-closure issues.
+  const processingRef = useRef(false)
+
   const processFiles = async (files) => {
     if (!files?.length) return
+    if (processingRef.current) return  // ignore concurrent invocations
+    processingRef.current = true
     setLoading(true)
-    const results = await parseImportedFiles(files)
-    const valid   = results.filter(r => r.ok).flatMap(r => r.sessions)
-    const errs    = results.filter(r => !r.ok).map(r => r.error)
-    // Partial warnings from engagement files that had some invalid sessions
-    const warns   = results.filter(r => r.ok && r.warnings?.length).flatMap(r => r.warnings)
+    try {
+      const results = await parseImportedFiles(files)
+      const valid   = results.filter(r => r.ok).flatMap(r => r.sessions)
+      const errs    = results.filter(r => !r.ok).map(r => r.error)
+      // Partial warnings from engagement files that had some invalid sessions
+      const warns   = results.filter(r => r.ok && r.warnings?.length).flatMap(r => r.warnings)
 
-    // De-duplicate against existing engagement sessions AND already-staged sessions
-    const existingIds = new Set(engagement.sessions.map(s => s.sessionId))
-    let dupesVsEngagement = 0
+      // De-duplicate against existing engagement sessions AND already-staged sessions.
+      // All categorization is computed up-front so all state updates derive from the same snapshot.
+      const existingIds     = new Set(engagement.sessions.map(s => s.sessionId))
+      const stagedIds       = new Set(sessions.map(s => s.sessionId))
+      const fresh           = valid.filter(s => !existingIds.has(s.sessionId) && !stagedIds.has(s.sessionId))
+      const dupesVsEngagement = valid.filter(s => existingIds.has(s.sessionId)).length
+      const dupesVsStaged     = valid.length - fresh.length - dupesVsEngagement
 
-    setSessions(prev => {
-      const prevIds = new Set(prev.map(s => s.sessionId))
-      const fresh = valid.filter(s => !existingIds.has(s.sessionId) && !prevIds.has(s.sessionId))
-      dupesVsEngagement = valid.filter(s => existingIds.has(s.sessionId)).length
-      const dupesVsStaged = valid.length - fresh.length - dupesVsEngagement
       const newNotices = []
       if (dupesVsEngagement > 0)
         newNotices.push(`${dupesVsEngagement} session${dupesVsEngagement !== 1 ? 's' : ''} already in this engagement — skipped`)
       if (dupesVsStaged > 0)
         newNotices.push(`${dupesVsStaged} session${dupesVsStaged !== 1 ? 's' : ''} already staged for import — skipped`)
-      if (newNotices.length) setNotices(p => [...p, ...newNotices])
-      return [...prev, ...fresh]
-    })
+      if (warns.length) newNotices.push(...warns)
 
-    setErrors(prev => [...prev, ...errs])
-    if (warns.length) setNotices(p => [...p, ...warns])
-    setLoading(false)
+      // All setState calls are at the top level — no nested setters, no interleaving.
+      if (fresh.length)       setSessions(prev => [...prev, ...fresh])
+      if (errs.length)        setErrors(prev => [...prev, ...errs])
+      if (newNotices.length)  setNotices(prev => [...prev, ...newNotices])
+    } finally {
+      setLoading(false)
+      processingRef.current = false
+    }
   }
 
   const handleFiles = (files) => processFiles(files)

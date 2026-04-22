@@ -46,13 +46,21 @@ export default function App() {
 
   // ── Storage capacity listeners ─────────────────────────────────────────────
   useEffect(() => {
-    const onWarning = (e) => setStorageWarning(e.detail)
-    const onFull    = ()   => setStorageWarning({ pct: 100, critical: true, full: true })
-    window.addEventListener('ai_storage_warning', onWarning)
-    window.addEventListener('ai_storage_full',    onFull)
+    const onWarning    = (e) => setStorageWarning(e.detail)
+    const onFull       = ()  => setStorageWarning({ pct: 100, critical: true, full: true })
+    const onSaveFailed = (e) => setStorageWarning({
+      pct: 100, critical: true, full: true,
+      saveFailed: true,
+      reason: e?.detail?.reason || 'unknown',
+      message: e?.detail?.message || '',
+    })
+    window.addEventListener('ai_storage_warning',     onWarning)
+    window.addEventListener('ai_storage_full',        onFull)
+    window.addEventListener('ai_storage_save_failed', onSaveFailed)
     return () => {
-      window.removeEventListener('ai_storage_warning', onWarning)
-      window.removeEventListener('ai_storage_full',    onFull)
+      window.removeEventListener('ai_storage_warning',     onWarning)
+      window.removeEventListener('ai_storage_full',        onFull)
+      window.removeEventListener('ai_storage_save_failed', onSaveFailed)
     }
   }, [])
 
@@ -86,7 +94,7 @@ export default function App() {
       saveSessionDraft({ respondentName, respondentRole, answers, notes, confidence, step: interviewStep })
       setLastSavedAt(new Date())
     }
-  }, [mode, interviewStep, answers, notes, respondentName, respondentRole])
+  }, [mode, interviewStep, answers, notes, confidence, respondentName, respondentRole])
 
   // ── Engagement creation ────────────────────────────────────────────────────
   const handleCreateEngagement = (company) => {
@@ -215,7 +223,9 @@ export default function App() {
       boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
     }}>
       <span>
-        {storageWarning.full
+        {storageWarning.saveFailed
+          ? `⛔ Save failed (${storageWarning.reason}) — your last change wasn't saved. Export your engagement immediately. ${storageWarning.message || ''}`
+          : storageWarning.full
           ? '⛔ Storage full — your last save failed. Export your engagement now, then clear browser storage to continue.'
           : `⚠ Storage ${storageWarning.pct}% full — export your engagement as a backup to prevent data loss.`}
       </span>
