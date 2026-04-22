@@ -32,12 +32,15 @@ function RoleChip({ roleGroup }) {
   )
 }
 
-function SessionRow({ session, onExport, onDelete }) {
+function SessionRow({ session, onExport, onEdit, onDelete }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const maturity = getMaturityLevel(session.overallScore)
   const date = new Date(session.completedAt).toLocaleDateString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric',
   })
+  const edited = session.lastEditedAt
+    ? new Date(session.lastEditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null
 
   return (
     <div className="hub-session-row">
@@ -58,10 +61,29 @@ function SessionRow({ session, onExport, onDelete }) {
             {maturity.label}
           </span>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{date}</span>
+          {edited && (
+            <span
+              style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}
+              title={`Last edited ${new Date(session.lastEditedAt).toLocaleString()}`}
+            >
+              · edited {edited}
+            </span>
+          )}
         </div>
       </div>
 
       <div className="hub-session-actions">
+        <button
+          className="btn-icon"
+          aria-label={`Edit session for ${session.respondentName}`}
+          title="Edit answers, role, or notes"
+          onClick={onEdit}
+        >
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
         <button
           className="btn-icon"
           aria-label={`Re-download JSON for ${session.respondentName}`}
@@ -98,6 +120,7 @@ function SessionRow({ session, onExport, onDelete }) {
 export default function EngagementHub({
   engagement,
   onStartInterview,
+  onEditSession,
   onDeleteSession,
   onExportSession,
   onGenerateComposite,
@@ -249,6 +272,7 @@ export default function EngagementHub({
                   key={session.sessionId}
                   session={session}
                   onExport={() => onExportSession(session)}
+                  onEdit={() => onEditSession(session)}
                   onDelete={() => onDeleteSession(session.sessionId)}
                 />
               ))}

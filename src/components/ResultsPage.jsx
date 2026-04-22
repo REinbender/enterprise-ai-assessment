@@ -205,8 +205,13 @@ export default function ResultsPage({
   onSaveToEngagement, onDiscard,
   respondentName, respondentRole,
   confidence = {}, dimMeta = {},
+  // Edit mode — relabels Save/Discard and switches messaging so the consultant
+  // knows they're updating an existing session rather than adding a new one.
+  isEditing = false,
 }) {
   const engagementMode  = !!onSaveToEngagement
+  const saveLabel       = isEditing ? 'Save Changes' : 'Save to Engagement'
+  const discardLabel    = isEditing ? 'Discard Changes' : 'Discard'
   const [showDiscard, setShowDiscard] = useState(false)
   const radarRef = useRef(null)
 
@@ -274,10 +279,10 @@ export default function ResultsPage({
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2v-7a2 2 0 00-2-2h-1" />
                   </svg>
-                  Save to Engagement
+                  {saveLabel}
                 </button>
                 <button className="btn btn-ghost" onClick={() => setShowDiscard(true)}>
-                  Discard
+                  {discardLabel}
                 </button>
               </>
             ) : (
@@ -849,10 +854,10 @@ export default function ResultsPage({
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2v-7a2 2 0 00-2-2h-1" />
                 </svg>
-                Save to Engagement
+                {saveLabel}
               </button>
               <button className="btn btn-secondary" onClick={() => setShowDiscard(true)}>
-                Discard Interview
+                {isEditing ? 'Discard Changes' : 'Discard Interview'}
               </button>
             </>
           ) : (

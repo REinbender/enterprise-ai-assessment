@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { dimensions } from './data/questions'
 import {
   loadEngagement, saveEngagement, clearEngagement, createEngagement,
-  buildSession, addSession, removeSession,
+  buildSession, addSession, removeSession, updateSession,
   exportSession, exportEngagement,
   loadSessionDraft, saveSessionDraft, clearSessionDraft,
 } from './data/engagement'
@@ -44,6 +44,10 @@ export default function App() {
   const [notes, setNotes]                         = useState(defaultNotes)
   const [confidence, setConfidence]               = useState(defaultConfidence)
   const [completedSession, setCompletedSession]   = useState(null)
+  // When set, interview flow is editing an existing session in-place rather
+  // than creating a new one. Save step calls updateSession() and preserves
+  // sessionId + completedAt (see buildSession existingSession branch).
+  const [editingSession, setEditingSession]       = useState(null)
 
   // ── Storage capacity listeners ─────────────────────────────────────────────
   useEffect(() => {
@@ -91,8 +95,10 @@ export default function App() {
   }, [])
 
   // ── Auto-save draft during interview ──────────────────────────────────────
+  // Skipped when editing an existing session — the in-progress draft slot is
+  // reserved for new interviews so resuming after a reload stays unambiguous.
   useEffect(() => {
-    if (mode === 'interview') {
+    if (mode === 'interview' && !editingSession) {
       saveSessionDraft({
         respondentName,
         respondentRole,
@@ -104,7 +110,7 @@ export default function App() {
       })
       setLastSavedAt(new Date())
     }
-  }, [mode, interviewStep, answers, notes, confidence, respondentName, respondentRole, respondentRoleGroup])
+  }, [mode, interviewStep, answers, notes, confidence, respondentName, respondentRole, respondentRoleGroup, editingSession])
 
   // ── Engagement creation ────────────────────────────────────────────────────
   const handleCreateEngagement = (company) => {
@@ -116,6 +122,7 @@ export default function App() {
 
   // ── Start a new interview ──────────────────────────────────────────────────
   const handleStartInterview = () => {
+    setEditingSession(null)
     setRespondentName('')
     setRespondentRole('')
     setRespondentRoleGroup(null)
@@ -124,6 +131,23 @@ export default function App() {
     setConfidence(defaultConfidence())
     setInterviewStep(1)
     clearSessionDraft()
+    setMode('respondent')
+  }
+
+  // ── Edit an existing session ───────────────────────────────────────────────
+  // Loads the saved session's data into the interview state and reuses the
+  // respondent → interview flow. On save, buildSession is called with
+  // existingSession so sessionId + completedAt are preserved and lastEditedAt
+  // is stamped.
+  const handleEditSession = (session) => {
+    setEditingSession(session)
+    setRespondentName(session.respondentName || '')
+    setRespondentRole(session.respondentRole || '')
+    setRespondentRoleGroup(session.roleGroup || null)
+    setAnswers(session.answers         || defaultAnswers())
+    setNotes(session.notes             || defaultNotes())
+    setConfidence(session.confidence   || defaultConfidence())
+    setInterviewStep(1)
     setMode('respondent')
   }
 
@@ -158,10 +182,19 @@ export default function App() {
     if (interviewStep < 5) {
       setInterviewStep(s => s + 1)
     } else {
-      // All 5 dimensions done — build session and show individual results
-      const session = buildSession({ respondentName, respondentRole, roleGroupOverride: respondentRoleGroup, answers, notes, confidence })
+      // All 5 dimensions done — build session and show individual results.
+      // When editing, pass existingSession to preserve sessionId + completedAt.
+      const session = buildSession({
+        respondentName,
+        respondentRole,
+        roleGroupOverride: respondentRoleGroup,
+        answers,
+        notes,
+        confidence,
+        existingSession: editingSession,
+      })
       setCompletedSession(session)
-      clearSessionDraft()
+      if (!editingSession) clearSessionDraft()
       setMode('session-done')
     }
   }
@@ -175,18 +208,24 @@ export default function App() {
   }
 
   // ── Save completed session to engagement ───────────────────────────────────
+  // When editing an existing session, replaces it in place (preserving order).
+  // When creating a new session, appends to the list.
   const handleSaveSession = () => {
-    const updated = addSession(engagement, completedSession)
+    const updated = editingSession
+      ? updateSession(engagement, completedSession)
+      : addSession(engagement, completedSession)
     saveEngagement(updated)
     setEngagement(updated)
     exportSession(updated, completedSession) // auto-download JSON backup
     setCompletedSession(null)
+    setEditingSession(null)
     setMode('hub')
   }
 
   // ── Discard interview (don't save) ─────────────────────────────────────────
   const handleDiscardSession = () => {
     setCompletedSession(null)
+    setEditingSession(null)
     setMode('hub')
   }
 
@@ -278,6 +317,7 @@ export default function App() {
     <>{StorageWarningBanner}<EngagementHub
       engagement={engagement}
       onStartInterview={handleStartInterview}
+      onEditSession={handleEditSession}
       onDeleteSession={handleDeleteSession}
       onExportSession={(s) => exportSession(engagement, s)}
       onGenerateComposite={() => setMode('composite')}
@@ -343,6 +383,7 @@ export default function App() {
       dimMeta={completedSession.dimMeta}
       respondentName={completedSession.respondentName}
       respondentRole={completedSession.respondentRole}
+      isEditing={!!editingSession}
       onSaveToEngagement={handleSaveSession}
       onDiscard={handleDiscardSession}
     /></>

@@ -161,7 +161,9 @@ export function clearSessionDraft() {
 }
 
 // ── Build a completed session from interview data ──────────────────────────
-export function buildSession({ respondentName, respondentRole, roleGroupOverride, answers, notes, confidence = {} }) {
+// Edit mode: pass `existingSession` to preserve sessionId + original completedAt
+// and record lastEditedAt. When absent, a brand-new session is built.
+export function buildSession({ respondentName, respondentRole, roleGroupOverride, answers, notes, confidence = {}, existingSession = null }) {
   // Guard: answers must be a non-null object. An absent or empty answers object
   // would produce all-null dimScores silently — surface it as an error instead.
   if (!answers || typeof answers !== 'object') {
@@ -185,16 +187,20 @@ export function buildSession({ respondentName, respondentRole, roleGroupOverride
     [d.id]: computeDimensionMeta(answers[d.id], d.questions.length),
   }), {})
 
+  const isEdit = existingSession && existingSession.sessionId
+
   return {
-    sessionId: uid(),
+    sessionId:   isEdit ? existingSession.sessionId   : uid(),
     respondentName,
     respondentRole,
-    roleGroup: roleGroupOverride ?? assignRoleGroup(respondentRole),
+    roleGroup:   roleGroupOverride ?? assignRoleGroup(respondentRole),
     answers,
     notes,
     confidence,   // { [dimId]: 'high' | 'medium' | 'low' | null }
     dimMeta,      // { [dimId]: { score, answered, dkCount, total } }
-    completedAt: new Date().toISOString(),
+    completedAt: isEdit ? existingSession.completedAt : new Date().toISOString(),
+    // Edits record a separate timestamp so consultants can trace revisions.
+    ...(isEdit ? { lastEditedAt: new Date().toISOString() } : {}),
     dimScores,
     overallScore,
   }
@@ -202,6 +208,11 @@ export function buildSession({ respondentName, respondentRole, roleGroupOverride
 
 export const addSession    = (eng, s)   => ({ ...eng, sessions: [...eng.sessions, s] })
 export const removeSession = (eng, id)  => ({ ...eng, sessions: eng.sessions.filter(s => s.sessionId !== id) })
+// Replace an existing session in-place (by sessionId). Preserves engagement order.
+export const updateSession = (eng, s)   => ({
+  ...eng,
+  sessions: eng.sessions.map(x => x.sessionId === s.sessionId ? s : x),
+})
 
 // ── Schema version ─────────────────────────────────────────────────────────
 // Bump SCHEMA_VERSION whenever session/engagement shape changes.
