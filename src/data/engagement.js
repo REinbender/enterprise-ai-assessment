@@ -23,15 +23,24 @@ export function getGapSeverity(magnitude) {
 }
 
 // ── Role group assignment ──────────────────────────────────────────────────
+// Executive keywords — C-suite, VP-and-above leadership.
 const EXEC_KW = [
   'ceo', 'cto', 'cio', 'cdo', 'ciso', 'coo', 'cfo', 'cpo', 'cdao', 'cmo',
   'chief', 'president', 'founder', 'owner', 'partner', 'managing director',
   'managing partner', 'executive director',
 ]
+// Management keywords — managers, leads, directors, senior ICs with direct reports.
+// Keep these conservative — when in doubt, Practitioner is the safer default and
+// the consultant can override in the UI. "manager" is intentionally included as a
+// standalone word so titles like "Product Manager", "Engineering Manager",
+// "Operations Manager", "Project Manager" categorize correctly.
 const MGMT_KW = [
   'vp ', 'vp,', 'vice president', 'vice-president',
   'director', 'head of', 'head,',
   'principal', 'senior manager', 'sr. manager', 'sr manager',
+  'manager', 'mgr ', 'mgr,',
+  'supervisor', 'team lead', 'tech lead', 'engineering lead', 'group lead',
+  'architect',
 ]
 
 export function assignRoleGroup(role) {

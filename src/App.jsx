@@ -36,13 +36,14 @@ export default function App() {
   const [lastSavedAt, setLastSavedAt] = useState(null)
 
   // Current in-progress interview state
-  const [interviewStep, setInterviewStep]     = useState(1) // 1–5 = dimensions
-  const [respondentName, setRespondentName]   = useState('')
-  const [respondentRole, setRespondentRole]   = useState('')
-  const [answers, setAnswers]                   = useState(defaultAnswers)
-  const [notes, setNotes]                       = useState(defaultNotes)
-  const [confidence, setConfidence]             = useState(defaultConfidence)
-  const [completedSession, setCompletedSession] = useState(null)
+  const [interviewStep, setInterviewStep]         = useState(1) // 1–5 = dimensions
+  const [respondentName, setRespondentName]       = useState('')
+  const [respondentRole, setRespondentRole]       = useState('')
+  const [respondentRoleGroup, setRespondentRoleGroup] = useState(null)
+  const [answers, setAnswers]                     = useState(defaultAnswers)
+  const [notes, setNotes]                         = useState(defaultNotes)
+  const [confidence, setConfidence]               = useState(defaultConfidence)
+  const [completedSession, setCompletedSession]   = useState(null)
 
   // ── Storage capacity listeners ─────────────────────────────────────────────
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function App() {
         // Resume in-progress interview
         setRespondentName(draft.respondentName || '')
         setRespondentRole(draft.respondentRole || '')
+        setRespondentRoleGroup(draft.respondentRoleGroup ?? null)
         setAnswers(draft.answers         || defaultAnswers())
         setNotes(draft.notes             || defaultNotes())
         setConfidence(draft.confidence   || defaultConfidence())
@@ -91,10 +93,18 @@ export default function App() {
   // ── Auto-save draft during interview ──────────────────────────────────────
   useEffect(() => {
     if (mode === 'interview') {
-      saveSessionDraft({ respondentName, respondentRole, answers, notes, confidence, step: interviewStep })
+      saveSessionDraft({
+        respondentName,
+        respondentRole,
+        respondentRoleGroup,
+        answers,
+        notes,
+        confidence,
+        step: interviewStep,
+      })
       setLastSavedAt(new Date())
     }
-  }, [mode, interviewStep, answers, notes, confidence, respondentName, respondentRole])
+  }, [mode, interviewStep, answers, notes, confidence, respondentName, respondentRole, respondentRoleGroup])
 
   // ── Engagement creation ────────────────────────────────────────────────────
   const handleCreateEngagement = (company) => {
@@ -116,8 +126,6 @@ export default function App() {
     clearSessionDraft()
     setMode('respondent')
   }
-
-  const [respondentRoleGroup, setRespondentRoleGroup] = useState(null)
 
   const handleRespondentSubmit = (name, role, roleGroup) => {
     setRespondentName(name)
@@ -284,6 +292,9 @@ export default function App() {
       engagement={engagement}
       onSubmit={handleRespondentSubmit}
       onBack={() => setMode('hub')}
+      initialName={respondentName}
+      initialRole={respondentRole}
+      initialRoleGroup={respondentRoleGroup}
     /></>
   )
 

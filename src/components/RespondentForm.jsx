@@ -1,10 +1,21 @@
 import { useState } from 'react'
 import { assignRoleGroup, ROLE_GROUP_META } from '../data/engagement'
 
-export default function RespondentForm({ engagement, onSubmit, onBack }) {
-  const [name, setName]               = useState('')
-  const [role, setRole]               = useState('')
-  const [groupOverride, setGroupOverride] = useState(null)
+export default function RespondentForm({
+  engagement,
+  onSubmit,
+  onBack,
+  // Initial values — populated when navigating back from the interview so the
+  // consultant doesn't lose their name/role/group override selection.
+  initialName = '',
+  initialRole = '',
+  initialRoleGroup = null,
+}) {
+  const [name, setName]               = useState(initialName)
+  const [role, setRole]               = useState(initialRole)
+  // If the caller passed an explicit role group, treat it as an override so
+  // the user-selected tag (e.g., "Management") is preserved when coming back.
+  const [groupOverride, setGroupOverride] = useState(initialRoleGroup)
   const [touched, setTouched]         = useState({ name: false, role: false })
 
   const autoGroup  = role.trim() ? assignRoleGroup(role) : null
