@@ -48,7 +48,7 @@ body {
   width: 100%;
   max-width: 860px;
   margin: 0 auto;
-  padding: 0 24px 80px;
+  padding: 0 24px 64px;
 }
 
 .page-inner--wide {
@@ -727,9 +727,17 @@ body {
   right: 0;
   background: var(--card);
   border-top: 1px solid var(--border);
-  padding: 14px 24px;
+  padding: 8px 24px;
   z-index: 100;
-  box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+}
+
+.nav-footer .btn {
+  padding: 7px 16px;
+  font-size: 13px;
+}
+.nav-footer .nav-progress-text {
+  font-size: 12px;
 }
 
 .nav-footer-inner {

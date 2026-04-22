@@ -846,6 +846,131 @@ function drawDimensionsPage(doc, company, dimScores) {
   })
 }
 
+// ── Effort × Impact Matrix (vector 2×2 quadrant chart) ────────────────────
+function drawEffortImpactMatrix(doc, company, recs, pageNum) {
+  doc.addPage()
+  pageHeader(doc, 'Effort × Impact Matrix', pageNum)
+  pageFooter(doc, company)
+
+  // Title + subtitle
+  let y = 42
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  setTextC(doc, C.slate900)
+  doc.text('Where to invest — by quadrant', ML, y)
+  y += 6
+  doc.setFontSize(9.5)
+  doc.setFont('helvetica', 'normal')
+  setTextC(doc, C.slate500)
+  const subLines = doc.splitTextToSize(
+    'Prioritize initiatives by quadrant — Quick Wins first, Strategic Bets next. Dots represent the per-dimension recommendation, positioned by the consultant\'s effort and impact estimates.',
+    CW,
+  )
+  doc.text(subLines, ML, y)
+  y += subLines.length * 4.5 + 4
+
+  // Matrix layout in mm
+  const mW = 160
+  const mH = 110
+  const mX = ML + (CW - mW) / 2      // center horizontally
+  const mY = y + 6
+  const midX = mX + mW / 2
+  const midY = mY + mH / 2
+
+  // Quadrant fills (top-left = Quick Wins, top-right = Strategic Bets,
+  // bottom-left = Consider Later, bottom-right = Deprioritize)
+  setFill(doc, [234, 250, 241])                     // Quick Wins  — mint
+  doc.rect(mX, mY, mW / 2, mH / 2, 'F')
+  setFill(doc, [232, 244, 253])                     // Strategic Bets — blue
+  doc.rect(midX, mY, mW / 2, mH / 2, 'F')
+  setFill(doc, [248, 248, 248])                     // Consider Later — grey
+  doc.rect(mX, midY, mW / 2, mH / 2, 'F')
+  setFill(doc, [253, 237, 236])                     // Deprioritize  — red
+  doc.rect(midX, midY, mW / 2, mH / 2, 'F')
+
+  // Matrix outer border
+  setDraw(doc, C.slate200)
+  doc.setLineWidth(0.3)
+  doc.rect(mX, mY, mW, mH)
+
+  // Dashed midlines
+  doc.setLineDashPattern([1.2, 1.2], 0)
+  setDraw(doc, [203, 213, 225])
+  doc.line(mX, midY, mX + mW, midY)
+  doc.line(midX, mY, midX, mY + mH)
+  doc.setLineDashPattern([], 0)  // reset
+
+  // Quadrant labels
+  const quadLabels = [
+    { cx: mX + mW * 0.25, cy: mY + mH * 0.18, text: 'Quick Wins',     sub: 'Low effort · High impact',  color: [39, 174, 96] },
+    { cx: mX + mW * 0.75, cy: mY + mH * 0.18, text: 'Strategic Bets', sub: 'High effort · High impact', color: C.primary },
+    { cx: mX + mW * 0.25, cy: mY + mH * 0.80, text: 'Consider Later', sub: 'Low effort · Low impact',   color: [153, 153, 153] },
+    { cx: mX + mW * 0.75, cy: mY + mH * 0.80, text: 'Deprioritize',   sub: 'High effort · Low impact',  color: [231, 76, 60] },
+  ]
+  quadLabels.forEach(q => {
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, q.color)
+    doc.text(q.text, q.cx, q.cy, { align: 'center' })
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
+    setTextC(doc, C.slate500)
+    doc.text(q.sub, q.cx, q.cy + 3.5, { align: 'center' })
+  })
+
+  // Axis labels
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  setTextC(doc, C.slate700)
+  doc.text('← Lower Effort    ·    Higher Effort →', mX + mW / 2, mY + mH + 6, { align: 'center' })
+
+  // Y-axis label: jsPDF supports angle via options.angle
+  doc.text('← Lower Impact    ·    Higher Impact →', mX - 4, mY + mH / 2, {
+    angle: 90,
+    align: 'center',
+  })
+
+  // Plot dots — translate effort/impact 1–5 into matrix coords
+  const toX = (effort) => mX + ((effort - 1) / 4) * mW
+  const toY = (impact) => mY + ((5 - impact) / 4) * mH
+  recs.forEach((rec) => {
+    const dc = DIM_COLORS[rec.dimensionId] || C.slate500
+    const cx = toX(rec.effort)
+    const cy = toY(rec.impact)
+    // Soft halo
+    setFill(doc, dc)
+    doc.setGState(new doc.GState({ opacity: 0.18 }))
+    doc.circle(cx, cy, 3.2, 'F')
+    doc.setGState(new doc.GState({ opacity: 1 }))
+    // Solid dot
+    doc.circle(cx, cy, 1.6, 'F')
+  })
+
+  // Legend below axis
+  let ly = mY + mH + 14
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  setTextC(doc, C.slate700)
+  doc.text('Legend', ML, ly)
+  ly += 4.5
+
+  doc.setFont('helvetica', 'normal')
+  const legendColW = CW / 2
+  recs.forEach((rec, i) => {
+    const col = i % 2
+    const row = Math.floor(i / 2)
+    const lx  = ML + col * legendColW
+    const lyRow = ly + row * 5
+    const dc = DIM_COLORS[rec.dimensionId] || C.slate500
+    setFill(doc, dc)
+    doc.circle(lx + 1.2, lyRow - 0.8, 1.2, 'F')
+    setTextC(doc, C.slate700)
+    doc.text(rec.dimensionName, lx + 4, lyRow)
+    setTextC(doc, C.slate500)
+    doc.text(`E${rec.effort}/I${rec.impact}`, lx + 4 + doc.getTextWidth(rec.dimensionName) + 4, lyRow)
+  })
+}
+
 // ── PAGE 5+: Recommendations ──────────────────────────────────────────────
 function drawRecommendationsPage(doc, company, recs, startPageNum, notes = {}) {
   doc.addPage()
@@ -1182,7 +1307,13 @@ export async function exportToPDF(company, answers, radarChartRef, notes = {}) {
     }
   }
 
-  // Page 5/6+: Recommendations
+  // Page 5/6: Effort × Impact Matrix (only when we have recs to plot)
+  if (recs?.length) {
+    drawEffortImpactMatrix(doc, company, recs, recsStartPage)
+    recsStartPage += 1
+  }
+
+  // Recommendations (next page after the matrix)
   drawRecommendationsPage(doc, company, recs, recsStartPage, notes)
 
   const filename = company.name
