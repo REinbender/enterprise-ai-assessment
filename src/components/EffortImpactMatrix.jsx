@@ -90,13 +90,17 @@ export default function EffortImpactMatrix({ recommendations, subtitle }) {
         {subtitle || 'Prioritize initiatives by quadrant — Quick Wins first, Strategic Bets next'}
       </div>
 
-      {/* Responsive SVG: scales to container width while preserving aspect ratio.
-          Using viewBox (not fixed width) prevents html2canvas from clipping when
-          the card is narrower than the designed SVG width. */}
+      {/* width/height ARE ATTRIBUTES (not CSS) because html2canvas falls back to
+          the SVG's intrinsic size (~300×150 default) when sizing is CSS-only,
+          producing a shrunken/partial render in the PDF. viewBox preserves the
+          internal coordinate system; maxWidth:100% lets the chart shrink on
+          narrow screens without affecting what html2canvas captures. */}
       <svg
+        width={W}
+        height={H}
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
-        style={{ display: 'block', margin: '0 auto', width: '100%', maxWidth: W, height: 'auto' }}
+        style={{ display: 'block', margin: '0 auto', maxWidth: '100%', height: 'auto' }}
       >
         {/* Quadrant backgrounds */}
         <rect x={PAD.left} y={PAD.top}  width={cW / 2} height={cH / 2} fill="#EAFAF1" opacity={0.7} />
