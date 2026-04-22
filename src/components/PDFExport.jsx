@@ -12,6 +12,7 @@ import {
 import { generateRecommendations } from '../data/recommendations'
 import { DIM_COLORS_RGB, matColorRGB } from '../constants/colors'
 import { DIM_FRAMEWORKS_FLAT } from '../constants/frameworks'
+import { buildMatrixInsight } from './EffortImpactMatrix'
 
 // ── Colour palette ────────────────────────────────────────────────────────
 const C = {
@@ -969,6 +970,71 @@ function drawEffortImpactMatrix(doc, company, recs, pageNum) {
     setTextC(doc, C.slate500)
     doc.text(`E${rec.effort}/I${rec.impact}`, lx + 4 + doc.getTextWidth(rec.dimensionName) + 4, lyRow)
   })
+
+  // ── Insight block ─────────────────────────────────────────────────────
+  const insight = buildMatrixInsight(recs)
+  if (insight) {
+    const rows = Math.ceil(recs.length / 2)
+    let iy = ly + rows * 5 + 8
+
+    // "WHAT THIS TELLS YOU" eyebrow
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    setTextC(doc, C.slate500)
+    doc.text('WHAT THIS TELLS YOU', ML, iy)
+    iy += 4.5
+
+    // Background panel
+    const panelLines = []
+    if (insight.lead)      panelLines.push({ text: insight.lead,      bold: true  })
+    if (insight.secondary) panelLines.push({ text: insight.secondary, bold: false })
+    if (insight.tertiary)  panelLines.push({ text: insight.tertiary,  bold: false })
+
+    // Compute panel height up front so we can draw the background behind text
+    doc.setFontSize(9)
+    const wrapped = panelLines.map(p => ({
+      text: doc.splitTextToSize(p.text, CW - 10),
+      bold: p.bold,
+    }))
+    const textH = wrapped.reduce((acc, p) => acc + p.text.length * 4 + 2, 0)
+    const panelH = textH + 6 + 8  // + pad + quadrant chip row
+
+    setFill(doc, C.slate50)
+    setDraw(doc, C.slate200)
+    doc.setLineWidth(0.2)
+    doc.roundedRect(ML, iy, CW, panelH, 2, 2, 'FD')
+
+    // Render the paragraphs
+    let py = iy + 5
+    wrapped.forEach(p => {
+      doc.setFont('helvetica', p.bold ? 'bold' : 'normal')
+      setTextC(doc, p.bold ? C.slate900 : C.slate700)
+      doc.text(p.text, ML + 4, py)
+      py += p.text.length * 4 + 2
+    })
+
+    // Quadrant count chips below the text
+    const chipMeta = [
+      { key: 'quickWins',     label: 'Quick Wins',     bg: [209, 250, 229], color: [6, 95, 70] },
+      { key: 'strategicBets', label: 'Strategic Bets', bg: [219, 234, 254], color: [30, 64, 175] },
+      { key: 'considerLater', label: 'Consider Later', bg: [241, 245, 249], color: [71, 85, 105] },
+      { key: 'deprioritize',  label: 'Deprioritize',   bg: [254, 226, 226], color: [153, 27, 27] },
+    ]
+    let cx = ML + 4
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'bold')
+    chipMeta.forEach(chip => {
+      const n = insight.buckets[chip.key].length
+      if (!n) return
+      const label = `${chip.label}: ${n}`
+      const w = doc.getTextWidth(label) + 6
+      setFill(doc, chip.bg)
+      doc.roundedRect(cx, py, w, 4.5, 2, 2, 'F')
+      setTextC(doc, chip.color)
+      doc.text(label, cx + 3, py + 3.2)
+      cx += w + 3
+    })
+  }
 }
 
 // ── PAGE 5+: Recommendations ──────────────────────────────────────────────
