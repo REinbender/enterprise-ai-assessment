@@ -10,6 +10,7 @@ import { getIndustryProfile, isGovPhase1Industry, getComplianceRisk } from '../d
 import IndustryIntelligenceCard from './IndustryIntelligenceCard'
 import IndustryRegulatoryContextCard from './IndustryRegulatoryContextCard'
 import FrameworkAlignmentCard from './FrameworkAlignmentCard'
+import EffortImpactMatrix from './EffortImpactMatrix'
 import CompositePDFExportButton from './CompositePDFExport'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
@@ -1475,6 +1476,12 @@ export default function CompositeResults({ engagement, onBack, onUpdateEngagemen
 
         {/* ── Investment sequencing ─────────────────────────────────────── */}
         <SequencingRecommendation composite={composite} industry={company.industry} />
+
+        {/* ── Effort × Impact Matrix ────────────────────────────────────── */}
+        <EffortImpactMatrix
+          recommendations={recommendations.filter(r => r.tier !== 'sustain')}
+          subtitle={`Prioritize initiatives across ${composite.sessionCount} respondent${composite.sessionCount !== 1 ? 's' : ''} — Quick Wins first, Strategic Bets next`}
+        />
 
         {/* ── Composite recommendations ─────────────────────────────────── */}
         <div className="recs-section">
