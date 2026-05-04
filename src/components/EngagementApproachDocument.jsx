@@ -25,11 +25,14 @@ const BRAND = {
 // Per-prospect content. Edit this object to re-spin the document.
 const CLIENT = {
   name:        'Digital Process Transformation',  // department / org being assessed
+  industry:    'Utilities',
   recipients:  'Tricia and Matt',
   preparedBy:  'Logic20/20',
   date:        new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
   reference:   `DPT-AI-${new Date().toISOString().slice(0, 10)}`,
   deptSize:    50,
+  fteTotal:    2.5,
+  durationWeeks: 4,
 }
 
 export default function EngagementApproachDocument({ onClose }) {
@@ -316,7 +319,7 @@ function Page1() {
             num="2"
             title="Build vs. Copilot Decision Map"
             question="For our backlog and in-flight initiatives, which should ship on Copilot Studio / M365 Copilot / Power Platform — and which correctly require custom development?"
-            output="An initiative-by-initiative classification with rationale, productizing the decision tree your team has already started internally."
+            output="An initiative-by-initiative classification with rationale, plus an independent third-party review of the decision framework your team has already developed internally — validated, stress-tested, and refined where needed."
           />
           <QuestionRow
             num="3"
@@ -341,10 +344,14 @@ function Page1() {
           What this engagement is — and is not
         </div>
         <div style={{ fontSize: 9.5, lineHeight: 1.6 }}>
-          <strong>This is</strong> a focused, four-week diagnostic of {CLIENT.deptSize} people in {CLIENT.name},
-          producing three actionable artifacts and a 90-day execution plan. <strong>This is not</strong> a
-          re-run of an enterprise AI maturity assessment, a vendor selection, or a custom-build engagement.
-          We expect the diagnostic to feed downstream Logic20/20 enablement work — but those are scoped separately.
+          <strong>This is</strong> a focused {CLIENT.durationWeeks}-week diagnostic sprint of {CLIENT.deptSize} people
+          in {CLIENT.name}, delivered by a {CLIENT.fteTotal}-FTE Logic20/20 team, producing three decision-ready artifacts
+          and a 90-day execution plan. The work is scoped to a {CLIENT.industry}-sector context — Build-vs-Copilot
+          classifications weight data sensitivity and grid-relevant systems accordingly.
+          <strong> This is not</strong> a re-run of the enterprise AI maturity assessment your team already received,
+          a custom-build engagement, or a tooling deployment. We do not stand up new tenant configuration, dashboards,
+          or AI infrastructure — we leverage what is already enabled and synthesize.
+          Implementation and enablement work, if desired, is scoped separately downstream.
         </div>
       </div>
 
@@ -389,50 +396,111 @@ function Page2() {
 
       <Eyebrow>How we will produce the three artifacts</Eyebrow>
       <H1 style={{ marginBottom: 4 }}>Methodology</H1>
-      <div style={{ fontSize: 11, color: BRAND.body, marginBottom: 18 }}>
-        For each focus area: the inputs we need from your team, the Logic20/20 method we apply,
-        and the artifact you receive at week 4.
+
+      {/* Cross-cutting opener */}
+      <div
+        style={{
+          fontSize: 9.5,
+          color: BRAND.body,
+          lineHeight: 1.6,
+          marginBottom: 14,
+          padding: '10px 12px',
+          background: BRAND.bgLight,
+          border: `1px solid ${BRAND.border}`,
+          borderRadius: 4,
+        }}
+      >
+        <strong style={{ color: BRAND.dark }}>One instrument set, three artifacts.</strong>{' '}
+        A single department-wide survey (Microsoft Forms, in your tenant), 8–10 role-balanced 30-minute
+        interviews, and 3 manager validation calls feed all three deliverables — minimizing time asked
+        of your team. Logic20/20 will coordinate directly with your Microsoft account team for tool
+        inventory and access. We synthesize and interpret existing telemetry; we do not stand up new
+        tenant configuration, dashboards, or AI infrastructure.
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <MethodBlock
           num="1"
           title="Microsoft Stack Utilization"
           inputs={[
-            { label: 'Tool usage reports', detail: 'Microsoft 365 Admin Center · Power Platform admin center · GitHub Copilot business reports · Azure AI Foundry telemetry — exported by your IT admin and shared with the Logic20/20 team.' },
-            { label: 'Department-wide survey', detail: `12-question instrument administered to all ${CLIENT.deptSize} members of ${CLIENT.name}. Captures self-reported tool usage, awareness of recent features, and perceived blockers per role.` },
-            { label: 'Targeted interviews', detail: '8–10 30-minute interviews across senior devs, BAs, analysts, IT admins, and architects to validate survey signal and surface qualitative blockers.' },
+            { label: 'First-party Microsoft observability (whatever is enabled in your tenant)', detail: 'Microsoft 365 Copilot Dashboard · Microsoft Purview AI Hub · Power Platform admin center + CoE Starter Kit (if running) · GitHub Copilot business reports · Azure AI Foundry observability. Logic20/20 coordinates with your Microsoft account rep to inventory enabled tooling and request the relevant exports.' },
+            { label: 'Department-wide survey', detail: `Microsoft Forms instrument administered to all ${CLIENT.deptSize} members. Anonymous with role-level attribution only. Captures self-reported usage, awareness of recent feature releases, perceived blockers, and AI-Champion candidates.` },
+            { label: 'Role-balanced interviews', detail: '8–10 30-minute interviews across senior devs, mid devs, BAs, analysts, IT admins, and architects to validate survey signal and surface qualitative blockers.' },
           ]}
-          method="Cross-reference observed telemetry against self-reported usage to surface awareness gaps, license waste, and shadow tool patterns. Map each unused high-value feature to its role-relevant audience and estimated productivity impact."
-          output="Stack coverage scorecard (X of Y high-value features actively used), per-role coverage breakdown, ranked high-impact gap list with quantified reclaim estimates, and a maintained Microsoft Feature Watchlist of capabilities released in the last 90 days."
+          method="Cross-reference observed telemetry against self-reported usage. For each underused feature, classify the root cause using a six-bucket Barriers Framework — awareness · access/permissions · friction · skill · cultural · perceived risk — so each gap maps to a corresponding intervention category, not just a recommendation to use the feature."
+          output="Stack coverage scorecard (X of Y high-value features actively used), per-role coverage breakdown, license-economics view (utilization vs. seats — surfacing waste and shortages), ranked high-impact gap list with cause classification and quantified reclaim estimates, and a Microsoft Feature Watchlist of capabilities released in the last 90 days mapped to role-relevance."
         />
 
         <MethodBlock
           num="2"
           title="Build vs. Copilot Decision Map"
           inputs={[
-            { label: 'Backlog export', detail: 'Read-only export of your in-flight and proposed AI/automation initiatives from Azure DevOps, Jira, or your equivalent — including current technical approach, sponsor, and stage.' },
-            { label: 'Working sessions', detail: 'Two 60-minute working sessions with technical leads to walk Logic20/20 through the active and proposed initiatives. No repository access required.' },
-            { label: 'Internal decision tree', detail: 'We integrate the build-vs-Copilot decision logic your team has already started so the engagement productizes (and extends) your existing thinking rather than replacing it.' },
+            { label: 'Backlog export + selected pipeline access', detail: 'Read-only export of in-flight and proposed AI/automation initiatives from Azure DevOps, Jira, or equivalent. For contested initiatives, selected PR samples and pipeline visibility under NDA so classifications are defensible to your engineering leads.' },
+            { label: 'Working sessions with technical leads', detail: 'Two 60-minute walkthroughs of the active and proposed initiatives — current technical approach, sponsor, stage, and integration touchpoints.' },
+            { label: 'Review of your existing decision framework', detail: 'Independent third-party review of the build-vs-Copilot decision tree your team has already developed internally. We validate it against current Microsoft platform capabilities, stress-test classifications, and refine where needed — strengthening (not replacing) work your team has already invested in.' },
           ]}
-          method="Apply a six-factor decision framework — data sensitivity, workflow standardization, integration depth, user-volume economics, reusability, and speed-to-value — to each initiative. Custom builds are reserved for initiatives where two or more factors unambiguously require it."
-          output="Initiative-by-initiative classification (Ship on Copilot / Hybrid / Build Custom) with explicit rationale per initiative, estimated time and cost savings for any re-routes, and the decision criteria framework formalized as a reusable internal tool for future initiatives."
+          method={`Apply a six-factor decision framework — data sensitivity, workflow standardization, integration depth, user-volume / cost economics, reusability, speed-to-value — plus an explicit operating-model dimension (who owns the artifact on day 91? citizen-dev maintained, IT-governed, or engineering-owned?). For ${CLIENT.industry} sector specifically, data sensitivity and grid-relevant or NERC CIP-scoped systems are weighted heavily. Misclassified initiatives receive directional TCO estimates (token cost · seat license · dev hours · ongoing ops) at order-of-magnitude depth.`}
+          output="Initiative-by-initiative classification (Ship on Copilot / Hybrid / Build Custom) with explicit rationale per initiative including operating-model implication, directional TCO range for re-routed initiatives, and an endorsed (or refined) version of your internal decision framework that your team can apply to future initiatives without external help."
         />
 
         <MethodBlock
           num="3"
           title="Role-by-Role Training Matrix"
           inputs={[
-            { label: 'Department-wide survey', detail: `Same instrument as Area 1 — extended with 6 questions on current credentials (AI-900, AI-102, PL-300, etc.), comfort levels per Microsoft AI capability, and self-identified skill gaps. Required of all ${CLIENT.deptSize} department members.` },
-            { label: 'Manager validation', detail: 'Three 30-minute calls with team managers to validate survey results against observed work product and to surface skill gaps individuals may not self-report.' },
-            { label: 'Microsoft Learn catalog', detail: 'Logic20/20 maintains a current map of Microsoft Learn paths and certifications. We anchor recommendations to active credentials, not generic training topics.' },
+            { label: 'Department-wide survey (extended)', detail: `Same Microsoft Forms instrument as Area 1 — extended with credentials questions (AI-900, AI-102, PL-200, PL-300, MB-820, etc.), comfort levels per Microsoft AI capability, and self-identified skill gaps. AI-Champion candidates are flagged via the same survey.` },
+            { label: 'Manager validation calls', detail: 'Three 30-minute calls with team managers to validate self-reported credentials, identify gaps individuals may not self-report, and corroborate AI-Champion candidates against observed work product.' },
+            { label: 'Microsoft Learn catalog + community design', detail: 'Logic20/20 maintains a current map of Microsoft Learn paths, role-based certifications, and complementary internal program patterns (AI Champions, communities of practice, paired mentoring). We design blended plans — not catalog dumps.' },
           ]}
-          method="Bucket department members by role, score current capability against role-appropriate target levels, and identify gap topics. Sequence Microsoft Learn paths and certifications so prerequisites land before specialty paths. Estimate effort, cost, and capacity unlock per role."
-          output="Role × current credentials × identified gap × sequenced training plan, with weeks-of-effort, certification costs, and outcome-unlock estimates per role. Includes a Microsoft Learn collection link that managers can assign directly."
+          method="Bucket the department by role, score current capability against role-appropriate target levels, and identify gap topics. Identify the top 10–15% AI power users from the survey as Champion candidates. Design a blended uplift plan per role: certifications + Champion-led internal sessions + community of practice + paired mentoring. Sequence so prerequisites land before specialty paths."
+          output="Role × current credentials × identified gap × sequenced training plan with weeks-of-effort, certification costs, and a directional payback estimate (hours unlocked × loaded labor rate vs. training investment). Identified AI Champions named, with a recommended program structure. Microsoft Learn collection link managers can assign directly."
+        />
+      </div>
+
+      {/* Confidentiality / sample size / measurement footer */}
+      <div
+        style={{
+          marginTop: 12,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 8,
+        }}
+      >
+        <FooterStatement
+          label="Confidentiality"
+          body={`Survey responses are aggregated to role level only — no individual attribution in any deliverable. Interview content is non-attributable. Logic20/20 operates under standard NDA throughout.`}
+        />
+        <FooterStatement
+          label="Sample-size honesty"
+          body={`n=${CLIENT.deptSize} dept-wide enables strong department-level signal. Per-role n is small (typically 3–8); role-level findings are directional and qualified accordingly in deliverables.`}
+        />
+        <FooterStatement
+          label="90-day measurement"
+          body={`Each deliverable includes 3–5 explicit KPIs (e.g., stack coverage %, initiatives shipped on Copilot, certifications completed) so your team can measure execution against the plan independently.`}
         />
       </div>
 
       <PageFooter n={2} />
+    </div>
+  )
+}
+
+function FooterStatement({ label, body }) {
+  return (
+    <div
+      style={{
+        padding: 8,
+        background: 'white',
+        border: `1px solid ${BRAND.border}`,
+        borderTop: `3px solid ${BRAND.accent}`,
+        borderRadius: 4,
+        fontSize: 8,
+        lineHeight: 1.5,
+      }}
+    >
+      <div style={{ fontSize: 8, fontWeight: 800, color: BRAND.primary, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 3 }}>
+        {label}
+      </div>
+      <div style={{ color: BRAND.body }}>{body}</div>
     </div>
   )
 }
@@ -498,28 +566,28 @@ const TIMELINE = [
     label: 'Discovery &amp; Setup',
     bullets: [
       'Kickoff with Tricia, Matt, and Logic20/20 lead',
-      'Department-wide survey designed and launched (open through end of Week 2)',
-      'Interview slots scheduled across roles',
-      'Data exports requested: MS tool usage reports, backlog export',
+      'Alignment call with client&rsquo;s Microsoft account rep — tenant tooling inventory, exports requested',
+      'Department-wide Microsoft Forms survey designed and launched (open through end of Week 2)',
+      'Interview slots scheduled across roles; backlog export requested',
     ],
   },
   {
     week: 'Week 2',
     label: 'Data Collection',
     bullets: [
-      'Survey closes; 8–10 targeted interviews conducted',
-      'Tool usage reports received and parsed',
-      'Backlog and initiative inventory walked through with technical leads',
-      'Working sessions: build-vs-Copilot decision walkthrough',
+      'Survey closes; 8–10 role-balanced interviews conducted',
+      'First-party Microsoft observability data received and parsed',
+      'Working sessions with technical leads: backlog walkthrough + selected PR review',
+      'Independent review of client&rsquo;s internal build-vs-Copilot decision tree begins',
     ],
   },
   {
     week: 'Week 3',
     label: 'Analysis &amp; Synthesis',
     bullets: [
-      'Stack utilization scorecard built; gap rankings produced',
-      'Initiative classification applied; per-initiative rationale documented',
-      'Training matrix populated; sequencing reviewed against MS Learn catalog',
+      'Stack utilization scorecard built; gap rankings + Barriers Framework applied',
+      'Initiative classification + directional TCO; client&rsquo;s decision tree validated or refined',
+      'Training matrix populated; AI Champions identified; blended plan sequenced',
       'Mid-engagement checkpoint with Tricia and Matt — directional findings shared',
     ],
   },
@@ -527,10 +595,10 @@ const TIMELINE = [
     week: 'Week 4',
     label: 'Refinement &amp; Readout',
     bullets: [
-      'Findings reviewed with technical leads for accuracy and feasibility',
-      'Final readout deck and supporting PDF produced',
+      'Findings reviewed with technical leads and managers for accuracy and feasibility',
+      'Final readout deck (PowerPoint) and supporting PDF produced',
       '90-minute executive readout delivered (live, with Q&amp;A)',
-      '90-day execution plan finalized; SOW for downstream enablement work prepared if desired',
+      '90-day execution plan with KPIs finalized; SOW for downstream enablement scoped if desired',
     ],
   },
 ]
@@ -591,19 +659,20 @@ function Page3() {
           <H2>Final deliverables</H2>
           <ul style={{ margin: 0, paddingLeft: 14, fontSize: 9.5, lineHeight: 1.7, color: BRAND.body }}>
             <li><strong style={{ color: BRAND.dark }}>Executive readout deck (PowerPoint).</strong> The primary deliverable — presented live in week 4, structured around the three focus areas with quantified findings and recommendations.</li>
-            <li><strong style={{ color: BRAND.dark }}>Supporting PDF report.</strong> Companion artifact with the full underlying analysis: stack utilization scorecard, complete initiative classification, full role-by-role training matrix, and the 90-day execution plan.</li>
-            <li><strong style={{ color: BRAND.dark }}>Microsoft Feature Watchlist.</strong> Ongoing artifact your team can refer back to — a dated catalog of recent Microsoft AI feature releases, with role-relevance and impact estimates.</li>
-            <li><strong style={{ color: BRAND.dark }}>Reusable build-vs-Copilot decision framework.</strong> The six-factor decision tool, productized for ongoing use beyond the engagement.</li>
+            <li><strong style={{ color: BRAND.dark }}>Supporting PDF report.</strong> Companion artifact with the full underlying analysis: stack utilization scorecard, complete initiative classification, full role-by-role training matrix, and the 90-day execution plan with KPIs.</li>
+            <li><strong style={{ color: BRAND.dark }}>Microsoft Feature Watchlist.</strong> Dated catalog of recent Microsoft AI feature releases, with role-relevance and impact estimates — your team can refer back to it as new features ship.</li>
+            <li><strong style={{ color: BRAND.dark }}>Endorsed (or refined) build-vs-Copilot decision framework.</strong> Independent third-party review of your internal decision tree, validated against current Microsoft platform capabilities and ready for your team to apply to future initiatives.</li>
+            <li><strong style={{ color: BRAND.dark }}>AI Champions program outline.</strong> Identified power users from the survey + a recommended program structure for sustaining the upskilling plan beyond Logic20/20&rsquo;s engagement.</li>
           </ul>
         </div>
 
         <div>
-          <H2>Logic20/20 team</H2>
+          <H2>Logic20/20 team — {CLIENT.fteTotal} FTE</H2>
           <ul style={{ margin: 0, paddingLeft: 14, fontSize: 9.5, lineHeight: 1.7, color: BRAND.body }}>
-            <li><strong style={{ color: BRAND.dark }}>Engagement Lead.</strong> Owns delivery, exec-level interface, and final readout.</li>
-            <li><strong style={{ color: BRAND.dark }}>Microsoft AI Practice Architect.</strong> Drives stack utilization analysis, build-vs-Copilot classification, and feature watchlist maintenance.</li>
-            <li><strong style={{ color: BRAND.dark }}>Senior Consultant.</strong> Designs and runs the survey, conducts interviews, produces the training matrix.</li>
-            <li><strong style={{ color: BRAND.dark }}>Data Analyst (part-time).</strong> Processes telemetry, builds the scorecard, validates findings.</li>
+            <li><strong style={{ color: BRAND.dark }}>Engagement Lead — 1.0 FTE.</strong> Delivery accountability, exec-level interface, methodology integrity, final readout.</li>
+            <li><strong style={{ color: BRAND.dark }}>Microsoft AI Practice Architect — 0.75 FTE.</strong> Owns stack utilization analysis, build-vs-Copilot classification, decision-tree review, MS account-rep coordination.</li>
+            <li><strong style={{ color: BRAND.dark }}>Senior Consultant — 0.5 FTE.</strong> Survey design, interviews, manager calls, training matrix synthesis.</li>
+            <li><strong style={{ color: BRAND.dark }}>Data Analyst — 0.25 FTE.</strong> Telemetry parsing, scorecard build, KPI definition, findings validation.</li>
           </ul>
         </div>
       </div>
