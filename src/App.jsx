@@ -14,6 +14,7 @@ import RespondentForm from './components/RespondentForm'
 import ResultsPage from './components/ResultsPage'
 import CompositeResults from './components/CompositeResults'
 import ImportScreen from './components/ImportScreen'
+import EngagementApproachDocument from './components/EngagementApproachDocument'
 
 // App modes:
 // 'loading'      – initial mount, reading localStorage
@@ -24,6 +25,7 @@ import ImportScreen from './components/ImportScreen'
 // 'session-done' – Individual ResultsPage with Save to Engagement button
 // 'composite'    – CompositeResults (multi-respondent aggregate)
 // 'import'       – ImportScreen (drag-and-drop JSON files)
+// 'approach-doc' – EngagementApproachDocument (sales artifact, 3-page methodology PDF)
 
 const defaultAnswers    = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]: {} }), {})
 const defaultNotes      = () => dimensions.reduce((acc, d) => ({ ...acc, [d.id]: '' }), {})
@@ -324,6 +326,7 @@ export default function App() {
       onImport={() => setMode('import')}
       onExportEngagement={() => exportEngagement(engagement)}
       onResetEngagement={handleResetEngagement}
+      onOpenApproachDoc={() => setMode('approach-doc')}
     /></>
   )
 
@@ -408,6 +411,10 @@ export default function App() {
       onImport={handleImportSessions}
       onBack={() => setMode('hub')}
     /></>
+  )
+
+  if (mode === 'approach-doc') return (
+    <EngagementApproachDocument onClose={() => setMode('hub')} />
   )
 
   return null

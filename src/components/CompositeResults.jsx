@@ -11,6 +11,7 @@ import IndustryIntelligenceCard from './IndustryIntelligenceCard'
 import IndustryRegulatoryContextCard from './IndustryRegulatoryContextCard'
 import FrameworkAlignmentCard from './FrameworkAlignmentCard'
 import EffortImpactMatrix from './EffortImpactMatrix'
+import TacticalOperationalizationLayer from './TacticalOperationalizationLayer'
 import CompositePDFExportButton from './CompositePDFExport'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
@@ -1482,6 +1483,9 @@ export default function CompositeResults({ engagement, onBack, onUpdateEngagemen
           recommendations={recommendations.filter(r => r.tier !== 'sustain')}
           subtitle={`Prioritize initiatives across ${composite.sessionCount} respondent${composite.sessionCount !== 1 ? 's' : ''} — Quick Wins first, Strategic Bets next`}
         />
+
+        {/* ── Tactical Operationalization Layer (MOCKUP for client demo) ── */}
+        <TacticalOperationalizationLayer />
 
         {/* ── Composite recommendations ─────────────────────────────────── */}
         <div className="recs-section">
