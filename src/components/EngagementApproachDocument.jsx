@@ -424,7 +424,7 @@ function Page2() {
           title="Microsoft Stack Utilization"
           inputs={[
             { label: 'First-party Microsoft observability (whatever is enabled in your tenant)', detail: 'Microsoft 365 Copilot Dashboard · Microsoft Purview AI Hub · Power Platform admin center + CoE Starter Kit (if running) · GitHub Copilot business reports · Azure AI Foundry observability. Logic20/20 coordinates with your Microsoft account rep to inventory enabled tooling and request the relevant exports.' },
-            { label: 'Department-wide survey', detail: `Microsoft Forms instrument administered to all ${CLIENT.deptSize} members. Anonymous with role-level attribution only. Captures self-reported usage, awareness of recent feature releases, perceived blockers, and AI-Champion candidates.` },
+            { label: 'Department-wide survey', detail: `Microsoft Forms instrument administered to all ${CLIENT.deptSize} members. Anonymous with role-level attribution only. Captures self-reported usage, awareness of recent feature releases, and perceived blockers per role.` },
             { label: 'Role-balanced interviews', detail: '8–10 30-minute interviews across senior devs, mid devs, BAs, analysts, IT admins, and architects to validate survey signal and surface qualitative blockers.' },
           ]}
           method="Cross-reference observed telemetry against self-reported usage. For each underused feature, classify the root cause using a six-bucket Barriers Framework — awareness · access/permissions · friction · skill · cultural · perceived risk — so each gap maps to a corresponding intervention category, not just a recommendation to use the feature."
@@ -447,12 +447,12 @@ function Page2() {
           num="3"
           title="Role-by-Role Training Matrix"
           inputs={[
-            { label: 'Department-wide survey (extended)', detail: `Same Microsoft Forms instrument as Area 1 — extended with credentials questions (AI-900, AI-102, PL-200, PL-300, MB-820, etc.), comfort levels per Microsoft AI capability, and self-identified skill gaps. AI-Champion candidates are flagged via the same survey.` },
-            { label: 'Manager validation calls', detail: 'Three 30-minute calls with team managers to validate self-reported credentials, identify gaps individuals may not self-report, and corroborate AI-Champion candidates against observed work product.' },
-            { label: 'Microsoft Learn catalog + community design', detail: 'Logic20/20 maintains a current map of Microsoft Learn paths, role-based certifications, and complementary internal program patterns (AI Champions, communities of practice, paired mentoring). We design blended plans — not catalog dumps.' },
+            { label: 'Department-wide survey (extended)', detail: `Same Microsoft Forms instrument as Area 1 — extended with credentials questions (AI-900, AI-102, PL-200, PL-300, MB-820, etc.), comfort levels per Microsoft AI capability, and self-identified skill gaps.` },
+            { label: 'Manager validation calls', detail: 'Three 30-minute calls with team managers to validate self-reported credentials and identify gaps individuals may not self-report.' },
+            { label: 'Microsoft Learn catalog mapping', detail: 'Logic20/20 maintains a current map of Microsoft Learn paths and role-based certifications. Recommendations are anchored to active credentials, not generic training topics.' },
           ]}
-          method="Bucket the department by role, score current capability against role-appropriate target levels, and identify gap topics. Identify the top 10–15% AI power users from the survey as Champion candidates. Design a blended uplift plan per role: certifications + Champion-led internal sessions + community of practice + paired mentoring. Sequence so prerequisites land before specialty paths."
-          output="Role × current credentials × identified gap × sequenced training plan with weeks-of-effort, certification costs, and a directional payback estimate (hours unlocked × loaded labor rate vs. training investment). Identified AI Champions named, with a recommended program structure. Microsoft Learn collection link managers can assign directly."
+          method="Bucket the department by role / persona, score current capability against role-appropriate target levels using survey + manager validation, and identify the gap topics specific to each role. Sequence Microsoft Learn paths and certifications so prerequisites land before specialty paths. For each recommended next level, articulate the explicit organizational benefit — what new work product or capability the role unlocks."
+          output={`A report by role / persona: who is at what level today, what the recommended next level should be, and why — including the organizational benefit (what work product or capability that role can deliver once trained). Includes weeks-of-effort and certification costs per role, plus a Microsoft Learn collection link managers can assign directly.`}
         />
       </div>
 
@@ -587,7 +587,7 @@ const TIMELINE = [
     bullets: [
       'Stack utilization scorecard built; gap rankings + Barriers Framework applied',
       'Initiative classification + directional TCO; client&rsquo;s decision tree validated or refined',
-      'Training matrix populated; AI Champions identified; blended plan sequenced',
+      'Training matrix populated by role / persona; current vs. recommended next level mapped with organizational benefit',
       'Mid-engagement checkpoint with Tricia and Matt — directional findings shared',
     ],
   },
@@ -662,7 +662,6 @@ function Page3() {
             <li><strong style={{ color: BRAND.dark }}>Supporting PDF report.</strong> Companion artifact with the full underlying analysis: stack utilization scorecard, complete initiative classification, full role-by-role training matrix, and the 90-day execution plan with KPIs.</li>
             <li><strong style={{ color: BRAND.dark }}>Microsoft Feature Watchlist.</strong> Dated catalog of recent Microsoft AI feature releases, with role-relevance and impact estimates — your team can refer back to it as new features ship.</li>
             <li><strong style={{ color: BRAND.dark }}>Endorsed (or refined) build-vs-Copilot decision framework.</strong> Independent third-party review of your internal decision tree, validated against current Microsoft platform capabilities and ready for your team to apply to future initiatives.</li>
-            <li><strong style={{ color: BRAND.dark }}>AI Champions program outline.</strong> Identified power users from the survey + a recommended program structure for sustaining the upskilling plan beyond Logic20/20&rsquo;s engagement.</li>
           </ul>
         </div>
 
