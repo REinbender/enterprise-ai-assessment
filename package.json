@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.2",
     "canvg": "^4.0.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",

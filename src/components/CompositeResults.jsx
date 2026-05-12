@@ -12,6 +12,7 @@ import IndustryRegulatoryContextCard from './IndustryRegulatoryContextCard'
 import FrameworkAlignmentCard from './FrameworkAlignmentCard'
 import EffortImpactMatrix from './EffortImpactMatrix'
 import TacticalOperationalizationLayer from './TacticalOperationalizationLayer'
+import InsightsAgentPanel from './InsightsAgentPanel'
 import CompositePDFExportButton from './CompositePDFExport'
 
 const dimIcons = { 1: '🎯', 2: '🗄️', 3: '⚖️', 4: '👥', 5: '⚙️' }
@@ -1058,6 +1059,7 @@ export default function CompositeResults({ engagement, onBack, onUpdateEngagemen
   const radarRef   = useRef(null)
   const contentRef = useRef(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [showAgent, setShowAgent] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 400)
@@ -1107,6 +1109,23 @@ export default function CompositeResults({ engagement, onBack, onUpdateEngagemen
             <span className="topbar-logo-text">Readiness Assessment</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={() => setShowAgent(true)}
+              title="Open the Insights Agent — internal Logic20/20 consultant tool"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 6,
+                background: 'linear-gradient(135deg, #003D7A 0%, #5C2D91 100%)',
+                color: 'white', border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+              }}
+            >
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l.8 2.4L22 17l-2.2.6L19 20l-.8-2.4L16 17l2.2-.6L19 14zM5 16l.8 2.4L8 19l-2.2.6L5 22l-.8-2.4L2 19l2.2-.6L5 16z" />
+              </svg>
+              Insights Agent
+            </button>
             <button className="btn btn-ghost btn-sm" onClick={() => exportEngagement(engagement)}>
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -1693,6 +1712,15 @@ export default function CompositeResults({ engagement, onBack, onUpdateEngagemen
           </svg>
         </button>
       )}
+
+      {/* ── Insights Agent (internal Logic20/20 tool) ─────────────────── */}
+      <InsightsAgentPanel
+        open={showAgent}
+        onClose={() => setShowAgent(false)}
+        engagement={engagement}
+        composite={composite}
+        recommendations={recommendations}
+      />
     </div>
   )
 }
