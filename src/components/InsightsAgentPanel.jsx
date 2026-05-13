@@ -24,33 +24,69 @@ export default function InsightsAgentPanel({ open, onClose, engagement, composit
   const [activeCapability, setActive]     = useState(null)
   const [keyConfigured, setKeyConfigured] = useState(hasApiKey())
   const [showSettings, setShowSettings]   = useState(false)
+  // Conversation messages — persisted across turns so chat can continue from where a
+  // capability run left off. Cleared on Back / new capability click.
+  const [conversation, setConversation]   = useState([])
+  const [chatInput, setChatInput]         = useState('')
 
   // Re-evaluate key status whenever the settings modal closes
   useEffect(() => { if (!showSettings) setKeyConfigured(hasApiKey()) }, [showSettings])
 
-  const runCapability = async (key) => {
-    const cap = CAPABILITIES[key]
-    if (!cap || cap.status !== 'live' || !cap.prompt) return
+  // Shared submit path used by both capability buttons and the chat textbox.
+  // When `priorMessages` is provided, the agent loop continues from that state;
+  // otherwise it starts fresh.
+  const submitToAgent = async (userMessage, { priorMessages = [], isCapability = false } = {}) => {
     if (!hasApiKey()) { setShowSettings(true); return }
+    if (!userMessage?.trim()) return
 
-    setActive(key)
-    setEvents([])
-    setError(null)
+    if (!isCapability && priorMessages.length === 0) {
+      // First chat message with no prior capability — clear panel state.
+      setEvents([])
+      setError(null)
+    }
     setRunning(true)
 
     try {
-      await runAgent({
-        userMessage: cap.prompt,
+      const result = await runAgent({
+        userMessage,
+        priorMessages,
         engagement,
         composite,
         recommendations,
         onEvent: (evt) => setEvents(prev => [...prev, evt]),
       })
+      // Persist updated conversation so follow-up chat can continue from here.
+      if (result?.messages) setConversation(result.messages)
     } catch (e) {
       setError(e?.message || String(e))
     } finally {
       setRunning(false)
     }
+  }
+
+  const runCapability = async (key) => {
+    const cap = CAPABILITIES[key]
+    if (!cap || cap.status !== 'live' || !cap.prompt) return
+    setActive(key)
+    setEvents([])
+    setConversation([])
+    setError(null)
+    await submitToAgent(cap.prompt, { isCapability: true })
+  }
+
+  const sendChat = async () => {
+    const text = chatInput.trim()
+    if (!text || running) return
+    setChatInput('')
+    await submitToAgent(text, { priorMessages: conversation, isCapability: false })
+  }
+
+  const resetPanel = () => {
+    setEvents([])
+    setConversation([])
+    setError(null)
+    setActive(null)
+    setChatInput('')
   }
 
   if (!open) return null
@@ -133,7 +169,7 @@ export default function InsightsAgentPanel({ open, onClose, engagement, composit
           </div>
         )}
 
-        {/* Capability list */}
+        {/* Capability list — shown when idle and no events */}
         {keyConfigured && !running && events.length === 0 && (
           <div style={{ padding: '14px 16px', overflowY: 'auto', flex: 1 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 8 }}>
@@ -178,13 +214,27 @@ export default function InsightsAgentPanel({ open, onClose, engagement, composit
               })}
             </div>
 
+            {/* Free-text starter — alternative to capability buttons */}
+            <div style={{ marginTop: 14, padding: 12, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 6 }}>
+                Or ask anything
+              </div>
+              <ChatInput
+                value={chatInput}
+                onChange={setChatInput}
+                onSubmit={sendChat}
+                disabled={running}
+                placeholder="e.g. What's our biggest blindspot? Counter-argue our Operations rec."
+              />
+            </div>
+
             <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 14, lineHeight: 1.5, fontStyle: 'italic' }}>
               The agent uses your engagement data + live web search. Output is for internal use only — review and edit before sharing with the client.
             </div>
           </div>
         )}
 
-        {/* Running / output */}
+        {/* Running / output / chat-continuation */}
         {keyConfigured && (running || events.length > 0) && (
           <>
             <div style={{
@@ -193,11 +243,11 @@ export default function InsightsAgentPanel({ open, onClose, engagement, composit
               background: '#F8FAFC',
             }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>
-                {CAPABILITIES[activeCapability]?.label || 'Output'}
+                {CAPABILITIES[activeCapability]?.label || 'Conversation'}
                 {running && <span style={{ marginLeft: 8, fontSize: 10, color: '#64748B', fontWeight: 500 }}>running…</span>}
               </div>
               <button
-                onClick={() => { setEvents([]); setError(null); setActive(null) }}
+                onClick={resetPanel}
                 disabled={running}
                 style={{ ...ghostBtnStyle, fontSize: 11 }}
               >
@@ -216,6 +266,21 @@ export default function InsightsAgentPanel({ open, onClose, engagement, composit
                   <strong>Error:</strong> {error}
                 </div>
               )}
+            </div>
+
+            {/* Chat continuation input — pinned to bottom of panel */}
+            <div style={{
+              padding: '10px 12px',
+              borderTop: '1px solid #E2E8F0',
+              background: '#FFFFFF',
+            }}>
+              <ChatInput
+                value={chatInput}
+                onChange={setChatInput}
+                onSubmit={sendChat}
+                disabled={running}
+                placeholder={running ? 'Agent is working…' : 'Ask a follow-up question…'}
+              />
             </div>
           </>
         )}
@@ -259,6 +324,36 @@ function AgentEventStream({ events, running }) {
 function AgentEvent({ evt }) {
   if (evt.type === 'agent_start')   return null
   if (evt.type === 'agent_end')     return null
+
+  if (evt.type === 'user_message') {
+    return (
+      <div style={{
+        marginTop: 8,
+        padding: '8px 12px',
+        background: '#003D7A',
+        color: 'white',
+        borderRadius: 6,
+        fontSize: 12.5,
+        fontWeight: 500,
+        lineHeight: 1.5,
+        alignSelf: 'flex-end',
+        maxWidth: '92%',
+      }}>
+        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', opacity: 0.7, textTransform: 'uppercase', marginBottom: 3 }}>
+          You
+        </div>
+        {/* Show only the first line for long capability prompts; full text on demand */}
+        {evt.text.length > 240 ? (
+          <details>
+            <summary style={{ cursor: 'pointer' }}>{evt.text.slice(0, 180)}…</summary>
+            <div style={{ marginTop: 6, whiteSpace: 'pre-wrap' }}>{evt.text}</div>
+          </details>
+        ) : (
+          <div style={{ whiteSpace: 'pre-wrap' }}>{evt.text}</div>
+        )}
+      </div>
+    )
+  }
 
   if (evt.type === 'tool_use') {
     return (
@@ -379,6 +474,67 @@ function transformInline(text) {
     remaining = remaining.slice(next)
   }
   return parts
+}
+
+// ─── Chat input ────────────────────────────────────────────────────────────
+//
+// Auto-growing textarea with Enter-to-send (Shift+Enter for newline).
+// Submit button is disabled while the agent is running or input is empty.
+
+function ChatInput({ value, onChange, onSubmit, disabled, placeholder }) {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      if (!disabled) onSubmit()
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        disabled={disabled}
+        rows={2}
+        style={{
+          flex: 1,
+          padding: '8px 10px',
+          fontSize: 12.5,
+          fontFamily: 'inherit',
+          border: '1px solid #CBD5E1',
+          borderRadius: 6,
+          resize: 'vertical',
+          minHeight: 36,
+          maxHeight: 160,
+          background: disabled ? '#F1F5F9' : 'white',
+          color: '#0F172A',
+          lineHeight: 1.5,
+          outline: 'none',
+        }}
+      />
+      <button
+        onClick={onSubmit}
+        disabled={disabled || !value.trim()}
+        style={{
+          padding: '8px 12px',
+          border: 'none',
+          borderRadius: 6,
+          background: disabled || !value.trim() ? '#CBD5E1' : '#003D7A',
+          color: 'white',
+          fontSize: 12,
+          fontWeight: 700,
+          cursor: disabled || !value.trim() ? 'not-allowed' : 'pointer',
+          fontFamily: 'inherit',
+          whiteSpace: 'nowrap',
+        }}
+        title="Send (Enter)"
+      >
+        Send
+      </button>
+    </div>
+  )
 }
 
 // ─── API key settings ──────────────────────────────────────────────────────

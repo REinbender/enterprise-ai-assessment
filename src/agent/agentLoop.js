@@ -17,12 +17,28 @@ import { buildSystemPrompt } from './systemPrompt'
 
 const MAX_TURNS = 10  // Hard cap to prevent runaway loops.
 
-export async function runAgent({ userMessage, engagement, composite, recommendations, onEvent }) {
+/**
+ * runAgent: tool-use loop against Claude.
+ *
+ * @param {object} args
+ * @param {string} args.userMessage - the new user turn
+ * @param {Array}  [args.priorMessages] - prior turns to continue from (multi-turn chat)
+ * @param {object} args.engagement
+ * @param {object} args.composite
+ * @param {Array}  args.recommendations
+ * @param {function} [args.onEvent] - streaming callback for UI
+ *
+ * @returns {{ events: Array, messages: Array, finalContent?: any, truncated?: boolean }}
+ *   `messages` is the updated conversation history including the new turns —
+ *   callers should persist it to enable multi-turn follow-up.
+ */
+export async function runAgent({ userMessage, priorMessages = [], engagement, composite, recommendations, onEvent }) {
   const client = buildClient()
   const executors = buildExecutors({ engagement, composite, recommendations })
   const systemPrompt = buildSystemPrompt({ engagement, composite })
 
-  const messages = [{ role: 'user', content: userMessage }]
+  // Continue the conversation from priorMessages by appending the new user turn.
+  const messages = [...priorMessages, { role: 'user', content: userMessage }]
   const events = []
 
   const emit = (evt) => {
@@ -30,6 +46,7 @@ export async function runAgent({ userMessage, engagement, composite, recommendat
     if (onEvent) onEvent(evt)
   }
 
+  emit({ type: 'user_message', text: userMessage })
   emit({ type: 'agent_start', message: userMessage })
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -75,8 +92,10 @@ export async function runAgent({ userMessage, engagement, composite, recommendat
     }
 
     if (response.stop_reason === 'end_turn' || response.stop_reason === 'stop_sequence') {
+      // Append the final assistant turn to messages so the conversation can be continued.
+      messages.push({ role: 'assistant', content: response.content })
       emit({ type: 'agent_end', turns: turn + 1, events })
-      return { events, finalContent: response.content }
+      return { events, messages, finalContent: response.content }
     }
 
     if (response.stop_reason === 'tool_use') {
@@ -127,5 +146,5 @@ export async function runAgent({ userMessage, engagement, composite, recommendat
   }
 
   emit({ type: 'agent_end', turns: MAX_TURNS, events, truncated: true })
-  return { events, truncated: true }
+  return { events, messages, truncated: true }
 }
